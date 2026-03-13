@@ -12,14 +12,14 @@ import { FormRendererComponent } from '../form-renderer/form-renderer.component'
 type RightTab = 'properties' | 'script';
 
 @Component({
-    selector: 'app-builder-container',
-    standalone: true,
-    imports: [
-        CommonModule, FormsModule, DragDropModule,
-        FieldPaletteComponent, CanvasSectionComponent, PropertyEditorComponent,
-        ScriptEditorComponent, FormRendererComponent
-    ],
-    template: `
+  selector: 'app-builder-container',
+  standalone: true,
+  imports: [
+    CommonModule, FormsModule, DragDropModule,
+    FieldPaletteComponent, CanvasSectionComponent, PropertyEditorComponent,
+    ScriptEditorComponent, FormRendererComponent
+  ],
+  template: `
   <div class="flex flex-col h-screen bg-zinc-100 overflow-hidden">
     <!-- ── Top Toolbar ─────────────────────────────────────── -->
     <header class="z-30 h-12 bg-white border-b border-zinc-200 flex items-center px-4 gap-3 shrink-0 shadow-sm">
@@ -92,7 +92,7 @@ type RightTab = 'properties' | 'script';
       <div class="flex flex-1 min-h-0">
         <!-- LEFT: Field Palette -->
         <aside class="w-52 shrink-0 bg-white border-r border-zinc-200 flex flex-col overflow-hidden">
-          <app-field-palette></app-field-palette>
+          <app-field-palette [connectedLists]="allColumnIds()"></app-field-palette>
         </aside>
 
         <!-- CENTER: Canvas -->
@@ -179,34 +179,34 @@ type RightTab = 'properties' | 'script';
   `
 })
 export class BuilderContainerComponent implements OnInit {
-    state = inject(BuilderStateService);
-    rightTab: RightTab = 'properties';
+  state = inject(BuilderStateService);
+  rightTab: RightTab = 'properties';
 
-    allColumnIds = computed(() =>
-        this.state.docType().sections.flatMap(s => s.columns.map(c => c.id))
-    );
+  allColumnIds = computed(() =>
+    this.state.docType().sections.flatMap(s => s.columns.map(c => c.id))
+  );
 
-    fieldCount = computed(() =>
-        this.state.docType().sections.reduce((total, s) =>
-            total + s.columns.reduce((ct, c) => ct + c.fields.length, 0), 0)
-    );
+  fieldCount = computed(() =>
+    this.state.docType().sections.reduce((total, s) =>
+      total + s.columns.reduce((ct, c) => ct + c.fields.length, 0), 0)
+  );
 
-    sectionCount = computed(() => this.state.docType().sections.length);
+  sectionCount = computed(() => this.state.docType().sections.length);
 
-    ngOnInit() {
-        // listen for palette's section add shortcut
-        document.addEventListener('add-section', () => this.addSection());
-    }
+  ngOnInit() {
+    // listen for palette's section add shortcut
+    document.addEventListener('add-section', () => this.addSection());
+  }
 
-    setMode(mode: 'builder' | 'preview') { this.state.mode.set(mode); }
-    addSection() { this.state.addSection(); }
+  setMode(mode: 'builder' | 'preview') { this.state.mode.set(mode); }
+  addSection() { this.state.addSection(); }
 
-    exportJson() {
-        const json = JSON.stringify(this.state.docType(), null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = `${this.state.docType().name.replace(/\s+/g, '_')}.json`;
-        a.click();
-    }
+  exportJson() {
+    const json = JSON.stringify(this.state.docType(), null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${this.state.docType().name.replace(/\s+/g, '_')}.json`;
+    a.click();
+  }
 }

@@ -7,10 +7,10 @@ import { BuilderStateService } from '../../services/builder-state.service';
 import { CanvasColumnComponent } from './canvas-column.component';
 
 @Component({
-    selector: 'app-canvas-section',
-    standalone: true,
-    imports: [CommonModule, FormsModule, DragDropModule, CanvasColumnComponent],
-    template: `
+  selector: 'app-canvas-section',
+  standalone: true,
+  imports: [CommonModule, FormsModule, DragDropModule, CanvasColumnComponent],
+  template: `
     <div class="border border-zinc-200 rounded-xl bg-white shadow-sm overflow-hidden mb-4">
       <!-- Section Header -->
       <div class="flex items-center gap-2 px-4 py-2.5 bg-zinc-50 border-b border-zinc-200">
@@ -56,7 +56,7 @@ import { CanvasColumnComponent } from './canvas-column.component';
             [section]="section"
             [column]="col"
             [dropListId]="col.id"
-            [connectedLists]="allColumnIds()"
+            [connectedLists]="getConnectedLists()"
             [isLast]="last"
           ></app-canvas-column>
         }
@@ -65,24 +65,28 @@ import { CanvasColumnComponent } from './canvas-column.component';
   `
 })
 export class CanvasSectionComponent {
-    @Input() section!: LayoutSection;
-    @Input() allColumnIds!: () => string[];
+  @Input() section!: LayoutSection;
+  @Input() allColumnIds!: () => string[];
 
-    private state = inject(BuilderStateService);
-    editing = signal(false);
-    editValue = '';
+  private state = inject(BuilderStateService);
+  editing = signal(false);
+  editValue = '';
 
-    startEdit() {
-        this.editValue = this.section.label ?? '';
-        this.editing.set(true);
-        setTimeout(() => (document.querySelector('input') as HTMLInputElement)?.focus(), 0);
-    }
+  startEdit() {
+    this.editValue = this.section.label ?? '';
+    this.editing.set(true);
+    setTimeout(() => (document.querySelector('input') as HTMLInputElement)?.focus(), 0);
+  }
 
-    saveLabel() {
-        this.state.updateSectionLabel(this.section.id, this.editValue);
-        this.editing.set(false);
-    }
+  saveLabel() {
+    this.state.updateSectionLabel(this.section.id, this.editValue);
+    this.editing.set(false);
+  }
 
-    addColumn() { this.state.addColumn(this.section.id); }
-    removeSection() { this.state.removeSection(this.section.id); }
+  addColumn() { this.state.addColumn(this.section.id); }
+  removeSection() { this.state.removeSection(this.section.id); }
+
+  getConnectedLists() {
+    return ['palette-list', ...this.allColumnIds()];
+  }
 }
