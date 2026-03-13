@@ -1,14 +1,14 @@
 import { Injectable, signal, computed, WritableSignal } from '@angular/core';
-import { DocType, DocField, LayoutSection, LayoutColumn, FieldType } from '../models/doctype.model';
+import { DocumentDefinition, DocumentField, DocumentSection, DocumentColumn, FieldType } from '../models/document.model';
 
 let _uid = 0;
 function uid() { return `id_${++_uid}_${Math.random().toString(36).slice(2, 7)}`; }
 
 @Injectable({ providedIn: 'root' })
 export class BuilderStateService {
-    // Main DocType state
-    readonly docType: WritableSignal<DocType> = signal({
-        name: 'New DocType',
+    // Main Document state
+    readonly document: WritableSignal<DocumentDefinition> = signal({
+        name: 'New Document',
         version: '1.0.0',
         sections: [],
         client_script: '',
@@ -31,9 +31,9 @@ export class BuilderStateService {
     readonly selectedField = computed(() => {
         const id = this.selectedFieldId();
         if (!id) return null;
-        for (const section of this.docType().sections) {
+        for (const section of this.document().sections) {
             for (const col of section.columns) {
-                const f = col.fields.find(f => f.id === id);
+                const f = col.fields.find((f: DocumentField) => f.id === id);
                 if (f) return f;
             }
         }
@@ -43,40 +43,40 @@ export class BuilderStateService {
     readonly selectedSection = computed(() => {
         const id = this.selectedSectionId();
         if (!id) return null;
-        return this.docType().sections.find(s => s.id === id) || null;
+        return this.document().sections.find((s: DocumentSection) => s.id === id) || null;
     });
 
-    // ── DocType metadata ──────────────────────────────────────
-    setDocTypeName(name: string) {
-        this.docType.update(dt => ({ ...dt, name }));
+    // ── Document metadata ──────────────────────────────────────
+    setDocumentName(name: string) {
+        this.document.update(doc => ({ ...doc, name }));
     }
 
-    setDocTypeMetadata(metadata: Partial<DocType>) {
-        this.docType.update(dt => ({ ...dt, ...metadata }));
+    setDocumentMetadata(metadata: Partial<DocumentDefinition>) {
+        this.document.update(doc => ({ ...doc, ...metadata }));
     }
 
     setClientScript(script: string) {
-        this.docType.update(dt => ({ ...dt, client_script: script }));
+        this.document.update(doc => ({ ...doc, client_script: script }));
     }
 
     setIntro(text: string, color?: 'blue' | 'orange' | 'red' | 'gray') {
-        this.docType.update(dt => ({
-            ...dt,
+        this.document.update(doc => ({
+            ...doc,
             intro_text: text,
-            intro_color: color || dt.intro_color || 'gray'
+            intro_color: color || doc.intro_color || 'gray'
         }));
     }
 
     setModule(module: string) {
-        this.docType.update(dt => ({ ...dt, module }));
+        this.document.update(doc => ({ ...doc, module }));
     }
 
-    importDocType(json: string) {
+    importDocument(json: string) {
         try {
             const data = JSON.parse(json);
             // Basic validation
             if (data && typeof data === 'object' && Array.isArray(data.sections)) {
-                this.docType.set(data);
+                this.document.set(data);
                 this.selectedFieldId.set(null);
                 return true;
             }
@@ -88,64 +88,71 @@ export class BuilderStateService {
 
     // ── Sections ──────────────────────────────────────────────
     addSection() {
-        const section: LayoutSection = {
+        const section: DocumentSection = {
             id: uid(),
-            label: `Section ${this.docType().sections.length + 1}`,
+            label: `Section ${this.document().sections.length + 1}`,
             columns: [{ id: uid(), fields: [] }, { id: uid(), fields: [] }]
         };
-        this.docType.update(dt => ({ ...dt, sections: [...dt.sections, section] }));
+        this.document.update(doc => ({ ...doc, sections: [...doc.sections, section] }));
     }
 
     removeSection(sectionId: string) {
-        this.docType.update(dt => ({
-            ...dt,
-            sections: dt.sections.filter(s => s.id !== sectionId)
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.filter((s: DocumentSection) => s.id !== sectionId)
         }));
     }
 
     updateSectionLabel(sectionId: string, label: string) {
-        this.docType.update(dt => ({
-            ...dt,
-            sections: dt.sections.map(s => s.id === sectionId ? { ...s, label } : s)
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.map((s: DocumentSection) => s.id === sectionId ? { ...s, label } : s)
         }));
     }
 
     updateSectionDescription(sectionId: string, description: string) {
-        this.docType.update(dt => ({
-            ...dt,
-            sections: dt.sections.map(s => s.id === sectionId ? { ...s, description } : s)
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.map((s: DocumentSection) => s.id === sectionId ? { ...s, description } : s)
         }));
     }
 
     updateSectionDependsOn(sectionId: string, depends_on: string) {
-        this.docType.update(dt => ({
-            ...dt,
-            sections: dt.sections.map(s => s.id === sectionId ? { ...s, depends_on } : s)
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.map((s: DocumentSection) => s.id === sectionId ? { ...s, depends_on } : s)
+        }));
+    }
+
+    updateSectionProperty(sectionId: string, prop: keyof DocumentSection, val: any) {
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.map((s: DocumentSection) => s.id === sectionId ? { ...s, [prop]: val } : s)
         }));
     }
 
     updateSectionColumns(sectionId: string, columns_count: 1 | 2) {
-        this.docType.update(dt => ({
-            ...dt,
-            sections: dt.sections.map(s => s.id === sectionId ? { ...s, columns_count } : s)
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.map((s: DocumentSection) => s.id === sectionId ? { ...s, columns_count } : s)
         }));
     }
 
     // ── Columns ───────────────────────────────────────────────
     addColumn(sectionId: string) {
-        this.docType.update(dt => ({
-            ...dt,
-            sections: dt.sections.map(s => s.id === sectionId
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.map((s: DocumentSection) => s.id === sectionId
                 ? { ...s, columns: [...s.columns, { id: uid(), fields: [] }] }
                 : s)
         }));
     }
 
     removeColumn(sectionId: string, colId: string) {
-        this.docType.update(dt => ({
-            ...dt,
-            sections: dt.sections.map(s => s.id === sectionId
-                ? { ...s, columns: s.columns.filter(c => c.id !== colId) }
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.map((s: DocumentSection) => s.id === sectionId
+                ? { ...s, columns: s.columns.filter((c: DocumentColumn) => c.id !== colId) }
                 : s)
         }));
     }
@@ -154,7 +161,7 @@ export class BuilderStateService {
     addField(sectionId: string, colId: string, fieldtype: FieldType, index?: number) {
         const label = fieldtype === 'Check' ? 'Checkbox Field' : `${fieldtype} Field`;
         const slug = label.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '_') + '_' + (_uid + 1);
-        const field: DocField = {
+        const field: DocumentField = {
             id: uid(),
             fieldname: slug,
             fieldtype,
@@ -164,12 +171,12 @@ export class BuilderStateService {
             mandatory: false,
             default: fieldtype === 'Check' ? 0 : undefined
         };
-        this.docType.update(dt => ({
-            ...dt,
-            sections: dt.sections.map(s => s.id === sectionId
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.map((s: DocumentSection) => s.id === sectionId
                 ? {
                     ...s,
-                    columns: s.columns.map(c => {
+                    columns: s.columns.map((c: DocumentColumn) => {
                         if (c.id !== colId) return c;
                         const fields = [...c.fields];
                         if (index !== undefined) fields.splice(index, 0, field);
@@ -185,26 +192,26 @@ export class BuilderStateService {
 
     removeField(fieldId: string) {
         if (this.selectedFieldId() === fieldId) this.selectedFieldId.set(null);
-        this.docType.update(dt => ({
-            ...dt,
-            sections: dt.sections.map(s => ({
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.map((s: DocumentSection) => ({
                 ...s,
-                columns: s.columns.map(c => ({
+                columns: s.columns.map((c: DocumentColumn) => ({
                     ...c,
-                    fields: c.fields.filter(f => f.id !== fieldId)
+                    fields: c.fields.filter((f: DocumentField) => f.id !== fieldId)
                 }))
             }))
         }));
     }
 
-    updateField(fieldId: string, patch: Partial<DocField>) {
-        this.docType.update(dt => ({
-            ...dt,
-            sections: dt.sections.map(s => ({
+    updateField(fieldId: string, patch: Partial<DocumentField>) {
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.map((s: DocumentSection) => ({
                 ...s,
-                columns: s.columns.map(c => ({
+                columns: s.columns.map((c: DocumentColumn) => ({
                     ...c,
-                    fields: c.fields.map(f => f.id === fieldId ? { ...f, ...patch } : f)
+                    fields: c.fields.map((f: DocumentField) => f.id === fieldId ? { ...f, ...patch } : f)
                 }))
             }))
         }));
@@ -215,12 +222,12 @@ export class BuilderStateService {
         fromSectionId: string, fromColId: string, fromIndex: number,
         toSectionId: string, toColId: string, toIndex: number
     ) {
-        let field!: DocField;
-        this.docType.update(dt => {
+        let field!: DocumentField;
+        this.document.update(doc => {
             // Extract
-            const sections = dt.sections.map(s => ({
+            const sections = doc.sections.map((s: DocumentSection) => ({
                 ...s,
-                columns: s.columns.map(c => {
+                columns: s.columns.map((c: DocumentColumn) => {
                     if (s.id === fromSectionId && c.id === fromColId) {
                         const fields = [...c.fields];
                         [field] = fields.splice(fromIndex, 1);
@@ -231,10 +238,10 @@ export class BuilderStateService {
             }));
             // Insert
             return {
-                ...dt,
-                sections: sections.map(s => ({
+                ...doc,
+                sections: sections.map((s: DocumentSection) => ({
                     ...s,
-                    columns: s.columns.map(c => {
+                    columns: s.columns.map((c: DocumentColumn) => {
                         if (s.id === toSectionId && c.id === toColId) {
                             const fields = [...c.fields];
                             fields.splice(toIndex, 0, field);
@@ -247,29 +254,31 @@ export class BuilderStateService {
         });
     }
 
-    selectField(fieldId: string | null) {
-        this.showFormSettings.set(false);
-        this.selectedSectionId.set(null);
-        this.selectedFieldId.set(fieldId);
+    moveSection(fromIndex: number, toIndex: number) {
+        this.document.update(doc => {
+            const sections = [...doc.sections];
+            const [moved] = sections.splice(fromIndex, 1);
+            sections.splice(toIndex, 0, moved);
+            return { ...doc, sections };
+        });
     }
 
-    selectSection(sectionId: string | null) {
-        this.showFormSettings.set(false);
-        this.selectedFieldId.set(null);
-        this.selectedSectionId.set(sectionId);
-    }
-
+    // Tools
     selectFormSettings() {
         this.selectedFieldId.set(null);
         this.selectedSectionId.set(null);
         this.showFormSettings.set(true);
     }
 
-    setDynamicIntro(message: string, color: string = 'blue') {
-        this.dynamicIntro.set({ message, color });
+    selectSection(id: string) {
+        this.selectedFieldId.set(null);
+        this.showFormSettings.set(false);
+        this.selectedSectionId.set(id);
     }
 
-    toggleMode() {
-        this.mode.update(m => m === 'builder' ? 'preview' : 'builder');
+    selectField(id: string) {
+        this.selectedSectionId.set(null);
+        this.showFormSettings.set(false);
+        this.selectedFieldId.set(id);
     }
 }

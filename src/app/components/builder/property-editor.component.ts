@@ -2,7 +2,7 @@ import { Component, computed, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { BuilderStateService } from '../../services/builder-state.service';
-import { DocField, FieldType } from '../../models/doctype.model';
+import { DocumentField, FieldType } from '../../models/document.model';
 
 const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Link', 'Check', 'Date', 'Password'];
 
@@ -24,28 +24,28 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
               <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Form Settings</span>
            </div>
            
-           <!-- DocType Name -->
+           <!-- Document Name -->
            <div class="space-y-1.5">
              <label class="ui-label font-bold text-zinc-600">Document / Form Name</label>
-             <input class="ui-input" [ngModel]="state.docType().name" (ngModelChange)="updateFormMetadata({ name: $event })" placeholder="e.g. Lead, Customer">
+             <input class="ui-input" [ngModel]="state.document().name" (ngModelChange)="updateFormMetadata({ name: $event })" placeholder="e.g. Lead, Customer">
            </div>
 
            <!-- Module -->
            <div class="space-y-1.5">
              <label class="ui-label font-bold text-zinc-600">Module / Package</label>
-             <input class="ui-input" [ngModel]="state.docType().module" (ngModelChange)="updateFormMetadata({ module: $event })" placeholder="e.g. Core System">
+             <input class="ui-input" [ngModel]="state.document().module" (ngModelChange)="updateFormMetadata({ module: $event })" placeholder="e.g. Core System">
            </div>
 
            <!-- Version -->
            <div class="space-y-1.5">
              <label class="ui-label font-bold text-zinc-600">Version</label>
-             <input class="ui-input" [ngModel]="state.docType().version" (ngModelChange)="updateFormMetadata({ version: $event })" placeholder="e.g. 1.0.0">
+             <input class="ui-input" [ngModel]="state.document().version" (ngModelChange)="updateFormMetadata({ version: $event })" placeholder="e.g. 1.0.0">
            </div>
 
            <!-- Description -->
            <div class="space-y-1.5">
              <label class="ui-label font-bold text-zinc-600">Description</label>
-             <textarea class="ui-textarea text-xs" rows="2" [ngModel]="state.docType().description" (ngModelChange)="updateFormMetadata({ description: $event })" placeholder="Overview of this DocType..."></textarea>
+             <textarea class="ui-textarea text-xs" rows="2" [ngModel]="state.document().description" (ngModelChange)="updateFormMetadata({ description: $event })" placeholder="Overview of this Document..."></textarea>
            </div>
 
            <div class="ui-sep"></div>
@@ -60,7 +60,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
              <div class="space-y-1.5">
                <label class="ui-label font-bold text-zinc-600">Intro Message (HTML supported)</label>
                <textarea class="ui-textarea text-xs leading-relaxed" rows="5" 
-                 [ngModel]="state.docType().intro_text" 
+                 [ngModel]="state.document().intro_text" 
                  (ngModelChange)="updateFormMetadata({ intro_text: $event })"
                  placeholder="Helpful documentation or instructions for users shown at the top of this form..."></textarea>
              </div>
@@ -72,11 +72,11 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
                     <button (click)="updateFormMetadata({ intro_color: c })"
                       class="h-8 rounded-md border-2 transition-all flex items-center justify-center relative group overflow-hidden"
                       [title]="c | titlecase"
-                      [class.border-indigo-600]="state.docType().intro_color === c"
-                      [class.border-zinc-200]="state.docType().intro_color !== c"
+                      [class.border-indigo-600]="state.document().intro_color === c"
+                      [class.border-zinc-200]="state.document().intro_color !== c"
                       [ngClass]="getIntroPreviewClass(c)"
                     >
-                      @if (state.docType().intro_color === c) {
+                      @if (state.document().intro_color === c) {
                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>
                       }
                     </button>
@@ -193,7 +193,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
           @if (field()!.fieldtype === 'Select' || field()!.fieldtype === 'Link') {
             <div>
               <label class="ui-label">
-                {{ field()!.fieldtype === 'Select' ? 'Options (one per line)' : 'Linked DocType' }}
+                {{ field()!.fieldtype === 'Select' ? 'Options (one per line)' : 'Linked Document' }}
               </label>
               @if (field()!.fieldtype === 'Select') {
                 <textarea class="ui-textarea font-mono" rows="4"
@@ -249,13 +249,16 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
 
           <div class="ui-sep"></div>
 
-          <!-- display_depends_on -->
+          <div class="ui-sep"></div>
+
+          <!-- Depends On -->
           <div>
-            <label class="ui-label">Display Depends On <span class="text-zinc-400">(JS expression)</span></label>
+            <label class="ui-label">Depends On <span class="text-zinc-400">(JS expression)</span></label>
             <input class="ui-input font-mono text-xs"
-              [ngModel]="field()!.display_depends_on"
-              (ngModelChange)="update('display_depends_on', $event)"
+              [ngModel]="field()!.depends_on"
+              (ngModelChange)="update('depends_on', $event)"
               placeholder="doc.status === 'Active'">
+            <p class="text-[11px] text-zinc-400 mt-1">Field is visible when this expression is truthy</p>
           </div>
 
           <!-- mandatory_depends_on -->
@@ -265,16 +268,6 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
               [ngModel]="field()!.mandatory_depends_on"
               (ngModelChange)="update('mandatory_depends_on', $event)"
               placeholder="doc.priority === 'High'">
-          </div>
-
-          <!-- depends_on (Legacy/Default) -->
-          <div>
-            <label class="ui-label">Depends On <span class="text-zinc-400">(FormFlow expression)</span></label>
-            <input class="ui-input font-mono text-xs"
-              [ngModel]="field()!.depends_on"
-              (ngModelChange)="update('depends_on', $event)"
-              placeholder="doc.amount > 10000">
-            <p class="text-[11px] text-zinc-400 mt-1">Field is visible when this expression is truthy</p>
           </div>
 
           <!-- Help Accordion -->
@@ -295,11 +288,11 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
                          UI Manipulation (API)
                       </p>
                       <div class="bg-zinc-900 text-indigo-300 p-2 rounded font-mono text-[10px] space-y-1 overflow-x-auto">
-                        <div><span class="text-zinc-500">// Read Only / Hidden</span></div>
-                        <div>frm.set_df_property('fn', 'read_only', <span class="text-orange-400">1</span>);</div>
-                        <div>frm.set_df_property('fn', 'hidden', <span class="text-orange-400">1</span>);</div>
-                        <div><span class="text-zinc-500">// Change Label / Desc</span></div>
-                        <div>frm.set_df_property('fn', 'label', <span class="text-green-400">'New Name'</span>);</div>
+                         <div><span class="text-zinc-500">// Read Only / Hidden</span></div>
+                         <div>frm.set_df_property('fieldname', 'read_only', 1);</div>
+                         <div>frm.set_df_property('fieldname', 'hidden', 1);</div>
+                         <div><span class="text-zinc-500">// Change Label / Desc</span></div>
+                         <div>frm.set_df_property('fieldname', 'label', 'New Name');</div>
                       </div>
                    </div>
 
@@ -311,9 +304,9 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
                       </p>
                       <div class="bg-zinc-900 text-indigo-300 p-2 rounded font-mono text-[10px] space-y-2 overflow-x-auto">
                         <div><span class="text-zinc-500">// Runs on form load</span>
-                        <br>frm.on(<span class="text-green-400">'refresh'</span>, () => &#123; ... &#125;);</div>
+                        <br>frm.on('refresh', () => &#123; ... &#125;);</div>
                         <div><span class="text-zinc-500">// Runs on field change</span>
-                        <br>frm.on(<span class="text-green-400">'fieldname'</span>, (val) => &#123; ... &#125;);</div>
+                        <br>frm.on('fieldname', (val) => &#123; ... &#125;);</div>
                       </div>
                    </div>
 
@@ -324,10 +317,10 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
                          Prompts & Alerts
                       </p>
                       <div class="bg-zinc-900 text-indigo-300 p-2 rounded font-mono text-[10px] space-y-2 overflow-x-auto">
-                        <div>app.show_alert(<span class="text-green-400">'Saved!'</span>, <span class="text-green-400">'success'</span>);</div>
+                        <div>app.show_alert('Saved!', 'success');</div>
                         <div>app.prompt([
-                        <br>&nbsp;&nbsp;&#123; label: <span class="text-green-400">'Name'</span>, fieldname: <span class="text-green-400">'n'</span>, fieldtype: <span class="text-green-400">'Data'</span> &#125;
-                        <br>], <span class="text-green-400">'Dialog Title'</span>).then(v => ...);</div>
+                        <br>&nbsp;&nbsp;&#123; label: 'Name', fieldname: 'n', fieldtype: 'Data' &#125;
+                        <br>], 'Dialog Title').then(v => ...);</div>
                       </div>
                    </div>
                 </div>
@@ -352,7 +345,7 @@ export class PropertyEditorComponent {
   section = this.state.selectedSection;
   fieldTypes = FIELD_TYPES;
 
-  toggles: Array<{ label: string; prop: keyof DocField }> = [
+  toggles: Array<{ label: string; prop: keyof DocumentField }> = [
     { label: 'Mandatory / Required', prop: 'mandatory' },
     { label: 'Hidden', prop: 'hidden' },
     { label: 'Read Only', prop: 'read_only' },
@@ -373,14 +366,14 @@ export class PropertyEditorComponent {
   }
 
   updateFormMetadata(metadata: any) {
-    this.state.setDocTypeMetadata(metadata);
+    this.state.setDocumentMetadata(metadata);
   }
 
-  update(prop: keyof DocField, value: any) {
+  update(prop: keyof DocumentField, value: any) {
     const f = this.field();
     if (!f) return;
 
-    const patches: Partial<DocField> = { [prop]: value };
+    const patches: Partial<DocumentField> = { [prop]: value };
 
     // Auto-slug fieldname from label
     if (prop === 'label') {
@@ -407,7 +400,7 @@ export class PropertyEditorComponent {
       .replace(/^-+|-+$/g, '');
   }
 
-  toggle_val(prop: keyof DocField) {
+  toggle_val(prop: keyof DocumentField) {
     const f = this.field();
     if (f) this.state.updateField(f.id, { [prop]: !f[prop] });
   }

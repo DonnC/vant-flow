@@ -1,44 +1,44 @@
 import { Injectable, signal, inject } from '@angular/core';
-import { DocField } from '../models/doctype.model';
+import { DocumentField } from '../models/document.model';
 
 export type ToastIndicator = 'success' | 'error' | 'info' | 'warning';
 
 interface Toast {
-    id: number;
-    message: string;
-    indicator: ToastIndicator;
+  id: number;
+  message: string;
+  indicator: ToastIndicator;
 }
 
 let _toastId = 0;
 
 @Injectable({ providedIn: 'root' })
 export class AppUtilityService {
-    readonly toasts = signal<Toast[]>([]);
+  readonly toasts = signal<Toast[]>([]);
 
-    show_alert(msg: string, indicator: ToastIndicator = 'info') {
-        const id = ++_toastId;
-        this.toasts.update(t => [...t, { id, message: msg, indicator }]);
-        setTimeout(() => this.dismiss(id), 3500);
-    }
+  show_alert(msg: string, indicator: ToastIndicator = 'info') {
+    const id = ++_toastId;
+    this.toasts.update(t => [...t, { id, message: msg, indicator }]);
+    setTimeout(() => this.dismiss(id), 3500);
+  }
 
-    dismiss(id: number) {
-        this.toasts.update(t => t.filter(x => x.id !== id));
-    }
+  dismiss(id: number) {
+    this.toasts.update(t => t.filter(x => x.id !== id));
+  }
 
-    /**
-     * Show a custom dialog built from DocFields.
-     * Injects a dialog element directly into the DOM to avoid Material dependency.
-     */
-    prompt(fields: DocField[], title: string = 'Enter Data'): Promise<Record<string, any> | null> {
-        return new Promise(resolve => {
-            // Create modal container
-            const overlay = document.createElement('div');
-            overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+  /**
+   * Show a custom dialog built from Document Fields.
+   * Injects a dialog element directly into the DOM to avoid Material dependency.
+   */
+  prompt(fields: DocumentField[], title: string = 'Enter Data'): Promise<Record<string, any> | null> {
+    return new Promise(resolve => {
+      // Create modal container
+      const overlay = document.createElement('div');
+      overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
 
-            const values: Record<string, any> = {};
-            fields.forEach(f => { values[f.fieldname] = f.default ?? ''; });
+      const values: Record<string, any> = {};
+      fields.forEach(f => { values[f.fieldname] = f.default ?? ''; });
 
-            overlay.innerHTML = `
+      overlay.innerHTML = `
         <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
           <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
             <h3 class="text-base font-semibold text-zinc-900">${title}</h3>
@@ -60,33 +60,33 @@ export class AppUtilityService {
         </div>
       `;
 
-            document.body.appendChild(overlay);
+      document.body.appendChild(overlay);
 
-            const close = (result: any) => {
-                document.body.removeChild(overlay);
-                resolve(result);
-            };
+      const close = (result: any) => {
+        document.body.removeChild(overlay);
+        resolve(result);
+      };
 
-            overlay.querySelector('[data-close]')?.addEventListener('click', () => close(null));
-            overlay.querySelector('[data-cancel]')?.addEventListener('click', () => close(null));
-            overlay.querySelector('[data-submit]')?.addEventListener('click', () => {
-                const result: Record<string, any> = {};
-                fields.forEach(f => {
-                    const el = overlay.querySelector(`[data-field="${f.fieldname}"]`) as HTMLInputElement;
-                    result[f.fieldname] = el?.value ?? '';
-                });
-                close(result);
-            });
-
-            // Click outside to dismiss
-            overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
+      overlay.querySelector('[data-close]')?.addEventListener('click', () => close(null));
+      overlay.querySelector('[data-cancel]')?.addEventListener('click', () => close(null));
+      overlay.querySelector('[data-submit]')?.addEventListener('click', () => {
+        const result: Record<string, any> = {};
+        fields.forEach(f => {
+          const el = overlay.querySelector(`[data-field="${f.fieldname}"]`) as HTMLInputElement;
+          result[f.fieldname] = el?.value ?? '';
         });
-    }
+        close(result);
+      });
 
-    confirm(message: string, on_confirm?: () => void, on_cancel?: () => void) {
-        const overlay = document.createElement('div');
-        overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200';
-        overlay.innerHTML = `
+      // Click outside to dismiss
+      overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
+    });
+  }
+
+  confirm(message: string, on_confirm?: () => void, on_cancel?: () => void) {
+    const overlay = document.createElement('div');
+    overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200';
+    overlay.innerHTML = `
           <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
             <div class="px-6 py-8 text-center">
               <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -101,33 +101,33 @@ export class AppUtilityService {
             </div>
           </div>
         `;
-        document.body.appendChild(overlay);
+    document.body.appendChild(overlay);
 
-        const close = () => document.body.removeChild(overlay);
+    const close = () => document.body.removeChild(overlay);
 
-        overlay.querySelector('[data-cancel]')?.addEventListener('click', () => {
-            close();
-            if (on_cancel) on_cancel();
-        });
+    overlay.querySelector('[data-cancel]')?.addEventListener('click', () => {
+      close();
+      if (on_cancel) on_cancel();
+    });
 
-        overlay.querySelector('[data-confirm]')?.addEventListener('click', () => {
-            close();
-            if (on_confirm) on_confirm();
-        });
+    overlay.querySelector('[data-confirm]')?.addEventListener('click', () => {
+      close();
+      if (on_confirm) on_confirm();
+    });
 
-        overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-    }
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+  }
 
-    call({ method, args }: { method: string; args?: any }): Promise<any> {
-        return new Promise((resolve, reject) => {
-            setTimeout(() => {
-                console.log(`[app.call] → ${method}`, args);
-                if (method === 'validate_clearance_code') {
-                    args?.code === '1234' ? resolve({ message: 'Approved' }) : reject({ message: 'Invalid clearance code' });
-                } else {
-                    resolve({ message: `OK: ${method}` });
-                }
-            }, 700);
-        });
-    }
+  call({ method, args }: { method: string; args?: any }): Promise<any> {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        console.log(`[app.call] → ${method}`, args);
+        if (method === 'validate_clearance_code') {
+          args?.code === '1234' ? resolve({ message: 'Approved' }) : reject({ message: 'Invalid clearance code' });
+        } else {
+          resolve({ message: `OK: ${method}` });
+        }
+      }, 700);
+    });
+  }
 }

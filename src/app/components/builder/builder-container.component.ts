@@ -8,6 +8,7 @@ import { CanvasSectionComponent } from './canvas-section.component';
 import { PropertyEditorComponent } from './property-editor.component';
 import { ScriptEditorComponent } from './script-editor.component';
 import { FormRendererComponent } from '../form-renderer/form-renderer.component';
+import { DocumentDefinition } from '../../models/document.model';
 
 type RightTab = 'properties' | 'script';
 
@@ -34,13 +35,13 @@ type RightTab = 'properties' | 'script';
         <span class="text-sm font-semibold text-zinc-800">FormFlow</span>
       </div>
 
-      <!-- Document / Form Name edit -->
+      <!-- Document Name edit -->
       <input
         class="text-sm font-medium bg-transparent border-none outline-none text-zinc-700 w-48
                hover:bg-zinc-50 focus:bg-white focus:border focus:border-zinc-200 focus:px-2 focus:rounded-md px-1 py-1 transition-all"
-        [ngModel]="state.docType().name"
-        (ngModelChange)="state.setDocTypeName($event)"
-        placeholder="Document / Form Name"
+        [ngModel]="state.document().name"
+        (ngModelChange)="state.setDocumentName($event)"
+        placeholder="Document Name"
       >
 
       <div class="flex-1"></div>
@@ -98,12 +99,12 @@ type RightTab = 'properties' | 'script';
       <div class="absolute inset-x-0 top-12 z-50 bg-white border-b border-zinc-200 shadow-xl animate-in slide-in-from-top-4 duration-300">
         <div class="max-w-4xl mx-auto p-6 flex flex-col gap-4">
           <div class="flex items-center justify-between">
-            <h3 class="text-sm font-bold text-zinc-800">Import DocType Schema</h3>
+            <h3 class="text-sm font-bold text-zinc-800">Import Document Schema</h3>
             <button (click)="showImport = false" class="text-zinc-400 hover:text-zinc-600">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
-          <p class="text-xs text-zinc-500">Paste your previously exported <code>DocType</code> JSON schema to load the builder state.</p>
+          <p class="text-xs text-zinc-500">Paste your previously exported <code>Document</code> JSON schema to load the builder state.</p>
           <textarea #importArea class="w-full h-64 bg-zinc-50 border border-zinc-200 rounded-lg p-4 font-mono text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
             placeholder='{ "name": "Form Name", "sections": [...] }'></textarea>
           <div class="flex justify-end gap-3">
@@ -119,13 +120,13 @@ type RightTab = 'properties' | 'script';
       <div class="absolute inset-x-0 top-12 z-50 bg-white border-b border-zinc-200 shadow-xl animate-in slide-in-from-top-4 duration-300">
         <div class="max-w-4xl mx-auto p-6 flex flex-col gap-4">
           <div class="flex items-center justify-between">
-            <h3 class="text-sm font-bold text-zinc-800">Export DocType Schema</h3>
+            <h3 class="text-sm font-bold text-zinc-800">Export Document Schema</h3>
             <button (click)="showExport = false" class="text-zinc-400 hover:text-zinc-600">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           </div>
           <p class="text-xs text-zinc-500">Preview and copy your form schema, or download it as a JSON file.</p>
-          <pre class="w-full h-64 overflow-auto bg-zinc-900 text-indigo-300 rounded-lg p-4 font-mono text-[11px] select-all leading-relaxed">{{ state.docType() | json }}</pre>
+          <pre class="w-full h-64 overflow-auto bg-zinc-900 text-indigo-300 rounded-lg p-4 font-mono text-[11px] select-all leading-relaxed">{{ state.document() | json }}</pre>
           <div class="flex justify-end gap-3">
             <button (click)="showExport = false" class="ui-btn-secondary">Close</button>
             <button (click)="downloadJson()" class="ui-btn-primary px-8">Download JSON File</button>
@@ -186,7 +187,7 @@ type RightTab = 'properties' | 'script';
 
         <!-- CENTER: Canvas -->
         <main class="flex-1 overflow-y-auto p-5">
-          @if (state.docType().sections.length === 0) {
+          @if (state.document().sections.length === 0) {
             <!-- Empty state -->
             <div class="h-full flex flex-col items-center justify-center text-center">
               <div class="w-20 h-20 rounded-2xl bg-white border-2 border-dashed border-zinc-200 flex items-center justify-center mb-4 shadow-sm">
@@ -202,7 +203,7 @@ type RightTab = 'properties' | 'script';
               </button>
             </div>
           } @else {
-            @for (section of state.docType().sections; track section.id) {
+            @for (section of state.document().sections; track section.id) {
               <app-canvas-section
                 [section]="section"
                 [allColumnIds]="allColumnIds"
@@ -256,7 +257,7 @@ type RightTab = 'properties' | 'script';
               >
                 <span class="flex items-center justify-center gap-1">
                   Script
-                  @if (state.docType().client_script?.trim()) {
+                  @if (state.document().client_script?.trim()) {
                     <span class="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
                   }
                 </span>
@@ -282,7 +283,7 @@ type RightTab = 'properties' | 'script';
           <span class="text-xs font-medium text-amber-700">Preview Mode — Client scripts are active. Changes made here won't affect the builder.</span>
         </div>
         
-        <app-form-renderer [docType]="state.docType()" (formSubmit)="onFormSubmit($event)"></app-form-renderer>
+        <app-form-renderer [document]="state.document()" (formSubmit)="onFormSubmit($event)"></app-form-renderer>
 
         @if (lastSubmittedData) {
           <div class="w-full max-w-3xl px-4 py-8 border-t border-zinc-200 mt-auto bg-white shadow-inner animate-in slide-in-from-bottom-4 duration-300">
@@ -325,15 +326,15 @@ export class BuilderContainerComponent implements OnInit {
   }
 
   allColumnIds = computed(() =>
-    this.state.docType().sections.flatMap(s => s.columns.map(c => c.id))
+    this.state.document().sections.flatMap(s => s.columns.map(c => c.id))
   );
 
   fieldCount = computed(() =>
-    this.state.docType().sections.reduce((total, s) =>
+    this.state.document().sections.reduce((total, s) =>
       total + s.columns.reduce((ct, c) => ct + c.fields.length, 0), 0)
   );
 
-  sectionCount = computed(() => this.state.docType().sections.length);
+  sectionCount = computed(() => this.state.document().sections.length);
 
   ngOnInit() {
     // listen for palette's section add shortcut
@@ -348,7 +349,7 @@ export class BuilderContainerComponent implements OnInit {
   addSection() { this.state.addSection(); }
 
   handleImport(json: string) {
-    if (this.state.importDocType(json)) {
+    if (this.state.importDocument(json)) {
       this.showImport = false;
     } else {
       alert('Invalid JSON schema. Please check the format.');
@@ -381,11 +382,11 @@ export class BuilderContainerComponent implements OnInit {
   }
 
   downloadJson() {
-    const json = JSON.stringify(this.state.docType(), null, 2);
+    const json = JSON.stringify(this.state.document(), null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${this.state.docType().name.replace(/\s+/g, '_')}.json`;
+    a.download = `${this.state.document().name.replace(/\s+/g, '_')}.json`;
     a.click();
     this.showExport = false;
   }

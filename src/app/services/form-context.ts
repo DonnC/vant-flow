@@ -1,25 +1,53 @@
 import { FormGroup, Validators } from '@angular/forms';
-import { WritableSignal, signal } from '@angular/core';
-import { DocField } from '../models/doctype.model';
+import { WritableSignal, signal, Injectable } from '@angular/core';
+import { DocumentField, DocumentSection, DocumentDefinition } from '../models/document.model';
+import { AppUtilityService } from './app-utility.service';
+import { BuilderStateService } from './builder-state.service';
 
+@Injectable()
 export class FormContext {
-    public fieldSignals = new Map<string, WritableSignal<DocField>>();
+    public fieldSignals = new Map<string, WritableSignal<DocumentField>>();
+    public sectionSignals = new Map<string, WritableSignal<DocumentSection>>();
+    public dynamicIntro = signal<{ message: string; color: string } | null>(null);
+
     private eventListeners = new Map<string, Function[]>();
     private queries = new Map<string, Function>();
+    private document!: DocumentDefinition;
+    private formData: any;
 
     constructor(
-        public fields: DocField[],
-        public formGroup: FormGroup,
-        private appUtility: any, // AppUtilityService
-        private state: any       // BuilderStateService
-    ) {
-        fields.forEach(field => {
-            this.fieldSignals.set(field.fieldname, signal({ ...field }));
+        private appUtility: AppUtilityService,
+        private state: BuilderStateService
+    ) { }
+
+    initialize(document: DocumentDefinition, formData: any) {
+        this.document = document;
+        this.formData = formData;
+
+        // Initialize signals
+        this.fieldSignals.clear();
+        this.sectionSignals.clear();
+        this.dynamicIntro.set(null);
+
+        document.sections.forEach(section => {
+            this.sectionSignals.set(section.id, signal({ ...section }));
+            section.columns.forEach(col => {
+                col.fields.forEach(field => {
+                    this.fieldSignals.set(field.fieldname, signal({ ...field }));
+                });
+            });
         });
     }
 
+    destroy() {
+        this.eventListeners.clear();
+        this.queries.clear();
+    }
+
+    // ── Scripting API ──────────────────────────────────────────
+
     set_intro(message: string, color: string = 'blue') {
-        this.state.setDynamicIntro(message, color);
+        this.dynamicIntro.set({ message, color });
     }
 
     msgprint(message: string, indicator: any = 'info') {
@@ -35,43 +63,46 @@ export class FormContext {
         throw new Error(message);
     }
 
-    prompt(fields: DocField[], callback: (values: any) => void, title?: string) {
+    prompt(fields: DocumentField[], callback: (values: any) => void, title?: string) {
         this.appUtility.prompt(fields, title).then((values: any) => {
             if (values) callback(values);
         });
     }
 
-    set_df_property(fieldname: string, prop: keyof DocField, val: any) {
+    set_df_property(fieldname: string, prop: keyof DocumentField, val: any) {
         const s = this.fieldSignals.get(fieldname);
         if (!s) { console.warn(`[frm] Unknown field: ${fieldname}`); return; }
         s.update(current => ({ ...current, [prop]: val }));
+    }
 
-        if (prop === 'read_only') {
-            val
-                ? this.formGroup.get(fieldname)?.disable({ emitEvent: false })
-                : this.formGroup.get(fieldname)?.enable({ emitEvent: false });
+    set_section_property(sectionId: string, prop: keyof DocumentSection, val: any) {
+        const s = this.sectionSignals.get(sectionId);
+        if (!s) {
+            console.warn(`[frm] Unknown section: ${sectionId}`);
+            return;
         }
-
-        if (prop === 'mandatory') {
-            const ctrl = this.formGroup.get(fieldname);
-            if (ctrl) {
-                if (val) {
-                    ctrl.setValidators([Validators.required]);
-                } else {
-                    ctrl.clearValidators();
-                }
-                ctrl.updateValueAndValidity({ emitEvent: false });
-            }
-        }
+        s.update(current => ({ ...current, [prop]: val }));
     }
 
     get_value(fieldname: string): any {
-        return this.formGroup.get(fieldname)?.value ?? this.formGroup.getRawValue()[fieldname];
+        return this.formData[fieldname];
     }
 
     set_value(fieldname: string, val: any) {
-        const ctrl = this.formGroup.get(fieldname);
-        if (ctrl) ctrl.setValue(val, { emitEvent: true });
+        this.formData[fieldname] = val;
+        this.triggerChange(fieldname, val);
+    }
+
+    // ── Internal Helpers for Renderer ──────────────────────────
+
+    getFieldSignal(fieldname: string, prop: keyof DocumentField) {
+        const s = this.fieldSignals.get(fieldname);
+        return () => s ? (s() as any)[prop] : undefined;
+    }
+
+    getSectionSignal(sectionId: string, prop: keyof DocumentSection) {
+        const s = this.sectionSignals.get(sectionId);
+        return () => s ? (s() as any)[prop] : undefined;
     }
 
     on(event: string, callback: Function) {
@@ -79,12 +110,33 @@ export class FormContext {
         this.eventListeners.get(event)!.push(callback);
     }
 
-    trigger(event: string, data?: any) {
+    triggerChange(fieldname: string, value: any) {
+        this.trigger(fieldname, value);
+    }
+
+    private trigger(event: string, data?: any) {
         (this.eventListeners.get(event) ?? []).forEach(cb => {
             try { cb(data); } catch (e) { console.error(`[frm.trigger] Error in handler for '${event}'`, e); }
         });
     }
 
-    set_query(fieldname: string, fn: Function) { this.queries.set(fieldname, fn); }
-    get_query(fieldname: string): Function | undefined { return this.queries.get(fieldname); }
+    execute(script: string, event: string, value?: any) {
+        try {
+            // Create the 'frm' and 'app' scope
+            const frm = this;
+            const app = {
+                show_alert: (msg: string, ind: any) => this.appUtility.show_alert(msg, ind),
+                prompt: (fields: DocumentField[], title?: string) => this.appUtility.prompt(fields, title)
+            };
+
+            // Wrap script in a function to isolate scope
+            const runner = new Function('frm', 'app', script);
+            runner(frm, app);
+
+            // If it's a specific event, trigger it
+            this.trigger(event, value);
+        } catch (e) {
+            console.error('[Script Execution Error]', e);
+        }
+    }
 }

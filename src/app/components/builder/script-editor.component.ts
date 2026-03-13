@@ -33,7 +33,7 @@ import { BuilderStateService } from '../../services/builder-state.service';
         <textarea
           class="flex-1 bg-transparent text-indigo-100 font-mono text-[13px] p-4 outline-none resize-none 
                  selection:bg-indigo-500/30 placeholder:text-zinc-600 leading-6 tracking-wide"
-          [ngModel]="state.docType().client_script"
+          [ngModel]="state.document().client_script"
           (ngModelChange)="state.setClientScript($event)"
           spellcheck="false"
           [placeholder]="placeholder"
@@ -84,7 +84,7 @@ export class ScriptEditorComponent {
   ].join('\n');
 
   insertSnippet(code: string) {
-    const current = this.state.docType().client_script || '';
+    const current = this.state.document().client_script || '';
     this.state.setClientScript(current + (current ? '\n\n' : '') + code);
   }
 }

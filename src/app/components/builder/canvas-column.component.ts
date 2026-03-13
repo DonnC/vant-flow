@@ -1,7 +1,7 @@
 import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDropList, CdkDrag, CdkDragDrop, transferArrayItem, moveItemInArray } from '@angular/cdk/drag-drop';
-import { DocField, FieldType, LayoutColumn, LayoutSection } from '../../models/doctype.model';
+import { DocumentField, FieldType, DocumentColumn, DocumentSection } from '../../models/document.model';
 import { BuilderStateService } from '../../services/builder-state.service';
 
 @Component({
@@ -88,19 +88,19 @@ import { BuilderStateService } from '../../services/builder-state.service';
   `
 })
 export class CanvasColumnComponent {
-  @Input() section!: LayoutSection;
-  @Input() column!: LayoutColumn;
+  @Input() section!: DocumentSection;
+  @Input() column!: DocumentColumn;
   @Input() dropListId!: string;
   @Input() connectedLists: string[] = [];
   @Input() isLast = false;
 
   private state = inject(BuilderStateService);
 
-  isSelected(field: DocField) {
+  isSelected(field: DocumentField) {
     return this.state.selectedFieldId() === field.id;
   }
 
-  selectField(e: MouseEvent, field: DocField) {
+  selectField(e: MouseEvent, field: DocumentField) {
     e.stopPropagation();
     this.state.selectField(field.id);
   }

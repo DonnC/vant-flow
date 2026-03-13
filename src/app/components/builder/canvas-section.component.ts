@@ -2,7 +2,7 @@ import { Component, Input, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
-import { LayoutSection } from '../../models/doctype.model';
+import { DocumentSection } from '../../models/document.model';
 import { BuilderStateService } from '../../services/builder-state.service';
 import { CanvasColumnComponent } from './canvas-column.component';
 
@@ -69,7 +69,7 @@ import { CanvasColumnComponent } from './canvas-column.component';
   `
 })
 export class CanvasSectionComponent {
-  @Input() section!: LayoutSection;
+  @Input() section!: DocumentSection;
   @Input() allColumnIds!: () => string[];
 
   private state = inject(BuilderStateService);

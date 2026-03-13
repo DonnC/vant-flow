@@ -1,6 +1,6 @@
 export type FieldType = 'Data' | 'Select' | 'Link' | 'Check' | 'Int' | 'Text' | 'Date' | 'Float' | 'Password';
 
-export interface DocField {
+export interface DocumentField {
   id: string; // Unique ID for drag-drop tracking
   fieldname: string;
   fieldtype: FieldType;
@@ -8,39 +8,39 @@ export interface DocField {
   default?: any;
   mandatory?: boolean;
   reqd?: boolean;
-  options?: string; // Newline-separated for Select, DocType name for Link
+  options?: string; // Newline-separated for Select, Document name for Link
   hidden?: boolean;
   read_only?: boolean;
   depends_on?: string; // Visible if expression is truthy
-  display_depends_on?: string; // Alternative display logic
   mandatory_depends_on?: string; // Mandatory if expression is truthy
   description?: string;
   placeholder?: string;
 }
 
-export interface LayoutColumn {
+export interface DocumentColumn {
   id: string;
-  fields: DocField[];
+  fields: DocumentField[];
 }
 
-export interface LayoutSection {
+export interface DocumentSection {
   id: string;
   label?: string;
   description?: string;
-  depends_on?: string; // New: evaluate expression to show/hide section
+  depends_on?: string; // Evaluate expression to show/hide section
+  hidden?: boolean; // New: for scripting API control
   collapsible?: boolean;
   columns_count?: 1 | 2;
-  columns: LayoutColumn[];
+  columns: DocumentColumn[];
 }
 
-export interface DocType {
+export interface DocumentDefinition {
   name: string;
   module?: string;
   description?: string;
   version?: string;
   intro_text?: string;
   intro_color?: 'blue' | 'orange' | 'red' | 'gray';
-  sections: LayoutSection[];
+  sections: DocumentSection[];
   client_script?: string;
 }
 
