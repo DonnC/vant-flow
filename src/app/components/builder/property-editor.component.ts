@@ -17,7 +17,85 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
         <p class="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Properties</p>
       </div>
 
-      @if (section()) {
+      <!-- ── FORM SETTINGS ── -->
+      @if (state.showFormSettings()) {
+        <div class="flex-1 overflow-y-auto px-4 py-4 space-y-5 animate-in fade-in duration-300">
+           <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Form Settings</span>
+           </div>
+           
+           <!-- DocType Name -->
+           <div class="space-y-1.5">
+             <label class="ui-label font-bold text-zinc-600">Document / Form Name</label>
+             <input class="ui-input" [ngModel]="state.docType().name" (ngModelChange)="updateFormMetadata({ name: $event })" placeholder="e.g. Lead, Customer">
+           </div>
+
+           <!-- Module -->
+           <div class="space-y-1.5">
+             <label class="ui-label font-bold text-zinc-600">Module / Package</label>
+             <input class="ui-input" [ngModel]="state.docType().module" (ngModelChange)="updateFormMetadata({ module: $event })" placeholder="e.g. Core System">
+           </div>
+
+           <!-- Version -->
+           <div class="space-y-1.5">
+             <label class="ui-label font-bold text-zinc-600">Version</label>
+             <input class="ui-input" [ngModel]="state.docType().version" (ngModelChange)="updateFormMetadata({ version: $event })" placeholder="e.g. 1.0.0">
+           </div>
+
+           <!-- Description -->
+           <div class="space-y-1.5">
+             <label class="ui-label font-bold text-zinc-600">Description</label>
+             <textarea class="ui-textarea text-xs" rows="2" [ngModel]="state.docType().description" (ngModelChange)="updateFormMetadata({ description: $event })" placeholder="Overview of this DocType..."></textarea>
+           </div>
+
+           <div class="ui-sep"></div>
+
+           <!-- Intro Section -->
+           <div class="space-y-3">
+             <div class="flex items-center gap-2">
+               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-indigo-500"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+               <h4 class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Intro Banner</h4>
+             </div>
+             
+             <div class="space-y-1.5">
+               <label class="ui-label font-bold text-zinc-600">Intro Message (HTML supported)</label>
+               <textarea class="ui-textarea text-xs leading-relaxed" rows="5" 
+                 [ngModel]="state.docType().intro_text" 
+                 (ngModelChange)="updateFormMetadata({ intro_text: $event })"
+                 placeholder="Helpful documentation or instructions for users shown at the top of this form..."></textarea>
+             </div>
+
+             <div class="space-y-1.5">
+               <label class="ui-label font-bold text-zinc-600">Banner Theme</label>
+               <div class="grid grid-cols-6 gap-1.5">
+                  @for (c of introColors; track c) {
+                    <button (click)="updateFormMetadata({ intro_color: c })"
+                      class="h-8 rounded-md border-2 transition-all flex items-center justify-center relative group overflow-hidden"
+                      [title]="c | titlecase"
+                      [class.border-indigo-600]="state.docType().intro_color === c"
+                      [class.border-zinc-200]="state.docType().intro_color !== c"
+                      [ngClass]="getIntroPreviewClass(c)"
+                    >
+                      @if (state.docType().intro_color === c) {
+                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4"><polyline points="20 6 9 17 4 12"/></svg>
+                      }
+                    </button>
+                  }
+               </div>
+             </div>
+           </div>
+
+           <div class="ui-sep"></div>
+           
+           <div class="p-3 rounded-lg bg-zinc-50 border border-zinc-100">
+              <p class="text-[11px] text-zinc-500 font-medium leading-relaxed">
+                <span class="font-bold text-zinc-700 uppercase tracking-tighter mr-1 text-[9px]">Designer Tip:</span> 
+                Global settings apply to the whole Form. The Intro banner is often used for warnings or reminders.
+              </p>
+           </div>
+        </div>
+      } 
+      @else if (section()) {
         <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4 animate-in fade-in duration-300">
            <div class="flex items-center gap-2">
               <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-600 bg-amber-50 px-2 py-1 rounded">Section Settings</span>
@@ -25,8 +103,14 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
 
            <!-- Label -->
            <div>
-              <label class="ui-label">Section Label</label>
-              <input class="ui-input" [ngModel]="section()!.label" (ngModelChange)="state.updateSectionLabel(section()!.id, $event)">
+              <label class="ui-label">Section Label (Optional)</label>
+              <input class="ui-input" [ngModel]="section()!.label" (ngModelChange)="state.updateSectionLabel(section()!.id, $event)" placeholder="e.g. Basic Details">
+           </div>
+
+           <!-- Description -->
+           <div>
+              <label class="ui-label">Section Description (Optional)</label>
+              <textarea class="ui-textarea text-xs" rows="2" [ngModel]="section()!.description" (ngModelChange)="state.updateSectionDescription(section()!.id, $event)" placeholder="Help text for this section..."></textarea>
            </div>
 
            <!-- Columns -->
@@ -248,57 +332,6 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
             Remove Field
           </button>
         </div>
-      } @else {
-        <!-- FORM SETTINGS -->
-        <div class="flex-1 overflow-y-auto px-4 py-4 space-y-5 animate-in fade-in duration-300">
-           <div class="flex items-center gap-2">
-              <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Form Settings</span>
-           </div>
-           
-           <!-- Module -->
-           <div>
-              <label class="ui-label">Module / Package</label>
-              <input class="ui-input" [ngModel]="state.docType().module" (ngModelChange)="state.setModule($event)" placeholder="e.g. Core System">
-           </div>
-
-           <div class="ui-sep"></div>
-
-           <!-- Intro Text -->
-           <div>
-              <label class="ui-label">Intro / Hero Text <span class="text-zinc-400">(HTML supported)</span></label>
-              <textarea class="ui-textarea text-xs leading-relaxed" rows="5" 
-                [ngModel]="state.docType().intro_text" 
-                (ngModelChange)="state.setIntro($event)"
-                placeholder="Helpful documentation or instructions for users shown at the top of this form..."></textarea>
-           </div>
-
-           <!-- Intro Color -->
-           <div>
-              <label class="ui-label">Intro Alert Theme</label>
-              <div class="grid grid-cols-4 gap-2">
-                 @for (c of introColors; track c) {
-                   <button (click)="state.setIntro(state.docType().intro_text || '', c)"
-                     class="h-9 rounded-lg border-2 transition-all flex items-center justify-center group"
-                     [class.border-indigo-600]="state.docType().intro_color === c"
-                     [class.border-zinc-200]="state.docType().intro_color !== c"
-                     [ngClass]="getIntroPreviewClass(c)"
-                   >
-                     @if (state.docType().intro_color === c) {
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
-                     }
-                   </button>
-                 }
-              </div>
-           </div>
-
-           <div class="ui-sep"></div>
-           
-           <div class="p-3 rounded-lg bg-zinc-50 border border-zinc-100">
-              <p class="text-[11px] text-zinc-500 font-medium leading-relaxed">
-                <span class="font-bold text-zinc-700">Tip:</span> These settings apply to the entire DocType. Use the Intro text to guide users through complex flows.
-              </p>
-           </div>
-        </div>
       }
     </div>
   `
@@ -315,16 +348,22 @@ export class PropertyEditorComponent {
     { label: 'Read Only', prop: 'read_only' },
   ];
 
-  introColors: Array<'blue' | 'orange' | 'red' | 'gray'> = ['blue', 'orange', 'red', 'gray'];
+  introColors: Array<'blue' | 'orange' | 'red' | 'green' | 'yellow' | 'gray'> = ['blue', 'orange', 'red', 'green', 'yellow', 'gray'];
 
   getIntroPreviewClass(c: string) {
     const classes: Record<string, string> = {
-      blue: 'bg-indigo-50 text-indigo-600',
+      blue: 'bg-blue-50 text-blue-600',
       orange: 'bg-amber-50 text-amber-600',
       red: 'bg-red-50 text-red-600',
+      green: 'bg-emerald-50 text-emerald-600',
+      yellow: 'bg-yellow-50 text-yellow-600',
       gray: 'bg-zinc-100 text-zinc-600'
     };
     return classes[c];
+  }
+
+  updateFormMetadata(metadata: any) {
+    this.state.setDocTypeMetadata(metadata);
   }
 
   update(prop: keyof DocField, value: any) {

@@ -9,6 +9,7 @@ export class BuilderStateService {
     // Main DocType state
     readonly docType: WritableSignal<DocType> = signal({
         name: 'New DocType',
+        version: '1.0.0',
         sections: [],
         client_script: '',
         intro_text: '',
@@ -18,6 +19,10 @@ export class BuilderStateService {
     // Selected field or section for property editor
     readonly selectedFieldId: WritableSignal<string | null> = signal(null);
     readonly selectedSectionId: WritableSignal<string | null> = signal(null);
+    readonly showFormSettings: WritableSignal<boolean> = signal(false);
+
+    // Dynamic state (e.g. set via client script)
+    readonly dynamicIntro: WritableSignal<{ message: string; color: string } | null> = signal(null);
 
     // Builder vs Preview mode toggle
     readonly mode: WritableSignal<'builder' | 'preview'> = signal('builder');
@@ -44,6 +49,10 @@ export class BuilderStateService {
     // ── DocType metadata ──────────────────────────────────────
     setDocTypeName(name: string) {
         this.docType.update(dt => ({ ...dt, name }));
+    }
+
+    setDocTypeMetadata(metadata: Partial<DocType>) {
+        this.docType.update(dt => ({ ...dt, ...metadata }));
     }
 
     setClientScript(script: string) {
@@ -98,6 +107,13 @@ export class BuilderStateService {
         this.docType.update(dt => ({
             ...dt,
             sections: dt.sections.map(s => s.id === sectionId ? { ...s, label } : s)
+        }));
+    }
+
+    updateSectionDescription(sectionId: string, description: string) {
+        this.docType.update(dt => ({
+            ...dt,
+            sections: dt.sections.map(s => s.id === sectionId ? { ...s, description } : s)
         }));
     }
 
@@ -225,13 +241,25 @@ export class BuilderStateService {
     }
 
     selectField(fieldId: string | null) {
+        this.showFormSettings.set(false);
         this.selectedSectionId.set(null);
         this.selectedFieldId.set(fieldId);
     }
 
     selectSection(sectionId: string | null) {
+        this.showFormSettings.set(false);
         this.selectedFieldId.set(null);
         this.selectedSectionId.set(sectionId);
+    }
+
+    selectFormSettings() {
+        this.selectedFieldId.set(null);
+        this.selectedSectionId.set(null);
+        this.showFormSettings.set(true);
+    }
+
+    setDynamicIntro(message: string, color: string = 'blue') {
+        this.dynamicIntro.set({ message, color });
     }
 
     toggleMode() {

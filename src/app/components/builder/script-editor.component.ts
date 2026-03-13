@@ -62,21 +62,24 @@ export class ScriptEditorComponent {
   state = inject(BuilderStateService);
 
   snippets = [
-    { label: 'frm.on(\'refresh\')', code: "frm.on('refresh', () => {\n  // Logic on load\n});" },
-    { label: 'frm.on(\'change\')', code: "frm.on('fieldname', (val) => {\n  // Logic on change\n});" },
+    { label: 'frm.on(refresh)', code: "frm.on('refresh', () => {\n  // Logic on load\n});" },
+    { label: 'frm.on(field)', code: "frm.on('fieldname', (val) => {\n  // Logic on change\n});" },
     { label: 'frm.set_value', code: "frm.set_value('fieldname', 'value');" },
-    { label: 'frm.set_df_prop', code: "frm.set_df_property('fn', 'read_only', 1);" },
-    { label: 'app.show_alert', code: "app.show_alert('Message', 'success');" },
-    { label: 'app.prompt', code: "app.prompt([\n  { label: 'Reason', fieldname: 'reason', fieldtype: 'Text' }\n], 'Please Provide Reason').then(vals => {\n  console.log(vals);\n});" },
-    { label: 'app.call', code: "app.call('method_name', { arg1: 1 }).then(r => {\n  // Simulation\n});" },
+    { label: 'frm.set_df_prop', code: "frm.set_df_property('fieldname', 'read_only', 1);" },
+    { label: 'frm.set_intro', code: "frm.set_intro('Please review the details below.', 'blue');" },
+    { label: 'frm.msgprint', code: "frm.msgprint('Record updated successfully!', 'success');" },
+    { label: 'frm.confirm', code: "frm.confirm('Are you sure you want to proceed?', () => {\n  frm.msgprint('Confirmed!');\n});" },
+    { label: 'frm.prompt', code: "frm.prompt([\n  { label: 'Reason', fieldname: 'reason', fieldtype: 'Text' }\n], (vals) => {\n  console.log(vals);\n}, 'Provide Reason');" },
+    { label: 'frm.throw', code: "frm.throw('Critical Validation Error: Halting Execution.');" },
+    { label: 'app.call', code: "app.call({ method: 'validate_clearance_code', args: { code: '1234' } }).then(r => {\n  frm.msgprint(r.message);\n});" },
   ];
 
   placeholder = [
     "// FormFlow Client Script",
     "// Write your logic here or use the snippets below.",
     "",
-    "frm.on('refresh', function() {",
-    "  app.show_alert('Form Loaded', 'success');",
+    "frm.on('refresh', () => {",
+    "  frm.set_intro('Welcome to FormFlow', 'blue');",
     "});"
   ].join('\n');
 

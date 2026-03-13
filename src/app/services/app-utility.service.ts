@@ -83,6 +83,41 @@ export class AppUtilityService {
         });
     }
 
+    confirm(message: string, on_confirm?: () => void, on_cancel?: () => void) {
+        const overlay = document.createElement('div');
+        overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200';
+        overlay.innerHTML = `
+          <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
+            <div class="px-6 py-8 text-center">
+              <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              </div>
+              <h3 class="text-base font-bold text-zinc-900 mb-2">Are you sure?</h3>
+              <p class="text-sm text-zinc-500">${message}</p>
+            </div>
+            <div class="flex border-t border-zinc-100">
+              <button data-cancel class="flex-1 px-4 py-3 text-sm font-semibold text-zinc-500 hover:bg-zinc-50 transition-colors border-r border-zinc-100">Cancel</button>
+              <button data-confirm class="flex-1 px-4 py-3 text-sm font-semibold text-indigo-600 hover:bg-zinc-50 transition-colors">Confirm</button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const close = () => document.body.removeChild(overlay);
+
+        overlay.querySelector('[data-cancel]')?.addEventListener('click', () => {
+            close();
+            if (on_cancel) on_cancel();
+        });
+
+        overlay.querySelector('[data-confirm]')?.addEventListener('click', () => {
+            close();
+            if (on_confirm) on_confirm();
+        });
+
+        overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    }
+
     call({ method, args }: { method: string; args?: any }): Promise<any> {
         return new Promise((resolve, reject) => {
             setTimeout(() => {

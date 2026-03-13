@@ -5,48 +5,57 @@ import { Subscription } from 'rxjs';
 import { DocType, DocField } from '../../models/doctype.model';
 import { FormContext } from '../../services/form-context';
 import { AppUtilityService } from '../../services/app-utility.service';
+import { BuilderStateService } from '../../services/builder-state.service';
 
 @Component({
   selector: 'app-form-renderer',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="max-w-4xl mx-auto py-8 px-6">
-      <!-- Form Intro -->
-      @if (docType.intro_text) {
-        <div class="mb-8 p-5 rounded-2xl border flex gap-4 shadow-sm animate-in fade-in slide-in-from-top-3 duration-500" 
-             [ngClass]="getIntroClasses()">
-          <div class="shrink-0 mt-0.5">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+      <!-- Doc header -->
+      <div class="mb-6">
+        <div class="flex items-center gap-3">
+          <h2 class="text-3xl font-extrabold text-zinc-900 tracking-tight">{{ docType.name }}</h2>
+          @if (docType.version) {
+            <span class="px-2 py-0.5 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 font-mono text-[10px] tracking-widest uppercase">{{ docType.version }}</span>
+          }
+        </div>
+        @if (docType.module) {
+          <p class="text-[11px] font-bold text-zinc-400 mt-2 uppercase tracking-[0.2em]">{{ docType.module }}</p>
+        }
+        @if (docType.description) {
+          <p class="text-[13px] text-zinc-500 mt-1.5 leading-relaxed max-w-3xl">{{ docType.description }}</p>
+        }
+      </div>
+
+      <!-- Form Intro Banner -->
+      @if (introBanner) {
+        <div class="mb-8 px-6 py-4 rounded-xl border flex items-center gap-4 shadow-sm animate-in fade-in slide-in-from-top-2 duration-400" 
+             [ngClass]="getIntroClasses(introBanner.color)">
+          <div class="shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="11" x2="12.01" y2="11"/>
             </svg>
           </div>
-          <div class="text-[14px] leading-relaxed font-medium" [innerHTML]="docType.intro_text"></div>
+          <div class="text-sm leading-relaxed font-semibold opacity-90" [innerHTML]="introBanner.message"></div>
         </div>
       }
-
-      <!-- Doc header -->
-      <div class="mb-8">
-        <h2 class="text-3xl font-extrabold text-zinc-900 tracking-tight">{{ docType.name }}</h2>
-        <p class="text-sm font-medium text-zinc-400 mt-1 uppercase tracking-wider">{{ docType.module || 'Custom Form' }}</p>
-      </div>
 
       @if (frm) {
         <form [formGroup]="frm.formGroup" (ngSubmit)="onSubmit()" class="space-y-6">
           @for (section of docType.sections; track section.id) {
-            <div class="bg-white rounded-2xl border border-zinc-200 overflow-hidden shadow-sm">
-              @if (section.label) {
-                <div class="px-8 py-5 bg-zinc-50/50 border-b border-zinc-100">
-                  <h3 class="text-base font-bold text-zinc-800 tracking-tight">{{ section.label }}</h3>
+            <div class="mb-10 pb-10 border-b border-zinc-200 last:border-0 last:mb-0 last:pb-0">
+              @if (section.label || section.description) {
+                <div class="mb-6 px-1">
+                  @if (section.label) { <h3 class="text-lg font-bold text-zinc-800 tracking-tight">{{ section.label }}</h3> }
+                  @if (section.description) { <p class="text-[13px] text-zinc-500 mt-1 leading-relaxed">{{ section.description }}</p> }
                 </div>
               }
-              <div class="grid divide-zinc-100" 
-                   [class.grid-cols-1]="section.columns_count === 1" 
-                   [class.grid-cols-2]="section.columns_count !== 1"
-                   [class.divide-x]="section.columns_count !== 1"
-                   [class.divide-y]="section.columns_count === 1">
+              <div class="grid gap-x-12 gap-y-6" 
+                   [class.grid-cols-1]="section.columns_count === 1 || getFieldCount(section) === 1" 
+                   [class.grid-cols-2]="section.columns_count !== 1 && getFieldCount(section) !== 1">
                 @for (col of section.columns; track col.id) {
-                  <div class="px-8 py-7 space-y-6">
+                  <div class="space-y-6">
                     @for (field of col.fields; track field.id) {
                       @if (getSignal(field.fieldname)?.()?.hidden !== true) {
                         <div>
@@ -79,7 +88,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                   [readonly]="getSignal(field.fieldname)?.()?.read_only"
                                   (input)="searchLink(field, $event)"
                                   autocomplete="off"
-                                >
+                                />
                                 <svg class="absolute right-2.5 top-2.5 text-zinc-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                                 @if (getLinkResults(field.fieldname).length > 0) {
                                   <div class="absolute z-20 mt-1 w-full bg-white rounded-lg border border-zinc-200 shadow-lg overflow-hidden">
@@ -104,7 +113,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
                               <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
                                   [checked]="frm.formGroup.get(field.fieldname)?.value === 1"
-                                  (change)="frm.set_value(field.fieldname, $any($event.target).checked ? 1 : 0)">
+                                  (change)="frm.set_value(field.fieldname, $any($event.target).checked ? 1 : 0)" />
                                 <span class="text-sm font-medium text-zinc-700">{{ getSignal(field.fieldname)?.()?.label }}</span>
                               </label>
                             }
@@ -113,7 +122,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                 [type]="field.fieldtype === 'Int' || field.fieldtype === 'Float' ? 'number' : field.fieldtype === 'Date' ? 'date' : field.fieldtype === 'Password' ? 'password' : 'text'"
                                 [formControlName]="field.fieldname"
                                 [attr.placeholder]="field.placeholder || field.label"
-                                [attr.readonly]="getSignal(field.fieldname)?.()?.read_only ? true : null">
+                                [attr.readonly]="getSignal(field.fieldname)?.()?.read_only ? true : null" />
                             }
                           }
 
@@ -136,7 +145,6 @@ import { AppUtilityService } from '../../services/app-utility.service';
           </div>
         </form>
       }
-    </div>
   `
 })
 export class FormRendererComponent implements OnInit, OnDestroy {
@@ -144,14 +152,28 @@ export class FormRendererComponent implements OnInit, OnDestroy {
   @Output() formSubmit = new EventEmitter<any>();
   frm!: FormContext;
 
-  getIntroClasses() {
-    const colors: Record<string, string> = {
-      blue: 'bg-indigo-50 border-indigo-100 text-indigo-700',
-      orange: 'bg-amber-50 border-amber-100 text-amber-700',
-      red: 'bg-red-50 border-red-100 text-red-700',
-      gray: 'bg-zinc-50 border-zinc-100 text-zinc-600'
+  state = inject(BuilderStateService);
+
+  get introBanner() {
+    return this.state.dynamicIntro() || (this.docType.intro_text ? { message: this.docType.intro_text, color: this.docType.intro_color || 'gray' } : null);
+  }
+
+  getFieldCount(section: any): number {
+    if (!section || !section.columns) return 0;
+    return section.columns.reduce((sum: number, col: any) => sum + (col.fields?.length || 0), 0);
+  }
+
+  getIntroClasses(colorName?: string) {
+    const c = colorName || this.docType.intro_color || 'gray';
+    const themes: Record<string, string> = {
+      blue: 'bg-blue-50 border-blue-100 text-blue-800',
+      orange: 'bg-amber-50 border-amber-100 text-amber-800',
+      red: 'bg-red-50 border-red-100 text-red-800',
+      green: 'bg-emerald-50 border-emerald-100 text-emerald-800',
+      yellow: 'bg-yellow-50 border-yellow-100 text-yellow-800',
+      gray: 'bg-zinc-100 border-zinc-200 text-zinc-700'
     };
-    return colors[this.docType.intro_color || 'gray'];
+    return themes[c] || themes['gray'];
   }
 
   private fb = inject(FormBuilder);
@@ -189,7 +211,7 @@ export class FormRendererComponent implements OnInit, OnDestroy {
       group.addControl(field.fieldname, this.fb.control({ value: val, disabled: field.read_only }, validators));
     });
 
-    this.frm = new FormContext(allFields, group);
+    this.frm = new FormContext(allFields, group, this.appUtility, this.state);
 
     // Evaluate depends_on on value changes
     this.sub.add(group.valueChanges.subscribe(() => this.evaluateDependsOn(group.getRawValue())));

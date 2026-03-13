@@ -5,10 +5,10 @@ import { DocField, FieldType, LayoutColumn, LayoutSection } from '../../models/d
 import { BuilderStateService } from '../../services/builder-state.service';
 
 @Component({
-    selector: 'app-canvas-column',
-    standalone: true,
-    imports: [CommonModule, DragDropModule],
-    template: `
+  selector: 'app-canvas-column',
+  standalone: true,
+  imports: [CommonModule, DragDropModule],
+  template: `
     <div class="flex-1 min-w-0 min-h-[120px] relative"
          [class.border-r]="!isLast"
          [class.border-zinc-100]="!isLast">
@@ -25,7 +25,7 @@ import { BuilderStateService } from '../../services/builder-state.service';
           <div
             cdkDrag
             [cdkDragData]="field"
-            (click)="selectField(field)"
+            (click)="selectField($event, field)"
             class="canvas-field group relative bg-white border rounded-md px-3 py-2 cursor-pointer
                    hover:border-indigo-300 hover:shadow-sm transition-all"
             [class.border-indigo-400]="isSelected(field)"
@@ -88,43 +88,44 @@ import { BuilderStateService } from '../../services/builder-state.service';
   `
 })
 export class CanvasColumnComponent {
-    @Input() section!: LayoutSection;
-    @Input() column!: LayoutColumn;
-    @Input() dropListId!: string;
-    @Input() connectedLists: string[] = [];
-    @Input() isLast = false;
+  @Input() section!: LayoutSection;
+  @Input() column!: LayoutColumn;
+  @Input() dropListId!: string;
+  @Input() connectedLists: string[] = [];
+  @Input() isLast = false;
 
-    private state = inject(BuilderStateService);
+  private state = inject(BuilderStateService);
 
-    isSelected(field: DocField) {
-        return this.state.selectedFieldId() === field.id;
+  isSelected(field: DocField) {
+    return this.state.selectedFieldId() === field.id;
+  }
+
+  selectField(e: MouseEvent, field: DocField) {
+    e.stopPropagation();
+    this.state.selectField(field.id);
+  }
+
+  removeField(e: MouseEvent, id: string) {
+    e.stopPropagation();
+    this.state.removeField(id);
+  }
+
+  onDrop(event: CdkDragDrop<any>) {
+    const { container, previousContainer, currentIndex, previousIndex, item } = event;
+    const to = container.data as { sectionId: string; colId: string };
+
+    // Dropped from the palette (item.data is a FieldType string like 'Data')
+    if (typeof item.data === 'string') {
+      this.state.addField(to.sectionId, to.colId, item.data as FieldType, currentIndex);
+      return;
     }
 
-    selectField(field: DocField) {
-        this.state.selectField(field.id);
+    // Moved within same column or between columns
+    const from = previousContainer.data as { sectionId: string; colId: string };
+    if (previousContainer === container) {
+      this.state.moveField(from.sectionId, from.colId, previousIndex, to.sectionId, to.colId, currentIndex);
+    } else {
+      this.state.moveField(from.sectionId, from.colId, previousIndex, to.sectionId, to.colId, currentIndex);
     }
-
-    removeField(e: MouseEvent, id: string) {
-        e.stopPropagation();
-        this.state.removeField(id);
-    }
-
-    onDrop(event: CdkDragDrop<any>) {
-        const { container, previousContainer, currentIndex, previousIndex, item } = event;
-        const to = container.data as { sectionId: string; colId: string };
-
-        // Dropped from the palette (item.data is a FieldType string like 'Data')
-        if (typeof item.data === 'string') {
-            this.state.addField(to.sectionId, to.colId, item.data as FieldType, currentIndex);
-            return;
-        }
-
-        // Moved within same column or between columns
-        const from = previousContainer.data as { sectionId: string; colId: string };
-        if (previousContainer === container) {
-            this.state.moveField(from.sectionId, from.colId, previousIndex, to.sectionId, to.colId, currentIndex);
-        } else {
-            this.state.moveField(from.sectionId, from.colId, previousIndex, to.sectionId, to.colId, currentIndex);
-        }
-    }
+  }
 }

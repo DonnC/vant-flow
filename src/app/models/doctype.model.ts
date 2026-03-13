@@ -26,6 +26,7 @@ export interface LayoutColumn {
 export interface LayoutSection {
   id: string;
   label?: string;
+  description?: string;
   collapsible?: boolean;
   columns_count?: 1 | 2;
   columns: LayoutColumn[];
@@ -34,6 +35,8 @@ export interface LayoutSection {
 export interface DocType {
   name: string;
   module?: string;
+  description?: string;
+  version?: string;
   intro_text?: string;
   intro_color?: 'blue' | 'orange' | 'red' | 'gray';
   sections: LayoutSection[];
