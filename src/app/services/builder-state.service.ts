@@ -41,6 +41,21 @@ export class BuilderStateService {
         this.docType.update(dt => ({ ...dt, client_script: script }));
     }
 
+    importDocType(json: string) {
+        try {
+            const data = JSON.parse(json);
+            // Basic validation
+            if (data && typeof data === 'object' && Array.isArray(data.sections)) {
+                this.docType.set(data);
+                this.selectedFieldId.set(null);
+                return true;
+            }
+        } catch (e) {
+            console.error('[import] Invalid JSON', e);
+        }
+        return false;
+    }
+
     // ── Sections ──────────────────────────────────────────────
     addSection() {
         const section: LayoutSection = {
@@ -86,12 +101,13 @@ export class BuilderStateService {
 
     // ── Fields ────────────────────────────────────────────────
     addField(sectionId: string, colId: string, fieldtype: FieldType, index?: number) {
-        const slug = fieldtype.toLowerCase().replace(/\s+/g, '_') + '_' + (_uid + 1);
+        const label = fieldtype === 'Check' ? 'Checkbox Field' : `${fieldtype} Field`;
+        const slug = label.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '_') + '_' + (_uid + 1);
         const field: DocField = {
             id: uid(),
             fieldname: slug,
             fieldtype,
-            label: fieldtype === 'Check' ? 'Checkbox Field' : `${fieldtype} Field`,
+            label,
             hidden: false,
             read_only: false,
             mandatory: false,

@@ -1,4 +1,4 @@
-import { Component, computed, inject, HostListener, OnInit } from '@angular/core';
+import { Component, computed, inject, HostListener, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CdkDrag, CdkDropList, DragDropModule } from '@angular/cdk/drag-drop';
@@ -171,11 +171,22 @@ type RightTab = 'properties' | 'script' | 'json';
               <app-script-editor></app-script-editor>
             } @else {
               <div class="h-full flex flex-col">
-                <div class="px-4 py-3 border-b border-zinc-100 shrink-0">
+                <div class="px-4 py-3 border-b border-zinc-100 shrink-0 flex items-center justify-between bg-zinc-50/50">
                   <p class="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Schema Preview</p>
+                  <button (click)="showImport = !showImport" class="text-[10px] px-2 py-1 bg-white border border-zinc-200 rounded shadow-sm hover:bg-zinc-50 transition-colors">
+                    {{ showImport ? 'Cancel' : 'Import JSON' }}
+                  </button>
                 </div>
-                <div class="flex-1 min-h-0 bg-zinc-950 p-4">
-                  <pre class="w-full h-full text-[11px] text-green-400 font-mono overflow-auto scrollbar-thin select-all">{{ state.docType() | json }}</pre>
+                <div class="flex-1 min-h-0 bg-zinc-950 p-4 relative">
+                  @if (showImport) {
+                    <div class="absolute inset-0 z-10 p-4 bg-zinc-900/95 flex flex-col gap-3 backdrop-blur-sm animate-in fade-in duration-200">
+                      <p class="text-[10px] text-zinc-400 font-medium">Paste your <code>DocType</code> JSON here:</p>
+                      <textarea #importArea class="flex-1 w-full bg-zinc-800 text-green-400 font-mono text-xs p-3 rounded border border-zinc-700 focus:outline-none focus:border-indigo-500 placeholder:text-zinc-600"
+                        placeholder='&#123; "name": "...", "sections": [...] &#125;'></textarea>
+                      <button (click)="handleImport(importArea.value)" class="ui-btn-primary justify-center py-2 text-xs">Load Schema</button>
+                    </div>
+                  }
+                  <pre class="w-full h-full text-[11px] text-green-400 font-mono overflow-auto scrollbar-thin select-all" [class.opacity-50]="showImport">{{ state.docType() | json }}</pre>
                 </div>
               </div>
             }
@@ -184,12 +195,26 @@ type RightTab = 'properties' | 'script' | 'json';
       </div>
     } @else {
       <!-- PREVIEW MODE -->
-      <div class="flex-1 overflow-y-auto bg-zinc-50">
-        <div class="px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center gap-2">
+      <div class="flex-1 overflow-y-auto bg-zinc-50 flex flex-col items-center">
+        <div class="w-full px-4 py-3 bg-amber-50 border-b border-amber-200 flex items-center gap-2">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-amber-600"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           <span class="text-xs font-medium text-amber-700">Preview Mode — Client scripts are active. Changes made here won't affect the builder.</span>
         </div>
-        <app-form-renderer [docType]="state.docType()"></app-form-renderer>
+        
+        <app-form-renderer [docType]="state.docType()" (formSubmit)="onFormSubmit($event)"></app-form-renderer>
+
+        @if (lastSubmittedData) {
+          <div class="w-full max-w-3xl px-4 py-8 border-t border-zinc-200 mt-auto bg-white shadow-inner animate-in slide-in-from-bottom-4 duration-300">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                <h4 class="text-xs font-bold uppercase tracking-widest text-zinc-400">Submission Payload (Live Simulation)</h4>
+              </div>
+              <button (click)="lastSubmittedData = null" class="text-[10px] text-zinc-400 hover:text-zinc-600 underline">Clear</button>
+            </div>
+            <pre class="w-full text-[11px] text-green-600 font-mono bg-zinc-50 p-4 rounded-lg border border-zinc-200 overflow-auto max-h-64">{{ lastSubmittedData | json }}</pre>
+          </div>
+        }
       </div>
     }
   </div>
@@ -198,6 +223,8 @@ type RightTab = 'properties' | 'script' | 'json';
 export class BuilderContainerComponent implements OnInit {
   state = inject(BuilderStateService);
   rightTab: RightTab = 'properties';
+  showImport = false;
+  lastSubmittedData: any = null;
 
   allColumnIds = computed(() =>
     this.state.docType().sections.flatMap(s => s.columns.map(c => c.id))
@@ -215,8 +242,25 @@ export class BuilderContainerComponent implements OnInit {
     document.addEventListener('add-section', () => this.addSection());
   }
 
-  setMode(mode: 'builder' | 'preview') { this.state.mode.set(mode); }
+  setMode(mode: 'builder' | 'preview') {
+    this.state.mode.set(mode);
+    if (mode === 'builder') this.lastSubmittedData = null;
+  }
+
   addSection() { this.state.addSection(); }
+
+  handleImport(json: string) {
+    if (this.state.importDocType(json)) {
+      this.showImport = false;
+    } else {
+      alert('Invalid JSON schema. Please check the format.');
+    }
+  }
+
+  onFormSubmit(data: any) {
+    this.lastSubmittedData = data;
+    console.log('[Preview Mode] Form Submitted:', data);
+  }
 
   exportJson() {
     const json = JSON.stringify(this.state.docType(), null, 2);

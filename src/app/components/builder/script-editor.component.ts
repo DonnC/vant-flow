@@ -8,20 +8,31 @@ import { BuilderStateService } from '../../services/builder-state.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="flex flex-col h-full">
+    <div class="flex flex-col h-full bg-zinc-950">
       <!-- Header -->
-      <div class="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
+      <div class="px-4 py-3 border-b border-white/10 bg-zinc-900 flex items-center justify-between shrink-0">
         <div>
-          <p class="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Client Script</p>
-          <p class="text-xs text-zinc-500 mt-0.5">FormFlow JS — runs in Preview Mode</p>
+           <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]"></div>
+              <p class="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Client Script</p>
+           </div>
+           <p class="text-[10px] text-zinc-500 mt-0.5">FormFlow JS Environment</p>
         </div>
-        <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">JS</span>
+        <span class="px-1.5 py-0.5 rounded border border-zinc-700 bg-zinc-800 text-zinc-500 font-mono text-[9px]">v1.0</span>
       </div>
 
-      <!-- Code Area -->
-      <div class="flex-1 p-3">
+      <!-- Editor Body -->
+      <div class="flex-1 relative overflow-hidden flex">
+        <!-- Line Numbers -->
+        <div class="w-8 bg-zinc-900 border-r border-white/5 flex flex-col items-center py-4 text-[10px] text-zinc-600 font-mono select-none shrink-0">
+          @for (i of [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]; track i) {
+            <div class="h-6 leading-6">{{i}}</div>
+          }
+        </div>
+
         <textarea
-          class="ui-code-editor w-full h-full"
+          class="flex-1 bg-transparent text-indigo-300 font-mono text-xs p-4 outline-none resize-none 
+                 selection:bg-indigo-500/30 placeholder:text-zinc-800 leading-6 tracking-wide"
           [ngModel]="state.docType().client_script"
           (ngModelChange)="state.setClientScript($event)"
           spellcheck="false"
@@ -29,18 +40,20 @@ import { BuilderStateService } from '../../services/builder-state.service';
         ></textarea>
       </div>
 
-      <!-- Quick Ref -->
-      <div class="px-4 py-3 border-t border-zinc-100">
-        <p class="text-[10px] font-semibold uppercase tracking-widest text-zinc-400 mb-2">Available APIs</p>
-        <div class="space-y-1 font-mono text-[11px] text-zinc-500 leading-relaxed">
-          <div><span class="text-indigo-600">frm</span>.on(<span class="text-green-600">'fieldname_change'</span>, cb)</div>
-          <div><span class="text-indigo-600">frm</span>.set_value(<span class="text-green-600">'fieldname'</span>, val)</div>
-          <div><span class="text-indigo-600">frm</span>.get_value(<span class="text-green-600">'fieldname'</span>)</div>
-          <div><span class="text-indigo-600">frm</span>.set_df_property(<span class="text-green-600">'fn'</span>, <span class="text-green-600">'hidden'</span>, true)</div>
-          <div><span class="text-indigo-600">frm</span>.set_query(<span class="text-green-600">'fn'</span>, fn)</div>
-          <div><span class="text-indigo-600">app</span>.show_alert(<span class="text-green-600">'msg'</span>, <span class="text-green-600">'success'</span>)</div>
-          <div><span class="text-indigo-600">app</span>.prompt(fields, title) → Promise</div>
-          <div><span class="text-indigo-600">app</span>.call(config) → Promise</div>
+      <!-- Footer / API Cheat Sheet -->
+      <div class="px-4 py-3 border-t border-white/5 bg-zinc-900/50 shrink-0">
+        <div class="flex items-center justify-between mb-2">
+           <p class="text-[9px] font-bold uppercase tracking-widest text-zinc-500">API Snippets</p>
+           <div class="flex gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-700"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-zinc-700"></span>
+           </div>
+        </div>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-[10px] text-zinc-600">
+          <div><span class="text-indigo-500/70">frm</span>.on(<span class="text-zinc-500">'field'</span>, val)</div>
+          <div><span class="text-indigo-500/70">frm</span>.set_value(<span class="text-zinc-500">'f'</span>, v)</div>
+          <div><span class="text-indigo-500/70">frm</span>.set_df_prop(<span class="text-zinc-500">'f'</span>, <span class="text-zinc-500">'p'</span>, v)</div>
+          <div><span class="text-indigo-500/70">app</span>.show_alert(<span class="text-zinc-500">'m'</span>, <span class="text-zinc-500">'s'</span>)</div>
         </div>
       </div>
     </div>

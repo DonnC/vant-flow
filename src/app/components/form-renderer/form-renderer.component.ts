@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, inject, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Subscription } from 'rxjs';
@@ -19,7 +19,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
       </div>
 
       @if (frm) {
-        <form [formGroup]="frm.formGroup" class="space-y-6">
+        <form [formGroup]="frm.formGroup" (ngSubmit)="onSubmit()" class="space-y-6">
           @for (section of docType.sections; track section.id) {
             <div class="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm">
               @if (section.label) {
@@ -35,8 +35,8 @@ import { AppUtilityService } from '../../services/app-utility.service';
                         <div>
                           @if (field.fieldtype !== 'Check') {
                             <label [for]="field.fieldname" class="ui-label">
-                              {{ field.label }}
-                              @if (getSignal(field.fieldname)?.()?.mandatory || getSignal(field.fieldname)?.()?.reqd) {
+                              {{ getSignal(field.fieldname)?.()?.label }}
+                              @if (getSignal(field.fieldname)?.()?.mandatory) {
                                 <span class="text-red-500 ml-0.5">*</span>
                               }
                             </label>
@@ -88,7 +88,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                 <input type="checkbox" class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
                                   [checked]="frm.formGroup.get(field.fieldname)?.value === 1"
                                   (change)="frm.set_value(field.fieldname, $any($event.target).checked ? 1 : 0)">
-                                <span class="text-sm font-medium text-zinc-700">{{ field.label }}</span>
+                                <span class="text-sm font-medium text-zinc-700">{{ getSignal(field.fieldname)?.()?.label }}</span>
                               </label>
                             }
                             @default {
@@ -100,8 +100,8 @@ import { AppUtilityService } from '../../services/app-utility.service';
                             }
                           }
 
-                          @if (field.description) {
-                            <p class="text-xs text-zinc-400 mt-1">{{ field.description }}</p>
+                          @if (getSignal(field.fieldname)?.()?.description) {
+                            <p class="text-xs text-zinc-400 mt-1">{{ getSignal(field.fieldname)?.()?.description }}</p>
                           }
                         </div>
                       }
@@ -124,6 +124,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
 })
 export class FormRendererComponent implements OnInit, OnDestroy {
   @Input() docType!: DocType;
+  @Output() formSubmit = new EventEmitter<any>();
   frm!: FormContext;
 
   private fb = inject(FormBuilder);
@@ -138,6 +139,15 @@ export class FormRendererComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() { this.sub.unsubscribe(); }
+
+  onSubmit() {
+    if (this.frm.formGroup.valid) {
+      this.formSubmit.emit(this.frm.formGroup.getRawValue());
+    } else {
+      // Mark all as touched to show errors
+      Object.values(this.frm.formGroup.controls).forEach(c => c.markAsTouched());
+    }
+  }
 
   private buildForm() {
     const group = this.fb.group({});
@@ -160,7 +170,10 @@ export class FormRendererComponent implements OnInit, OnDestroy {
 
     // Fire individual field change events
     Object.keys(group.controls).forEach(key => {
-      this.sub.add(group.get(key)!.valueChanges.subscribe(val => this.frm.trigger(`${key}_change`, val)));
+      this.sub.add(group.get(key)!.valueChanges.subscribe(val => {
+        this.frm.trigger(`${key}`, val);
+        this.frm.trigger(`${key}_change`, val);
+      }));
     });
   }
 

@@ -28,7 +28,9 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
           <!-- Label -->
           <div>
             <label class="ui-label">Label</label>
-            <input class="ui-input" [ngModel]="field()!.label" (ngModelChange)="update('label', $event)">
+            <input class="ui-input" 
+              [value]="field()!.label" 
+              (input)="update('label', $any($event.target).value)">
           </div>
 
           <!-- Fieldname -->
@@ -135,6 +137,44 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
             <p class="text-[11px] text-zinc-400 mt-1">Field is visible when this expression is truthy</p>
           </div>
 
+          <!-- Help Accordion -->
+          <div class="ui-sep"></div>
+          <div class="mt-2">
+             <details class="group border border-zinc-200 rounded-lg overflow-hidden">
+                <summary class="flex items-center justify-between px-3 py-2 bg-zinc-50 cursor-pointer hover:bg-zinc-100 transition-colors list-none">
+                  <span class="text-xs font-semibold text-zinc-600 uppercase tracking-tight">Help & Documentation</span>
+                  <svg class="w-4 h-4 text-zinc-400 group-open:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </summary>
+                <div class="p-3 bg-white space-y-3 text-[11px] text-zinc-600 leading-relaxed">
+                   <div>
+                      <p class="font-bold text-zinc-800 mb-1">Supported Events</p>
+                      <ul class="list-disc pl-4 space-y-1">
+                        <li><code>refresh</code>: Runs on form load.</li>
+                        <li><code>[fieldname]</code> / <code>[fieldname]_change</code>: Runs when field value changes.</li>
+                        <li><code>validate</code>: Runs before submit (future).</li>
+                      </ul>
+                   </div>
+                   <div>
+                      <p class="font-bold text-zinc-800 mb-1">Supported properties (df)</p>
+                      <p class="font-mono text-[10px] bg-zinc-50 p-1.5 rounded border border-zinc-100 italic">
+                        label, fieldname, fieldtype, options, mandatory, hidden, read_only, default, placeholder, description
+                      </p>
+                   </div>
+                   <div>
+                      <p class="font-bold text-zinc-800 mb-1">Sample Script</p>
+                      <pre class="bg-zinc-900 text-green-400 p-2 rounded text-[10px] overflow-x-auto">
+frm.on('status', (val) => &#123;
+  if(val === 'Closed') &#123;
+    frm.set_df_property('reason', 'hidden', 0);
+  &#125;
+&#125;);</pre>
+                   </div>
+                </div>
+             </details>
+          </div>
+
           <!-- Delete field -->
           <button (click)="deleteField()" class="ui-btn-destructive w-full justify-center mt-2">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -177,9 +217,16 @@ export class PropertyEditorComponent {
 
     // Auto-slug fieldname from label
     if (prop === 'label') {
-      const oldSlug = this.slugify(f.label);
-      if (!f.fieldname || f.fieldname === oldSlug) {
-        patches.fieldname = this.slugify(value);
+      const oldSlugBase = this.slugify(f.label);
+      // Check if current fieldname is empty OR matches the old slug pattern (with optional numeric suffix)
+      const isAutoSlug = !f.fieldname || f.fieldname === oldSlugBase ||
+        new RegExp(`^${oldSlugBase}_\\d+$`).test(f.fieldname);
+
+      if (isAutoSlug) {
+        // Find existing suffix if any
+        const match = f.fieldname?.match(/_(\d+)$/);
+        const suffix = match ? match[0] : '';
+        patches.fieldname = this.slugify(value) + suffix;
       }
     }
 
