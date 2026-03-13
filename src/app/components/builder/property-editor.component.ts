@@ -113,6 +113,16 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
               <textarea class="ui-textarea text-xs" rows="2" [ngModel]="section()!.description" (ngModelChange)="state.updateSectionDescription(section()!.id, $event)" placeholder="Help text for this section..."></textarea>
            </div>
 
+           <!-- Depends On -->
+           <div>
+              <label class="ui-label">Depends On <span class="text-zinc-400">(JS expression)</span></label>
+              <input class="ui-input font-mono text-xs" 
+                [ngModel]="section()!.depends_on" 
+                (ngModelChange)="state.updateSectionDependsOn(section()!.id, $event)" 
+                placeholder="doc.status === 'Active'">
+              <p class="text-[11px] text-zinc-400 mt-1">Section is visible when this expression is truthy</p>
+           </div>
+
            <!-- Columns -->
            <div>
               <label class="ui-label text-zinc-400">Layout Columns</label>

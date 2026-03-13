@@ -27,6 +27,7 @@ export interface LayoutSection {
   id: string;
   label?: string;
   description?: string;
+  depends_on?: string; // New: evaluate expression to show/hide section
   collapsible?: boolean;
   columns_count?: 1 | 2;
   columns: LayoutColumn[];

@@ -43,9 +43,10 @@ import { BuilderStateService } from '../../services/builder-state.service';
 
       @if (frm) {
         <form [formGroup]="frm.formGroup" (ngSubmit)="onSubmit()" class="space-y-6">
-          @for (section of docType.sections; track section.id) {
-            <div class="mb-10 pb-10 border-b border-zinc-200 last:border-0 last:mb-0 last:pb-0">
-              @if (section.label || section.description) {
+           @for (section of docType.sections; track section.id) {
+             @if (sectionVisibility.get(section.id) !== false) {
+               <div class="mb-10 pb-10 border-b border-zinc-200 last:border-0 last:mb-0 last:pb-0">
+                 @if (section.label || section.description) {
                 <div class="mb-6 px-1">
                   @if (section.label) { <h3 class="text-lg font-bold text-zinc-800 tracking-tight">{{ section.label }}</h3> }
                   @if (section.description) { <p class="text-[13px] text-zinc-500 mt-1 leading-relaxed">{{ section.description }}</p> }
@@ -136,6 +137,7 @@ import { BuilderStateService } from '../../services/builder-state.service';
                 }
               </div>
             </div>
+            }
           }
 
           <!-- Submit -->
@@ -151,6 +153,7 @@ export class FormRendererComponent implements OnInit, OnDestroy {
   @Input() docType!: DocType;
   @Output() formSubmit = new EventEmitter<any>();
   frm!: FormContext;
+  sectionVisibility = new Map<string, boolean>();
 
   state = inject(BuilderStateService);
 
@@ -227,6 +230,21 @@ export class FormRendererComponent implements OnInit, OnDestroy {
   }
 
   private evaluateDependsOn(doc: any) {
+    // Evaluate section visibility first
+    this.docType.sections.forEach(section => {
+      if (section.depends_on) {
+        try {
+          const expr = section.depends_on.startsWith('eval:') ? section.depends_on.slice(5) : section.depends_on;
+          const visible = new Function('doc', `return !!(${expr})`)(doc);
+          this.sectionVisibility.set(section.id, visible);
+        } catch {
+          this.sectionVisibility.set(section.id, true);
+        }
+      } else {
+        this.sectionVisibility.set(section.id, true);
+      }
+    });
+
     const allFields = this.docType.sections.flatMap(s => s.columns.flatMap(c => c.fields));
     allFields.forEach(field => {
       // Visibility logic

@@ -117,6 +117,13 @@ export class BuilderStateService {
         }));
     }
 
+    updateSectionDependsOn(sectionId: string, depends_on: string) {
+        this.docType.update(dt => ({
+            ...dt,
+            sections: dt.sections.map(s => s.id === sectionId ? { ...s, depends_on } : s)
+        }));
+    }
+
     updateSectionColumns(sectionId: string, columns_count: 1 | 2) {
         this.docType.update(dt => ({
             ...dt,
