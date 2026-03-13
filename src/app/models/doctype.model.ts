@@ -11,7 +11,9 @@ export interface DocField {
   options?: string; // Newline-separated for Select, DocType name for Link
   hidden?: boolean;
   read_only?: boolean;
-  depends_on?: string; // e.g. "eval:doc.amount > 10000"
+  depends_on?: string; // Visible if expression is truthy
+  display_depends_on?: string; // Alternative display logic
+  mandatory_depends_on?: string; // Mandatory if expression is truthy
   description?: string;
   placeholder?: string;
 }

@@ -9,7 +9,7 @@ import { PropertyEditorComponent } from './property-editor.component';
 import { ScriptEditorComponent } from './script-editor.component';
 import { FormRendererComponent } from '../form-renderer/form-renderer.component';
 
-type RightTab = 'properties' | 'script';
+type RightTab = 'properties' | 'script' | 'json';
 
 @Component({
   selector: 'app-builder-container',
@@ -153,14 +153,31 @@ type RightTab = 'properties' | 'script';
                 }
               </span>
             </button>
+            <button
+              (click)="rightTab = 'json'"
+              class="flex-1 py-2.5 text-xs font-medium transition-colors"
+              [class.text-indigo-600]="rightTab === 'json'"
+              [class.border-b-2]="rightTab === 'json'"
+              [class.border-indigo-500]="rightTab === 'json'"
+              [class.text-zinc-400]="rightTab !== 'json'"
+            >JSON</button>
           </div>
 
           <!-- Tab content -->
           <div class="flex-1 overflow-hidden">
             @if (rightTab === 'properties') {
               <app-property-editor></app-property-editor>
-            } @else {
+            } @else if (rightTab === 'script') {
               <app-script-editor></app-script-editor>
+            } @else {
+              <div class="h-full flex flex-col">
+                <div class="px-4 py-3 border-b border-zinc-100 shrink-0">
+                  <p class="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Schema Preview</p>
+                </div>
+                <div class="flex-1 min-h-0 bg-zinc-950 p-4">
+                  <pre class="w-full h-full text-[11px] text-green-400 font-mono overflow-auto scrollbar-thin select-all">{{ state.docType() | json }}</pre>
+                </div>
+              </div>
             }
           </div>
         </aside>

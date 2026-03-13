@@ -7,10 +7,10 @@ import { DocField, FieldType } from '../../models/doctype.model';
 const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Link', 'Check', 'Date', 'Password'];
 
 @Component({
-    selector: 'app-property-editor',
-    standalone: true,
-    imports: [CommonModule, FormsModule],
-    template: `
+  selector: 'app-property-editor',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  template: `
     <div class="flex flex-col h-full">
       <!-- Header -->
       <div class="px-4 py-3 border-b border-zinc-100">
@@ -107,13 +107,31 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
 
           <div class="ui-sep"></div>
 
-          <!-- depends_on -->
+          <!-- display_depends_on -->
           <div>
-            <label class="ui-label">Depends On <span class="text-zinc-400">(Frappe expression)</span></label>
+            <label class="ui-label">Display Depends On <span class="text-zinc-400">(JS expression)</span></label>
+            <input class="ui-input font-mono text-xs"
+              [ngModel]="field()!.display_depends_on"
+              (ngModelChange)="update('display_depends_on', $event)"
+              placeholder="doc.status === 'Active'">
+          </div>
+
+          <!-- mandatory_depends_on -->
+          <div>
+            <label class="ui-label">Mandatory Depends On <span class="text-zinc-400">(JS expression)</span></label>
+            <input class="ui-input font-mono text-xs"
+              [ngModel]="field()!.mandatory_depends_on"
+              (ngModelChange)="update('mandatory_depends_on', $event)"
+              placeholder="doc.priority === 'High'">
+          </div>
+
+          <!-- depends_on (Legacy/Default) -->
+          <div>
+            <label class="ui-label">Depends On <span class="text-zinc-400">(FormFlow expression)</span></label>
             <input class="ui-input font-mono text-xs"
               [ngModel]="field()!.depends_on"
               (ngModelChange)="update('depends_on', $event)"
-              placeholder="eval:doc.amount > 10000">
+              placeholder="doc.amount > 10000">
             <p class="text-[11px] text-zinc-400 mt-1">Field is visible when this expression is truthy</p>
           </div>
 
@@ -141,28 +159,47 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
   `
 })
 export class PropertyEditorComponent {
-    private state = inject(BuilderStateService);
-    field = this.state.selectedField;
-    fieldTypes = FIELD_TYPES;
+  private state = inject(BuilderStateService);
+  field = this.state.selectedField;
+  fieldTypes = FIELD_TYPES;
 
-    toggles: Array<{ label: string; prop: keyof DocField }> = [
-        { label: 'Mandatory / Required', prop: 'mandatory' },
-        { label: 'Hidden', prop: 'hidden' },
-        { label: 'Read Only', prop: 'read_only' },
-    ];
+  toggles: Array<{ label: string; prop: keyof DocField }> = [
+    { label: 'Mandatory / Required', prop: 'mandatory' },
+    { label: 'Hidden', prop: 'hidden' },
+    { label: 'Read Only', prop: 'read_only' },
+  ];
 
-    update(prop: keyof DocField, value: any) {
-        const f = this.field();
-        if (f) this.state.updateField(f.id, { [prop]: value });
+  update(prop: keyof DocField, value: any) {
+    const f = this.field();
+    if (!f) return;
+
+    const patches: Partial<DocField> = { [prop]: value };
+
+    // Auto-slug fieldname from label
+    if (prop === 'label') {
+      const oldSlug = this.slugify(f.label);
+      if (!f.fieldname || f.fieldname === oldSlug) {
+        patches.fieldname = this.slugify(value);
+      }
     }
 
-    toggle_val(prop: keyof DocField) {
-        const f = this.field();
-        if (f) this.state.updateField(f.id, { [prop]: !f[prop] });
-    }
+    this.state.updateField(f.id, patches);
+  }
 
-    deleteField() {
-        const f = this.field();
-        if (f) this.state.removeField(f.id);
-    }
+  private slugify(text: string): string {
+    return text.toLowerCase()
+      .replace(/[^\w\s-]/g, '')
+      .replace(/[\s_-]+/g, '_')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  toggle_val(prop: keyof DocField) {
+    const f = this.field();
+    if (f) this.state.updateField(f.id, { [prop]: !f[prop] });
+  }
+
+  deleteField() {
+    const f = this.field();
+    if (f) this.state.removeField(f.id);
+  }
 }

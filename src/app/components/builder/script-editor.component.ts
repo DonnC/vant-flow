@@ -13,7 +13,7 @@ import { BuilderStateService } from '../../services/builder-state.service';
       <div class="px-4 py-3 border-b border-zinc-100 flex items-center justify-between">
         <div>
           <p class="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Client Script</p>
-          <p class="text-xs text-zinc-500 mt-0.5">Frappe-style JS — runs in Preview Mode</p>
+          <p class="text-xs text-zinc-500 mt-0.5">FormFlow JS — runs in Preview Mode</p>
         </div>
         <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">JS</span>
       </div>
@@ -50,11 +50,11 @@ export class ScriptEditorComponent {
   state = inject(BuilderStateService);
 
   placeholder = [
-    "// Frappe-style client scripts",
-    "// This JS runs when the form is loaded in Preview Mode",
+    "// FormFlow Client Script",
+    "// This script runs when the form is loaded or values change",
     "",
-    "frm.set_query('customer', function() {",
-    "  return { filters: { status: 'Active' } };",
+    "frm.on('refresh', function() {",
+    "  app.show_alert('Form Loaded', 'info');",
     "});",
     "",
     "frm.on('customer_change', async function(val) {",

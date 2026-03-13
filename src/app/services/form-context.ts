@@ -1,4 +1,4 @@
-import { FormGroup } from '@angular/forms';
+import { FormGroup, Validators } from '@angular/forms';
 import { WritableSignal, signal } from '@angular/core';
 import { DocField } from '../models/doctype.model';
 
@@ -17,10 +17,23 @@ export class FormContext {
         const s = this.fieldSignals.get(fieldname);
         if (!s) { console.warn(`[frm] Unknown field: ${fieldname}`); return; }
         s.update(current => ({ ...current, [prop]: val }));
+
         if (prop === 'read_only') {
             val
                 ? this.formGroup.get(fieldname)?.disable({ emitEvent: false })
                 : this.formGroup.get(fieldname)?.enable({ emitEvent: false });
+        }
+
+        if (prop === 'mandatory') {
+            const ctrl = this.formGroup.get(fieldname);
+            if (ctrl) {
+                if (val) {
+                    ctrl.setValidators([Validators.required]);
+                } else {
+                    ctrl.clearValidators();
+                }
+                ctrl.updateValueAndValidity({ emitEvent: false });
+            }
         }
     }
 

@@ -86,14 +86,16 @@ export class BuilderStateService {
 
     // ── Fields ────────────────────────────────────────────────
     addField(sectionId: string, colId: string, fieldtype: FieldType, index?: number) {
+        const slug = fieldtype.toLowerCase().replace(/\s+/g, '_') + '_' + (_uid + 1);
         const field: DocField = {
             id: uid(),
-            fieldname: `field_${_uid}`,
+            fieldname: slug,
             fieldtype,
             label: fieldtype === 'Check' ? 'Checkbox Field' : `${fieldtype} Field`,
             hidden: false,
             read_only: false,
             mandatory: false,
+            default: fieldtype === 'Check' ? 0 : undefined
         };
         this.docType.update(dt => ({
             ...dt,

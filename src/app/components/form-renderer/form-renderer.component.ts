@@ -86,7 +86,8 @@ import { AppUtilityService } from '../../services/app-utility.service';
                             @case ('Check') {
                               <label class="flex items-center gap-3 cursor-pointer">
                                 <input type="checkbox" class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
-                                  [formControlName]="field.fieldname">
+                                  [checked]="frm.formGroup.get(field.fieldname)?.value === 1"
+                                  (change)="frm.set_value(field.fieldname, $any($event.target).checked ? 1 : 0)">
                                 <span class="text-sm font-medium text-zinc-700">{{ field.label }}</span>
                               </label>
                             }
@@ -144,7 +145,10 @@ export class FormRendererComponent implements OnInit, OnDestroy {
 
     allFields.forEach(field => {
       const validators = (field.reqd || field.mandatory) ? [Validators.required] : [];
-      const val = field.default ?? (field.fieldtype === 'Check' ? false : null);
+      let val = field.default;
+      if (field.fieldtype === 'Check') {
+        val = (val === 1 || val === true) ? 1 : 0;
+      }
       group.addControl(field.fieldname, this.fb.control({ value: val, disabled: field.read_only }, validators));
     });
 
@@ -163,12 +167,24 @@ export class FormRendererComponent implements OnInit, OnDestroy {
   private evaluateDependsOn(doc: any) {
     const allFields = this.docType.sections.flatMap(s => s.columns.flatMap(c => c.fields));
     allFields.forEach(field => {
-      if (!field.depends_on) return;
-      try {
-        const expr = field.depends_on.startsWith('eval:') ? field.depends_on.slice(5) : field.depends_on;
-        const visible = new Function('doc', `return !!(${expr})`)(doc);
-        this.frm.set_df_property(field.fieldname, 'hidden', !visible);
-      } catch { /* ignore expression errors */ }
+      // Visibility logic
+      const visExpr = field.display_depends_on || field.depends_on;
+      if (visExpr) {
+        try {
+          const expr = visExpr.startsWith('eval:') ? visExpr.slice(5) : visExpr;
+          const visible = new Function('doc', `return !!(${expr})`)(doc);
+          this.frm.set_df_property(field.fieldname, 'hidden', !visible);
+        } catch { }
+      }
+
+      // Mandatory logic
+      if (field.mandatory_depends_on) {
+        try {
+          const expr = field.mandatory_depends_on.startsWith('eval:') ? field.mandatory_depends_on.slice(5) : field.mandatory_depends_on;
+          const isMandatory = new Function('doc', `return !!(${expr})`)(doc);
+          this.frm.set_df_property(field.fieldname, 'mandatory', isMandatory);
+        } catch { }
+      }
     });
   }
 
