@@ -10,11 +10,14 @@ export class BuilderStateService {
     readonly docType: WritableSignal<DocType> = signal({
         name: 'New DocType',
         sections: [],
-        client_script: ''
+        client_script: '',
+        intro_text: '',
+        intro_color: 'gray'
     });
 
-    // Selected field for property editor
+    // Selected field or section for property editor
     readonly selectedFieldId: WritableSignal<string | null> = signal(null);
+    readonly selectedSectionId: WritableSignal<string | null> = signal(null);
 
     // Builder vs Preview mode toggle
     readonly mode: WritableSignal<'builder' | 'preview'> = signal('builder');
@@ -32,6 +35,12 @@ export class BuilderStateService {
         return null;
     });
 
+    readonly selectedSection = computed(() => {
+        const id = this.selectedSectionId();
+        if (!id) return null;
+        return this.docType().sections.find(s => s.id === id) || null;
+    });
+
     // ── DocType metadata ──────────────────────────────────────
     setDocTypeName(name: string) {
         this.docType.update(dt => ({ ...dt, name }));
@@ -39,6 +48,18 @@ export class BuilderStateService {
 
     setClientScript(script: string) {
         this.docType.update(dt => ({ ...dt, client_script: script }));
+    }
+
+    setIntro(text: string, color?: 'blue' | 'orange' | 'red' | 'gray') {
+        this.docType.update(dt => ({
+            ...dt,
+            intro_text: text,
+            intro_color: color || dt.intro_color || 'gray'
+        }));
+    }
+
+    setModule(module: string) {
+        this.docType.update(dt => ({ ...dt, module }));
     }
 
     importDocType(json: string) {
@@ -77,6 +98,13 @@ export class BuilderStateService {
         this.docType.update(dt => ({
             ...dt,
             sections: dt.sections.map(s => s.id === sectionId ? { ...s, label } : s)
+        }));
+    }
+
+    updateSectionColumns(sectionId: string, columns_count: 1 | 2) {
+        this.docType.update(dt => ({
+            ...dt,
+            sections: dt.sections.map(s => s.id === sectionId ? { ...s, columns_count } : s)
         }));
     }
 
@@ -197,7 +225,13 @@ export class BuilderStateService {
     }
 
     selectField(fieldId: string | null) {
+        this.selectedSectionId.set(null);
         this.selectedFieldId.set(fieldId);
+    }
+
+    selectSection(sectionId: string | null) {
+        this.selectedFieldId.set(null);
+        this.selectedSectionId.set(sectionId);
     }
 
     toggleMode() {

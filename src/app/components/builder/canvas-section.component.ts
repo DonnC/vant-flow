@@ -11,7 +11,14 @@ import { CanvasColumnComponent } from './canvas-column.component';
   standalone: true,
   imports: [CommonModule, FormsModule, DragDropModule, CanvasColumnComponent],
   template: `
-    <div class="border border-zinc-200 rounded-xl bg-white shadow-sm overflow-hidden mb-4">
+    <div 
+      (click)="selectSection($event)"
+      class="border rounded-xl bg-white shadow-sm overflow-hidden mb-4 transition-all duration-200"
+      [class.border-indigo-500]="isSelected()"
+      [class.ring-2]="isSelected()"
+      [class.ring-indigo-500/10]="isSelected()"
+      [class.border-zinc-200]="!isSelected()"
+    >
       <!-- Section Header -->
       <div class="flex items-center gap-2 px-4 py-2.5 bg-zinc-50 border-b border-zinc-200">
         <div class="w-2 h-2 rounded-full bg-indigo-400 shrink-0"></div>
@@ -71,6 +78,13 @@ export class CanvasSectionComponent {
   private state = inject(BuilderStateService);
   editing = signal(false);
   editValue = '';
+
+  isSelected = computed(() => this.state.selectedSectionId() === this.section.id);
+
+  selectSection(e: Event) {
+    e.stopPropagation();
+    this.state.selectSection(this.section.id);
+  }
 
   startEdit() {
     this.editValue = this.section.label ?? '';

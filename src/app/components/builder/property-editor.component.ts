@@ -17,7 +17,53 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
         <p class="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Properties</p>
       </div>
 
-      @if (field()) {
+      @if (section()) {
+        <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4 animate-in fade-in duration-300">
+           <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-600 bg-amber-50 px-2 py-1 rounded">Section Settings</span>
+           </div>
+
+           <!-- Label -->
+           <div>
+              <label class="ui-label">Section Label</label>
+              <input class="ui-input" [ngModel]="section()!.label" (ngModelChange)="state.updateSectionLabel(section()!.id, $event)">
+           </div>
+
+           <!-- Columns -->
+           <div>
+              <label class="ui-label text-zinc-400">Layout Columns</label>
+              <div class="flex bg-zinc-100 p-1 rounded-lg gap-1">
+                 <button (click)="state.updateSectionColumns(section()!.id, 1)"
+                    class="flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5"
+                    [class.bg-white]="section()!.columns_count === 1"
+                    [class.shadow-sm]="section()!.columns_count === 1"
+                    [class.text-indigo-600]="section()!.columns_count === 1"
+                    [class.text-zinc-500]="section()!.columns_count !== 1"
+                 >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>
+                    Single
+                 </button>
+                 <button (click)="state.updateSectionColumns(section()!.id, 2)"
+                    class="flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5"
+                    [class.bg-white]="section()!.columns_count !== 1"
+                    [class.shadow-sm]="section()!.columns_count !== 1"
+                    [class.text-indigo-600]="section()!.columns_count !== 1"
+                    [class.text-zinc-500]="section()!.columns_count === 1"
+                 >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="18" rx="1"/><rect x="13" y="3" width="8" height="18" rx="1"/></svg>
+                    Double
+                 </button>
+              </div>
+           </div>
+
+           <div class="ui-sep"></div>
+           
+           <!-- Delete -->
+           <button (click)="state.removeSection(section()!.id)" class="ui-btn-destructive w-full justify-center">
+              Remove Section
+           </button>
+        </div>
+      } @else if (field()) {
         <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
           <!-- Field Type Badge -->
           <div class="flex items-center gap-2">
@@ -147,29 +193,48 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Int', 'Float', 'Text', 'Select', 'Lin
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
                   </svg>
                 </summary>
-                <div class="p-3 bg-white space-y-3 text-[11px] text-zinc-600 leading-relaxed">
+                <div class="p-3 bg-white space-y-4 text-[11px] text-zinc-600 leading-relaxed">
+                   <!-- Field State Examples -->
                    <div>
-                      <p class="font-bold text-zinc-800 mb-1">Supported Events</p>
-                      <ul class="list-disc pl-4 space-y-1">
-                        <li><code>refresh</code>: Runs on form load.</li>
-                        <li><code>[fieldname]</code> / <code>[fieldname]_change</code>: Runs when field value changes.</li>
-                        <li><code>validate</code>: Runs before submit (future).</li>
-                      </ul>
-                   </div>
-                   <div>
-                      <p class="font-bold text-zinc-800 mb-1">Supported properties (df)</p>
-                      <p class="font-mono text-[10px] bg-zinc-50 p-1.5 rounded border border-zinc-100 italic">
-                        label, fieldname, fieldtype, options, mandatory, hidden, read_only, default, placeholder, description
+                      <p class="font-bold text-zinc-800 mb-1.5 flex items-center gap-1.5">
+                         <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                         UI Manipulation (API)
                       </p>
+                      <div class="bg-zinc-900 text-indigo-300 p-2 rounded font-mono text-[10px] space-y-1 overflow-x-auto">
+                        <div><span class="text-zinc-500">// Read Only / Hidden</span></div>
+                        <div>frm.set_df_property('fn', 'read_only', <span class="text-orange-400">1</span>);</div>
+                        <div>frm.set_df_property('fn', 'hidden', <span class="text-orange-400">1</span>);</div>
+                        <div><span class="text-zinc-500">// Change Label / Desc</span></div>
+                        <div>frm.set_df_property('fn', 'label', <span class="text-green-400">'New Name'</span>);</div>
+                      </div>
                    </div>
+
+                   <!-- Event Snippets -->
                    <div>
-                      <p class="font-bold text-zinc-800 mb-1">Sample Script</p>
-                      <pre class="bg-zinc-900 text-green-400 p-2 rounded text-[10px] overflow-x-auto">
-frm.on('status', (val) => &#123;
-  if(val === 'Closed') &#123;
-    frm.set_df_property('reason', 'hidden', 0);
-  &#125;
-&#125;);</pre>
+                      <p class="font-bold text-zinc-800 mb-1.5 flex items-center gap-1.5">
+                         <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                         Event Listeners
+                      </p>
+                      <div class="bg-zinc-900 text-indigo-300 p-2 rounded font-mono text-[10px] space-y-2 overflow-x-auto">
+                        <div><span class="text-zinc-500">// Runs on form load</span>
+                        <br>frm.on(<span class="text-green-400">'refresh'</span>, () => &#123; ... &#125;);</div>
+                        <div><span class="text-zinc-500">// Runs on field change</span>
+                        <br>frm.on(<span class="text-green-400">'fieldname'</span>, (val) => &#123; ... &#125;);</div>
+                      </div>
+                   </div>
+
+                   <!-- Dialogs -->
+                   <div>
+                      <p class="font-bold text-zinc-800 mb-1.5 flex items-center gap-1.5">
+                         <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+                         Prompts & Alerts
+                      </p>
+                      <div class="bg-zinc-900 text-indigo-300 p-2 rounded font-mono text-[10px] space-y-2 overflow-x-auto">
+                        <div>app.show_alert(<span class="text-green-400">'Saved!'</span>, <span class="text-green-400">'success'</span>);</div>
+                        <div>app.prompt([
+                        <br>&nbsp;&nbsp;&#123; label: <span class="text-green-400">'Name'</span>, fieldname: <span class="text-green-400">'n'</span>, fieldtype: <span class="text-green-400">'Data'</span> &#125;
+                        <br>], <span class="text-green-400">'Dialog Title'</span>).then(v => ...);</div>
+                      </div>
                    </div>
                 </div>
              </details>
@@ -184,23 +249,64 @@ frm.on('status', (val) => &#123;
           </button>
         </div>
       } @else {
-        <!-- Empty state -->
-        <div class="flex-1 flex flex-col items-center justify-center text-center p-6">
-          <div class="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center mb-3">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-zinc-400">
-              <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 12h8M12 8v8"/>
-            </svg>
-          </div>
-          <p class="text-sm font-medium text-zinc-500">No field selected</p>
-          <p class="text-xs text-zinc-400 mt-1">Click a field on the canvas to edit its properties</p>
+        <!-- FORM SETTINGS -->
+        <div class="flex-1 overflow-y-auto px-4 py-4 space-y-5 animate-in fade-in duration-300">
+           <div class="flex items-center gap-2">
+              <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Form Settings</span>
+           </div>
+           
+           <!-- Module -->
+           <div>
+              <label class="ui-label">Module / Package</label>
+              <input class="ui-input" [ngModel]="state.docType().module" (ngModelChange)="state.setModule($event)" placeholder="e.g. Core System">
+           </div>
+
+           <div class="ui-sep"></div>
+
+           <!-- Intro Text -->
+           <div>
+              <label class="ui-label">Intro / Hero Text <span class="text-zinc-400">(HTML supported)</span></label>
+              <textarea class="ui-textarea text-xs leading-relaxed" rows="5" 
+                [ngModel]="state.docType().intro_text" 
+                (ngModelChange)="state.setIntro($event)"
+                placeholder="Helpful documentation or instructions for users shown at the top of this form..."></textarea>
+           </div>
+
+           <!-- Intro Color -->
+           <div>
+              <label class="ui-label">Intro Alert Theme</label>
+              <div class="grid grid-cols-4 gap-2">
+                 @for (c of introColors; track c) {
+                   <button (click)="state.setIntro(state.docType().intro_text || '', c)"
+                     class="h-9 rounded-lg border-2 transition-all flex items-center justify-center group"
+                     [class.border-indigo-600]="state.docType().intro_color === c"
+                     [class.border-zinc-200]="state.docType().intro_color !== c"
+                     [ngClass]="getIntroPreviewClass(c)"
+                   >
+                     @if (state.docType().intro_color === c) {
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                     }
+                   </button>
+                 }
+              </div>
+           </div>
+
+           <div class="ui-sep"></div>
+           
+           <div class="p-3 rounded-lg bg-zinc-50 border border-zinc-100">
+              <p class="text-[11px] text-zinc-500 font-medium leading-relaxed">
+                <span class="font-bold text-zinc-700">Tip:</span> These settings apply to the entire DocType. Use the Intro text to guide users through complex flows.
+              </p>
+           </div>
         </div>
       }
     </div>
   `
 })
 export class PropertyEditorComponent {
-  private state = inject(BuilderStateService);
+  state = inject(BuilderStateService);
   field = this.state.selectedField;
+  section = this.state.selectedSection;
   fieldTypes = FIELD_TYPES;
 
   toggles: Array<{ label: string; prop: keyof DocField }> = [
@@ -208,6 +314,18 @@ export class PropertyEditorComponent {
     { label: 'Hidden', prop: 'hidden' },
     { label: 'Read Only', prop: 'read_only' },
   ];
+
+  introColors: Array<'blue' | 'orange' | 'red' | 'gray'> = ['blue', 'orange', 'red', 'gray'];
+
+  getIntroPreviewClass(c: string) {
+    const classes: Record<string, string> = {
+      blue: 'bg-indigo-50 text-indigo-600',
+      orange: 'bg-amber-50 text-amber-600',
+      red: 'bg-red-50 text-red-600',
+      gray: 'bg-zinc-100 text-zinc-600'
+    };
+    return classes[c];
+  }
 
   update(prop: keyof DocField, value: any) {
     const f = this.field();

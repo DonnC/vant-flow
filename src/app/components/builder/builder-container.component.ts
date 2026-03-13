@@ -1,4 +1,4 @@
-import { Component, computed, inject, HostListener, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, HostListener, OnInit, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CdkDrag, CdkDropList, DragDropModule } from '@angular/cdk/drag-drop';
@@ -89,11 +89,33 @@ type RightTab = 'properties' | 'script' | 'json';
 
     <!-- ── Main Layout ───────────────────────────────────── -->
     @if (state.mode() === 'builder') {
-      <div class="flex flex-1 min-h-0">
+      <div class="flex flex-1 min-h-0 relative">
         <!-- LEFT: Field Palette -->
-        <aside class="w-52 shrink-0 bg-white border-r border-zinc-200 flex flex-col overflow-hidden">
+        <aside 
+          class="shrink-0 bg-white border-r border-zinc-200 flex flex-col overflow-hidden transition-all duration-300 ease-in-out relative group"
+          [style.width.px]="leftSidebarVisible() ? 208 : 0"
+        >
           <app-field-palette [connectedLists]="allColumnIds()"></app-field-palette>
+          
+          <!-- Collapse Toggle Left -->
+          <button 
+            (click)="leftSidebarVisible.set(!leftSidebarVisible())"
+            class="absolute top-1/2 -right-3 -translate-y-1/2 w-6 h-12 bg-white border border-zinc-200 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-zinc-50 transition-all shadow-sm z-10"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" [class.rotate-180]="!leftSidebarVisible()">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
         </aside>
+
+        @if (!leftSidebarVisible()) {
+          <button 
+            (click)="leftSidebarVisible.set(true)"
+            class="absolute left-0 top-1/2 -translate-y-1/2 w-4 h-12 bg-white border border-l-0 border-zinc-200 rounded-r-md flex items-center justify-center hover:bg-zinc-50 transition-all shadow-sm z-20 group"
+          >
+            <div class="w-1 h-3 bg-zinc-300 rounded-full group-hover:bg-indigo-400"></div>
+          </button>
+        }
 
         <!-- CENTER: Canvas -->
         <main class="flex-1 overflow-y-auto p-5">
@@ -127,7 +149,25 @@ type RightTab = 'properties' | 'script' | 'json';
         </main>
 
         <!-- RIGHT: Tools panel -->
-        <aside class="w-72 shrink-0 bg-white border-l border-zinc-200 flex flex-col overflow-hidden">
+        <div 
+          class="w-1 cursor-col-resize hover:bg-indigo-500/50 transition-colors z-20 shrink-0"
+          (mousedown)="startResize($event)"
+          [class.bg-indigo-500]="isResizing()"
+        ></div>
+
+        <aside 
+          class="shrink-0 bg-white border-l border-zinc-200 flex flex-col overflow-hidden transition-all duration-300 ease-in-out relative group"
+          [style.width.px]="rightSidebarVisible() ? sidebarWidth() : 0"
+        >
+          <!-- Collapse Toggle Right -->
+          <button 
+            (click)="rightSidebarVisible.set(!rightSidebarVisible())"
+            class="absolute top-1/2 -left-3 -translate-y-1/2 w-6 h-12 bg-white border border-zinc-200 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 hover:bg-zinc-50 transition-all shadow-sm z-10"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" [class.rotate-180]="rightSidebarVisible()">
+               <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+          </button>
           <!-- Tab bar -->
           <div class="flex border-b border-zinc-100 shrink-0">
             <button
@@ -226,6 +266,22 @@ export class BuilderContainerComponent implements OnInit {
   showImport = false;
   lastSubmittedData: any = null;
 
+  // Sidebar controls
+  leftSidebarVisible = signal(true);
+  rightSidebarVisible = signal(true);
+  sidebarWidth = signal(288);
+  isResizing = signal(false);
+
+  constructor() {
+    // Auto-focus properties tab when a field is selected
+    effect(() => {
+      if (this.state.selectedFieldId()) {
+        this.rightTab = 'properties';
+        this.rightSidebarVisible.set(true);
+      }
+    }, { allowSignalWrites: true });
+  }
+
   allColumnIds = computed(() =>
     this.state.docType().sections.flatMap(s => s.columns.map(c => c.id))
   );
@@ -260,6 +316,26 @@ export class BuilderContainerComponent implements OnInit {
   onFormSubmit(data: any) {
     this.lastSubmittedData = data;
     console.log('[Preview Mode] Form Submitted:', data);
+  }
+
+  // Sidebar resizing
+  startResize(e: MouseEvent) {
+    this.isResizing.set(true);
+    e.preventDefault();
+  }
+
+  @HostListener('window:mousemove', ['$event'])
+  onMouseMove(e: MouseEvent) {
+    if (!this.isResizing()) return;
+    const newWidth = window.innerWidth - e.clientX;
+    if (newWidth > 200 && newWidth < window.innerWidth * 0.7) {
+      this.sidebarWidth.set(newWidth);
+    }
+  }
+
+  @HostListener('window:mouseup')
+  onMouseUp() {
+    this.isResizing.set(false);
   }
 
   exportJson() {

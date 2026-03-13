@@ -11,25 +11,42 @@ import { AppUtilityService } from '../../services/app-utility.service';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   template: `
-    <div class="max-w-3xl mx-auto py-8 px-4">
+    <div class="max-w-4xl mx-auto py-8 px-6">
+      <!-- Form Intro -->
+      @if (docType.intro_text) {
+        <div class="mb-8 p-5 rounded-2xl border flex gap-4 shadow-sm animate-in fade-in slide-in-from-top-3 duration-500" 
+             [ngClass]="getIntroClasses()">
+          <div class="shrink-0 mt-0.5">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+          </div>
+          <div class="text-[14px] leading-relaxed font-medium" [innerHTML]="docType.intro_text"></div>
+        </div>
+      }
+
       <!-- Doc header -->
       <div class="mb-8">
-        <h2 class="text-2xl font-bold text-zinc-900">{{ docType.name }}</h2>
-        <p class="text-sm text-zinc-500 mt-0.5">{{ docType.module || 'Custom Form' }}</p>
+        <h2 class="text-3xl font-extrabold text-zinc-900 tracking-tight">{{ docType.name }}</h2>
+        <p class="text-sm font-medium text-zinc-400 mt-1 uppercase tracking-wider">{{ docType.module || 'Custom Form' }}</p>
       </div>
 
       @if (frm) {
         <form [formGroup]="frm.formGroup" (ngSubmit)="onSubmit()" class="space-y-6">
           @for (section of docType.sections; track section.id) {
-            <div class="bg-white rounded-xl border border-zinc-200 overflow-hidden shadow-sm">
+            <div class="bg-white rounded-2xl border border-zinc-200 overflow-hidden shadow-sm">
               @if (section.label) {
-                <div class="px-6 py-3 bg-zinc-50 border-b border-zinc-200">
-                  <h3 class="text-sm font-semibold text-zinc-700">{{ section.label }}</h3>
+                <div class="px-8 py-5 bg-zinc-50/50 border-b border-zinc-100">
+                  <h3 class="text-base font-bold text-zinc-800 tracking-tight">{{ section.label }}</h3>
                 </div>
               }
-              <div class="flex divide-x divide-zinc-100">
+              <div class="grid divide-zinc-100" 
+                   [class.grid-cols-1]="section.columns_count === 1" 
+                   [class.grid-cols-2]="section.columns_count !== 1"
+                   [class.divide-x]="section.columns_count !== 1"
+                   [class.divide-y]="section.columns_count === 1">
                 @for (col of section.columns; track col.id) {
-                  <div class="flex-1 px-6 py-5 space-y-4">
+                  <div class="px-8 py-7 space-y-6">
                     @for (field of col.fields; track field.id) {
                       @if (getSignal(field.fieldname)?.()?.hidden !== true) {
                         <div>
@@ -126,6 +143,16 @@ export class FormRendererComponent implements OnInit, OnDestroy {
   @Input() docType!: DocType;
   @Output() formSubmit = new EventEmitter<any>();
   frm!: FormContext;
+
+  getIntroClasses() {
+    const colors: Record<string, string> = {
+      blue: 'bg-indigo-50 border-indigo-100 text-indigo-700',
+      orange: 'bg-amber-50 border-amber-100 text-amber-700',
+      red: 'bg-red-50 border-red-100 text-red-700',
+      gray: 'bg-zinc-50 border-zinc-100 text-zinc-600'
+    };
+    return colors[this.docType.intro_color || 'gray'];
+  }
 
   private fb = inject(FormBuilder);
   private appUtility = inject(AppUtilityService);

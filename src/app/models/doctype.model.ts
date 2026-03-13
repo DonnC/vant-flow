@@ -27,12 +27,15 @@ export interface LayoutSection {
   id: string;
   label?: string;
   collapsible?: boolean;
+  columns_count?: 1 | 2;
   columns: LayoutColumn[];
 }
 
 export interface DocType {
   name: string;
   module?: string;
+  intro_text?: string;
+  intro_color?: 'blue' | 'orange' | 'red' | 'gray';
   sections: LayoutSection[];
   client_script?: string;
 }
