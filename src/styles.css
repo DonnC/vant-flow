@@ -1,0 +1,194 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+@layer base {
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    height: 100%;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    color: #1a1a1a;
+    background-color: #f8f9fa;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* ── Shadcn-style ui primitives ─────────────────────────── */
+@layer components {
+
+  /* Input */
+  .ui-input {
+    @apply w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm placeholder:text-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 transition-colors;
+  }
+
+  /* Textarea */
+  .ui-textarea {
+    @apply ui-input resize-y min-h-[80px];
+  }
+
+  /* Select */
+  .ui-select {
+    @apply ui-input appearance-none cursor-pointer pr-8 bg-no-repeat;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-position: right 10px center;
+  }
+
+  /* Label */
+  .ui-label {
+    @apply block text-xs font-medium text-zinc-600 mb-1;
+  }
+
+  /* Button variants */
+  .ui-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:pointer-events-none disabled:opacity-50 cursor-pointer;
+  }
+
+  .ui-btn-primary {
+    @apply ui-btn bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500;
+  }
+
+  .ui-btn-secondary {
+    @apply ui-btn bg-white text-zinc-700 border border-zinc-200 hover:bg-zinc-50 focus:ring-zinc-300;
+  }
+
+  .ui-btn-ghost {
+    @apply ui-btn bg-transparent text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900;
+  }
+
+  .ui-btn-destructive {
+    @apply ui-btn bg-red-50 text-red-600 hover:bg-red-100 border border-red-200;
+  }
+
+  .ui-btn-sm {
+    @apply px-2.5 py-1 text-xs rounded;
+  }
+
+  .ui-btn-icon {
+    @apply ui-btn w-8 h-8 p-0;
+  }
+
+  /* Badge */
+  .ui-badge {
+    @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium;
+  }
+
+  .ui-badge-indigo {
+    @apply ui-badge bg-indigo-50 text-indigo-700 border border-indigo-200;
+  }
+
+  .ui-badge-zinc {
+    @apply ui-badge bg-zinc-100 text-zinc-600;
+  }
+
+  .ui-badge-green {
+    @apply ui-badge bg-green-50 text-green-700;
+  }
+
+  /* Switch toggle */
+  .ui-switch {
+    @apply relative inline-flex h-5 w-9 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none;
+  }
+
+  .ui-switch[aria-checked="true"] {
+    @apply bg-indigo-600;
+  }
+
+  .ui-switch[aria-checked="false"] {
+    @apply bg-zinc-200;
+  }
+
+  .ui-switch-thumb {
+    @apply pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow ring-0 transition-transform;
+  }
+
+  /* Card */
+  .ui-card {
+    @apply rounded-lg border border-zinc-200 bg-white shadow-sm;
+  }
+
+  /* Toast */
+  .ui-toast {
+    @apply fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-lg border px-4 py-3 shadow-xl text-sm font-medium animate-slide-up;
+  }
+
+  .ui-toast-success {
+    @apply ui-toast bg-white border-green-200 text-green-800;
+  }
+
+  .ui-toast-error {
+    @apply ui-toast bg-white border-red-200 text-red-800;
+  }
+
+  .ui-toast-info {
+    @apply ui-toast bg-white border-indigo-200 text-indigo-800;
+  }
+
+  /* Code editor */
+  .ui-code-editor {
+    @apply w-full rounded-md border border-zinc-200 bg-zinc-950 text-green-400 font-mono text-xs px-4 py-3 resize-y focus:outline-none focus:ring-2 focus:ring-indigo-500;
+    tab-size: 2;
+  }
+
+  /* Separator */
+  .ui-sep {
+    @apply border-t border-zinc-100 my-3;
+  }
+}
+
+/* ── Builder specific ──────────────────────────────────────*/
+.cdk-drag-preview {
+  @apply opacity-80 shadow-2xl rotate-1;
+}
+
+.cdk-drag-placeholder {
+  @apply opacity-30;
+}
+
+.cdk-drop-list-dragging .canvas-field:not(.cdk-drag-placeholder) {
+  @apply transition-transform duration-200;
+}
+
+/* Toast slide-up animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.2s ease-out;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-zinc-300 rounded-full;
+}
