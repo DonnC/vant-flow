@@ -318,7 +318,7 @@ export class BuilderContainerComponent implements OnInit {
   constructor() {
     // Auto-focus properties tab when a field or section is selected
     effect(() => {
-      if (this.state.selectedFieldId() || this.state.selectedSectionId() || this.state.showFormSettings()) {
+      if (this.state.selectedFieldId() || this.state.selectedSectionId()) {
         this.rightTab = 'properties';
         this.rightSidebarVisible.set(true);
       }
