@@ -42,15 +42,27 @@ import { BuilderStateService } from '../../services/builder-state.service';
              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
              <span>API Snippet Library</span>
            </div>
-           <span class="text-emerald-400 opacity-60">Click to insert at cursor</span>
+           <span class="text-emerald-400 opacity-60">Select to insert at cursor</span>
         </div>
-        <div class="flex flex-wrap gap-1.5">
-          @for (s of snippets; track s.label) {
-            <button (click)="insertSnippet(s.code)" 
-              class="px-2 py-1 rounded bg-zinc-800/50 border border-zinc-700/50 text-zinc-400 hover:text-white hover:bg-zinc-800 hover:border-emerald-500/50 transition-all font-mono text-[10px] shadow-sm">
-              {{ s.label }}
-            </button>
-          }
+        
+        <div class="flex items-center gap-3">
+          <select 
+            #snippetSelect
+            (change)="insertSnippet(snippetSelect.value); snippetSelect.value = ''"
+            class="flex-1 bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs rounded-lg px-3 py-2 outline-none focus:border-emerald-500/50 transition-all cursor-pointer">
+            <option value="" disabled selected>Search for a method...</option>
+            @for (group of snippetGroups; track group.name) {
+              <optgroup [label]="group.name">
+                @for (s of group.items; track s.label) {
+                  <option [value]="s.code">{{ s.label }}</option>
+                }
+              </optgroup>
+            }
+          </select>
+          <div class="flex gap-1">
+            <button (click)="insertOnRefresh()" class="ui-btn-ghost ui-btn-sm text-[10px] bg-zinc-800/50 border-zinc-700/50">on:refresh</button>
+            <button (click)="insertMsgprint()" class="ui-btn-ghost ui-btn-sm text-[10px] bg-zinc-800/50 border-zinc-700/50">msgprint</button>
+          </div>
         </div>
       </div>
     </div>
@@ -58,11 +70,21 @@ import { BuilderStateService } from '../../services/builder-state.service';
   styles: [`
     :host { display: block; height: 100%; }
     ngx-monaco-editor { height: 100%; }
+    select optgroup { @apply bg-zinc-900 text-zinc-500 font-bold uppercase tracking-wider text-[10px]; }
+    select option { @apply bg-zinc-800 text-zinc-300 py-2; }
   `]
 })
 export class ScriptEditorComponent {
   state = inject(BuilderStateService);
   editorInstance: any;
+
+  insertOnRefresh() {
+    this.insertSnippet("frm.on('refresh', () => {\n  \n});");
+  }
+
+  insertMsgprint() {
+    this.insertSnippet("frm.msgprint('Hello World');");
+  }
 
   get clientScript(): string {
     return this.state.document().client_script ?? '';
@@ -89,15 +111,43 @@ export class ScriptEditorComponent {
     readOnly: false
   };
 
-  snippets = [
-    { label: 'frm.on(refresh)', code: "frm.on('refresh', () => {\n  // Logic on load\n});" },
-    { label: 'frm.on(change)', code: "frm.on('fieldname', (val) => {\n  frm.msgprint('Value changed to ' + val);\n});" },
-    { label: 'frm.set_value', code: "frm.set_value('fieldname', 'value');" },
-    { label: 'frm.set_intro', code: "frm.set_intro('Welcome to FormFlow', 'blue');" },
-    { label: 'frm.msgprint', code: "frm.msgprint('Success!', 'success');" },
-    { label: 'frm.confirm', code: "frm.confirm('Proceed?', () => {\n  frm.msgprint('Confirmed');\n});" },
-    { label: 'frm.prompt', code: "frm.prompt([\n  { label: 'Reason', fieldname: 'reason', fieldtype: 'Text' }\n], (vals) => {\n  console.log(vals);\n}, 'Provide Reason');" },
-    { label: 'frm.throw', code: "frm.throw('Error message');" },
+  snippetGroups = [
+    {
+      name: 'Events & Hooks',
+      items: [
+        { label: 'frm.on(refresh)', code: "frm.on('refresh', () => {\n  // Logic on load\n});" },
+        { label: 'frm.on(validate)', code: "frm.on('validate', () => {\n  if (!frm.get_value('email')) {\n    frm.throw('Email is mandatory');\n    return false;\n  }\n});" },
+        { label: 'frm.on(field change)', code: "frm.on('fieldname', (val) => {\n  frm.msgprint('Value changed to ' + val);\n});" },
+      ]
+    },
+    {
+      name: 'UI & Interactions',
+      items: [
+        { label: 'frm.msgprint', code: "frm.msgprint('Success!', 'success');" },
+        { label: 'frm.throw', code: "frm.throw('Error message');" },
+        { label: 'frm.confirm', code: "frm.confirm('Proceed?', () => {\n  frm.msgprint('Confirmed');\n});" },
+        { label: 'frm.prompt', code: "frm.prompt([\n  { label: 'Reason', fieldname: 'reason', fieldtype: 'Data', mandatory: 1 }\n], (vals) => {\n  console.log(vals);\n}, 'Provide Reason');" },
+        { label: 'frm.set_intro', code: "frm.set_intro('Welcome to FormFlow', 'blue');" },
+      ]
+    },
+    {
+      name: 'Form State',
+      items: [
+        { label: 'frm.set_value', code: "frm.set_value('fieldname', 'value');" },
+        { label: 'frm.get_value', code: "const val = frm.get_value('fieldname');" },
+        { label: 'frm.set_readonly', code: "frm.set_readonly(true);" },
+        { label: 'frm.set_df_property', code: "frm.set_df_property('fieldname', 'read_only', 1);" },
+      ]
+    },
+    {
+      name: 'Actions & API',
+      items: [
+        { label: 'frm.call (Remote Method)', code: "frm.call({\n  method: 'my_method',\n  args: {},\n  freeze: true,\n  callback: (r) => {\n    console.log(r);\n  }\n});" },
+        { label: 'frm.add_custom_button', code: "frm.add_custom_button('Custom Button', () => {\n  frm.msgprint('Clicked');\n}, 'primary');" },
+        { label: 'frm.set_button_label', code: "frm.set_button_label('submit', 'Send Now');" },
+        { label: 'frm.set_button_action', code: "frm.set_button_action('submit', () => {\n  frm.msgprint('Custom submit logic');\n});" },
+      ]
+    }
   ];
 
   onInitEditor(editor: any) {
@@ -126,11 +176,14 @@ export class ScriptEditorComponent {
         mandatory?: number;
         read_only?: number;
         hidden?: number;
+        regex?: string;
       }
 
       declare interface FormContext {
         /** Set value of a field */
         set_value(fieldname: string, value: any): void;
+        /** Set multiple values at once */
+        set_value(values: Record<string, any>): void;
         /** Get value of a field */
         get_value(fieldname: string): any;
         /** Set a property of a field (hidden, read_only, mandatory, etc.) */
@@ -148,16 +201,52 @@ export class ScriptEditorComponent {
         /** Show error and stop execution */
         throw(message: string): void;
         /** Listen to field or form events */
-        on(event: 'refresh' | string, callback: (val?: any) => void): void;
+        on(event: 'refresh' | 'validate' | string, callback: (frm: FormContext, val?: any) => void): void;
+        
+        /** Control global readonly state */
+        set_readonly(readonly: boolean): void;
+        /** Add a custom button to the header */
+        add_custom_button(label: string, action: () => void, type?: 'primary' | 'secondary' | 'danger' | 'ghost'): void;
+        /** Clear all custom buttons */
+        clear_custom_buttons(): void;
+        /** Dynamically change a default button label */
+        set_button_label(id: 'save' | 'submit' | 'approve' | 'decline', label: string): void;
+        /** Override a default button action */
+        set_button_action(id: 'save' | 'submit' | 'approve' | 'decline', action: (frm: FormContext) => void): void;
+        
+        /** Remote procedure call */
+        call(opts: { 
+            method: string; 
+            args?: any; 
+            callback?: (r: any) => void; 
+            freeze?: boolean; 
+            freeze_message?: string 
+        }): Promise<any>;
+        
+        /** Global UI freezing */
+        freeze(message?: string): void;
+        unfreeze(): void;
       }
 
       /** The main Form Context object */
       declare const frm: FormContext;
       
       /** Global Application Utilities */
-      declare const app: {
-        show_alert(msg: string, indicator?: 'success' | 'error' | 'info' | 'warning'): void;
-        prompt(fields: DocumentField[], title?: string): Promise<any>;
+      declare const frappe: {
+        ui: {
+            form: {
+                /** Listen to field or form events */
+                on(event: 'refresh' | 'validate' | string, callback: (frm: FormContext, val?: any) => void): void;
+            }
+        };
+        msgprint: (message: string, indicator?: 'success' | 'error' | 'info' | 'warning') => void;
+        confirm: (message: string, on_confirm?: () => void, on_cancel?: () => void) => void;
+        prompt: (fields: DocumentField[], callback: (values: any) => void, title?: string) => void;
+        throw: (message: string) => void;
+        call: (opts: any) => Promise<any>;
+        freeze: (message?: string) => void;
+        unfreeze: () => void;
+        show_alert: (message: string, indicator?: string) => void;
       };
     `;
 

@@ -8,6 +8,7 @@ export interface TableColumnDef {
   fieldtype: 'Data' | 'Int' | 'Float' | 'Text' | 'Select' | 'Link' | 'Check' | 'Date' | 'Password';
   mandatory?: boolean;
   options?: string;
+  regex?: string;
 }
 
 export interface DocumentField {

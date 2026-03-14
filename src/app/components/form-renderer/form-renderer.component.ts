@@ -479,6 +479,22 @@ export class FormRendererComponent implements OnInit, OnDestroy {
           if (f.regex && val && !this.isValidRegex(f.fieldname, f.regex)) {
             isValid = false;
           }
+
+          // 2.1 Check Table Validation
+          if (f.fieldtype === 'Table' && this.formData[f.fieldname]) {
+            const rows = this.formData[f.fieldname] as any[];
+            rows.forEach((row, idx) => {
+              f.table_fields?.forEach(tf => {
+                const cellVal = row[tf.fieldname];
+                if (tf.mandatory && (cellVal === undefined || cellVal === null || cellVal === '')) {
+                  isValid = false;
+                }
+                if (tf.regex && cellVal && !this.isValidRegex(tf.fieldname, tf.regex, cellVal)) {
+                  isValid = false;
+                }
+              });
+            });
+          }
         });
       });
     });
@@ -602,9 +618,9 @@ export class FormRendererComponent implements OnInit, OnDestroy {
     }
   }
 
-  isValidRegex(fieldname: string, pattern: string): boolean {
-    const value = this.formData[fieldname];
-    if (!value) return true;
+  isValidRegex(fieldname: string, pattern: string, customValue?: any): boolean {
+    const value = customValue !== undefined ? customValue : this.formData[fieldname];
+    if (value === undefined || value === null || value === '') return true;
     try {
       const regex = new RegExp(pattern);
       return regex.test(String(value));

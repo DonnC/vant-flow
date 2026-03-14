@@ -14,116 +14,48 @@ The engine is built on a **Context-Injection** pattern. Every form rendered by `
 
 ---
 
-## 🚀 Scripting API: The `frm` Object
-The `frm` (Form) object is the primary interface for interacting with the form.
+### 🛠️ Scripting API: The `frm` Object
 
-### 1. Alerting & Dialogs
-Show professional alerts and interactive dialog boxes without external dependencies.
+The `frm` object is the primary way to interact with the form. Below is the comprehensive API reference:
 
-```javascript
-// Show a quick alert (indicators: 'success', 'info', 'warning', 'error')
-frm.msgprint('Operation successful!', 'success');
+| Method | Description | Example |
+| :--- | :--- | :--- |
+| `on(event, fn)` | Listen to `refresh`, `validate`, or field changes. | `frm.on('refresh', () => { ... })` |
+| `set_value(key, val)` | Update a field value (triggers change events). | `frm.set_value('status', 'Open')` |
+| `get_value(key)` | Get current field value. | `const val = frm.get_value('amount')` |
+| `set_df_property(...)`| Set field properties (label, hidden, read_only). | `frm.set_df_property('name', 'read_only', 1)` |
+| `set_intro(msg, clr)` | Show a persistent banner at the top. | `frm.set_intro('Manual Review Required', 'orange')` |
+| `add_custom_button(...)`| Add a button to the form header. | `frm.add_custom_button('Action', () => { ... })` |
+| `set_button_label(...)` | Change label of default actions (save/submit). | `frm.set_button_label('save', 'Finalize')` |
+| `set_button_action(...)`| Override the behavior of default actions. | `frm.set_button_action('submit', () => { ... })` |
+| `msgprint(msg, type)` | Show a toast/alert notification. | `frm.msgprint('Saved!', 'success')` |
+| `confirm(msg, yes, no)`| Show a confirmation dialog. | `frm.confirm('Are you sure?', () => { ... })` |
+| `prompt(fields, cb)` | Open a dynamic dialog for user input. | `frm.prompt([{...}], (v) => { ... })` |
+| `throw(msg)` | Show error and stop execution. | `frm.throw('Invalid Data')` |
+| `call(opts)` | Invoke backend API with UI freezing. | `frm.call({ method: 'ping', freeze: true })` |
+| `freeze(msg)` | Manually show loading overlay. | `frm.freeze('Processing...')` |
+| `unfreeze()` | Remove loading overlay. | `frm.unfreeze()` |
 
-// Stop execution and show error
-if (frm.get_value('amount') > 1000) {
-    frm.throw('Amount cannot exceed 1000');
-}
+---
 
-// Ask for confirmation
-frm.confirm('Are you sure you want to delete this record?', 
-    () => { /* on confirm */ }, 
-    () => { /* on cancel */ }
-);
+### 🧪 Advanced Validation Logic
 
-// Collect dynamic input
-frm.prompt([
-    { label: 'Reason', fieldname: 'reason', fieldtype: 'Data', mandatory: 1 },
-    { label: 'Date', fieldname: 'date', fieldtype: 'Date' }
-], (values) => {
-    frm.msgprint('You chose: ' + values.reason);
-}, 'Required Info');
-```
+#### Global & Table Validation
+The engine automatically runs validation on **Submission** or when `validate` hook is triggered:
+1.  **Mandatory Checks**: Ensures all fields marked as `mandatory` are filled.
+2.  **Regex Patterns**: Validates field content against the defined `regex` property.
+3.  **Table Validation**: **NEW!** The engine now recursively validates every row in a `Table` field. If a child column is mandatory or has a regex, the entire form submission will block until the table data is corrected.
 
-### 2. Form State & Controls
-Lock the form or customize actions dynamically.
+#### Prompt Validation
+`frm.prompt` now supports data integrity out of the box. You can pass `mandatory: 1` or a `regex` pattern in the prompt field definitions, and the "Submit" button will only fire your callback if the input is valid.
 
-```javascript
-// Global Read-Only toggle
-frm.set_readonly(true);
+---
 
-// Update specific field properties
-frm.set_df_property('customer_name', 'read_only', 1);
-frm.set_df_property('discount', 'hidden', 0);
+### 💻 Modern Script Editor
+The builder includes a professional Monaco-based editor with:
+- **Intellisense**: Full type definitions for `frm` and `frappe`.
+- **Snippet Library**: A searchable dropdown to instantly insert common boilerplate (Hooks, API calls, UI interactions).
 
-// Set form values
-frm.set_value('status', 'Completed');
-frm.set_value({
-    'last_updated': '2024-01-01',
-    'modified_by': 'Admin'
-});
-
-// Set a dynamic introduction badge
-frm.set_intro('This ticket is high priority!', 'orange');
-```
-
-### 3. Custom Action Buttons
-Add or modify buttons in the form header.
-
-```javascript
-// Add a new primary button
-frm.add_custom_button('Approve Payment', () => {
-    frm.call({ method: 'approve', freeze: true });
-}, 'primary');
-
-// Change label of a default button
-frm.set_button_label('submit', 'Send to Manager');
-
-// Clear all custom buttons
-frm.clear_custom_buttons();
-```
-
-### 4. API Calls & UI Freezing
-Bridge the gap between frontend and backend with integrated loading states.
-
-```javascript
-// Invoke backend method with overlay
-frm.call({
-    method: 'get_exchange_rate',
-    args: { currency: 'EUR' },
-    freeze: true,
-    freeze_message: 'Fetching rates...',
-    callback: (r) => {
-        frm.set_value('rate', r.rate);
-    }
-});
-
-// Manual UI freeze controls
-frm.freeze('Synchronizing...');
-setTimeout(() => frm.unfreeze(), 2000);
-```
-
-### 5. Event Hooks
-Hook into the form lifecycle.
-
-```javascript
-// Runs when the form is finished rendering
-frm.on('refresh', () => {
-    frm.msgprint('Welcome back!');
-});
-
-// Validation hook: Return false or frm.throw to stop submission
-frm.on('validate', () => {
-    if (frm.get_value('qty') < 1) {
-        frm.throw('Quantity must be at least 1');
-        return false;
-    }
-});
-
-// Hook into specific field changes
-frm.on('customer', (value) => {
-    frm.set_intro('Customer ' + value + ' selected', 'blue');
-});
-```
 
 ---
 

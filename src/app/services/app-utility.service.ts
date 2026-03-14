@@ -82,11 +82,33 @@ export class AppUtilityService {
       overlay.querySelector('[data-cancel]')?.addEventListener('click', () => close(null));
       overlay.querySelector('[data-submit]')?.addEventListener('click', () => {
         const result: Record<string, any> = {};
+        let isValid = true;
+
         fields.forEach(f => {
           const el = overlay.querySelector(`[data-field="${f.fieldname}"]`) as HTMLInputElement;
-          result[f.fieldname] = el?.value ?? '';
+          const val = el?.value ?? '';
+
+          // Validation
+          if (f.mandatory && !val.trim()) {
+            el.classList.add('border-red-500', 'bg-red-50');
+            isValid = false;
+          } else if (f.regex && val) {
+            try {
+              if (!new RegExp(f.regex).test(val)) {
+                el.classList.add('border-red-500', 'bg-red-50');
+                isValid = false;
+              } else {
+                el.classList.remove('border-red-500', 'bg-red-50');
+              }
+            } catch (e) { /* invalid regex pattern */ }
+          } else {
+            el.classList.remove('border-red-500', 'bg-red-50');
+          }
+
+          result[f.fieldname] = val;
         });
-        close(result);
+
+        if (isValid) close(result);
       });
 
       // Click outside to dismiss
