@@ -184,7 +184,7 @@ export class FormContext {
         this.trigger(fieldname, value);
     }
 
-    private trigger(event: string, data?: any): boolean {
+    public trigger(event: string, data?: any): boolean {
         let result = true;
         (this.eventListeners.get(event) ?? []).forEach(cb => {
             try {
@@ -202,9 +202,17 @@ export class FormContext {
         const frappe = {
             ui: {
                 form: {
-                    on: (ev: string, handler: Function) => {
-                        if (ev === event) {
-                            setupResult = handler(this, value);
+                    on: (evOrObj: string | Record<string, Function>, handler?: Function) => {
+                        if (typeof evOrObj === 'object') {
+                            // Object syntax: { refresh: fn, validate: fn, ... }
+                            Object.entries(evOrObj).forEach(([ev, fn]) => {
+                                this.on(ev, fn);
+                                if (ev === event) setupResult = fn(this, value);
+                            });
+                        } else if (typeof evOrObj === 'string' && handler) {
+                            // String syntax: on('event', fn)
+                            this.on(evOrObj, handler);
+                            if (evOrObj === event) setupResult = handler(this, value);
                         }
                     }
                 }
@@ -226,14 +234,15 @@ export class FormContext {
             const fn = new Function('frm', 'frappe', script);
             fn(this, frappe);
 
-            // Trigger internal listeners and return combined result
-            const triggerResult = this.trigger(event, value);
+            // Important: We DON'T trigger(event, value) here anymore if we want to run script once 
+            // and trigger events separately. 
+            // BUT, if we are running the script for the FIRST time (refresh), we want setupResult.
+            // When trigger() is called from outside, it will hit the listeners registered above.
 
-            // If frappe.ui.form.on was used and returned false, or trigger returned false
-            if (setupResult === false || triggerResult === false) return false;
+            if (setupResult === false) return false;
         } catch (e) {
             console.error(`[FormContext] Error in client script (${event}):`, e);
-            if (e instanceof Error && e.message === 'Script Execution Stopped') return false; // Handle frm.throw
+            if (e instanceof Error && e.message === 'Script Execution Stopped') return false;
         }
 
         return setupResult;

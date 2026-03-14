@@ -420,7 +420,8 @@ export class FormRendererComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.initForm();
     this.ctx.initialize(this.document, this.formData);
-    this.executeScript('refresh');
+    // Execute script ONCE to register listeners and run 'refresh'
+    this.ctx.execute(this.document.client_script || '', 'refresh');
   }
 
   ngOnDestroy() {
@@ -450,13 +451,8 @@ export class FormRendererComponent implements OnInit, OnDestroy {
       this.formData[fieldname] = val;
     }
     this.evaluateDependsOn();
+    // triggerChange internally calls trigger(), which executes listeners registered in OnInit
     this.ctx.triggerChange(fieldname, this.formData[fieldname]);
-    this.executeScript(fieldname, this.formData[fieldname]);
-  }
-
-  private executeScript(event: string, value?: any): any {
-    if (!this.document.client_script) return true;
-    return this.ctx.execute(this.document.client_script, event, value);
   }
 
   validateForm(): boolean {
@@ -505,8 +501,9 @@ export class FormRendererComponent implements OnInit, OnDestroy {
     }
 
     // 3. Script Hook: validate
-    const scriptResult = this.executeScript('validate');
-    if (scriptResult === false) {
+    // Since we ran execute() in ngOnInit, the 'validate' listener is already registered.
+    const result = this.ctx.trigger('validate');
+    if (result === false) {
       return false;
     }
 

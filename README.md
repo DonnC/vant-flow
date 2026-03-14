@@ -16,25 +16,130 @@ The engine is built on a **Context-Injection** pattern. Every form rendered by `
 
 ### 🛠️ Scripting API: The `frm` Object
 
-The `frm` object is the primary way to interact with the form. Below is the comprehensive API reference:
+The `frm` object is the primary way to interact with the form. Below is the comprehensive API reference with real-world use cases.
 
-| Method | Description | Example |
+#### 1. `frm.on(event, callback)`
+Listen to form lifecycle events or field changes.
+
+*   **`refresh`**: Triggered when the form is first loaded or reset.
+    ```javascript
+    // Use case: Set form readonly based on status
+    frm.on('refresh', () => {
+        if (frm.get_value('status') === 'Closed') {
+            frm.set_readonly(true);
+            frm.set_intro('This record is closed and cannot be edited.', 'red');
+        }
+    });
+    ```
+*   **`validate`**: Triggered before saving/submitting. Return `false` to stop.
+    ```javascript
+    // Use case: Complex multi-field validation
+    frm.on('validate', () => {
+        if (frm.get_value('start_date') > frm.get_value('end_date')) {
+            frm.throw('End Date cannot be before Start Date');
+            return false;
+        }
+    });
+    ```
+*   **`fieldname`**: Triggered when a specific field value changes.
+    ```javascript
+    // Use case: Auto-calculate totals
+    frm.on('quantity', (val) => {
+        const price = frm.get_value('unit_price');
+        frm.set_value('total', val * price);
+    });
+    ```
+
+#### 2. `frm.set_value(fieldname, value)`
+Update field data. Supports overloaded syntax for batch updates.
+
+*   **Single field update**:
+    ```javascript
+    frm.set_value('last_modified', new Date().toISOString());
+    ```
+*   **Object-based batch update (Overload)**:
+    ```javascript
+    // Use case: Reset multiple fields at once
+    frm.set_value({
+        'status': 'Draft',
+        'approved_by': '',
+        'approval_date': null
+    });
+    ```
+
+#### 3. `frm.set_df_property(fieldname, property, value)`
+Dynamically change field behavior (hidden, read_only, mandatory, label, options).
+
+*   **Dynamic Visibility**:
+    ```javascript
+    // Show 'other_reason' only if 'reason' is 'Other'
+    frm.on('reason', (val) => {
+        frm.set_df_property('other_reason', 'hidden', val === 'Other' ? 0 : 1);
+        frm.set_df_property('other_reason', 'mandatory', val === 'Other' ? 1 : 0);
+    });
+    ```
+*   **Changing Labels**:
+    ```javascript
+    frm.set_df_property('tax_id', 'label', frm.get_value('country') === 'USA' ? 'SSN' : 'VAT ID');
+    ```
+
+#### 4. `frm.call(options)`
+Interact with backend APIs with integrated UI management.
+
+*   **Standard API Call**:
+    ```javascript
+    frm.call({
+        method: 'api.v1.get_customer_details',
+        args: { customer_id: 'CUST-001' },
+        freeze: true,
+        freeze_message: 'Fetching details...',
+        callback: (r) => {
+            frm.set_value('address', r.message.address);
+        }
+    });
+    ```
+
+#### 5. `frm.prompt(fields, callback, title)`
+Collect data via a dynamic dialog with built-in validation.
+
+*   **Interactive Input**:
+    ```javascript
+    // Collecting rejection reason during a workflow
+    frm.add_custom_button('Reject', () => {
+        frm.prompt([
+            { label: 'Reason for Rejection', fieldname: 'reason', fieldtype: 'Text', mandatory: 1 },
+            { label: 'Re-assign to', fieldname: 'user', fieldtype: 'Link', options: 'User' }
+        ], (values) => {
+            frm.call({
+                method: 'reject_doc',
+                args: { reason: values.reason, user: values.user },
+                callback: () => frm.msgprint('Document Rejected', 'warning')
+            });
+        }, 'Rejection Details');
+    }, 'danger');
+    ```
+
+#### 6. Default Action Overrides
+Customize the behavior of standard 'Save' and 'Submit' buttons.
+
+*   **`frm.set_button_action(id, fn)`**:
+    ```javascript
+    // Use case: Custom confirmation before submission
+    frm.set_button_action('submit', () => {
+        frm.confirm('Final submission? This cannot be undone.', () => {
+            frm.msgprint('Submitting...');
+            // Proceed with actual submit logic
+        });
+    });
+    ```
+
+| Additional Method | Description | Example |
 | :--- | :--- | :--- |
-| `on(event, fn)` | Listen to `refresh`, `validate`, or field changes. | `frm.on('refresh', () => { ... })` |
-| `set_value(key, val)` | Update a field value (triggers change events). | `frm.set_value('status', 'Open')` |
-| `get_value(key)` | Get current field value. | `const val = frm.get_value('amount')` |
-| `set_df_property(...)`| Set field properties (label, hidden, read_only). | `frm.set_df_property('name', 'read_only', 1)` |
-| `set_intro(msg, clr)` | Show a persistent banner at the top. | `frm.set_intro('Manual Review Required', 'orange')` |
-| `add_custom_button(...)`| Add a button to the form header. | `frm.add_custom_button('Action', () => { ... })` |
-| `set_button_label(...)` | Change label of default actions (save/submit). | `frm.set_button_label('save', 'Finalize')` |
-| `set_button_action(...)`| Override the behavior of default actions. | `frm.set_button_action('submit', () => { ... })` |
-| `msgprint(msg, type)` | Show a toast/alert notification. | `frm.msgprint('Saved!', 'success')` |
-| `confirm(msg, yes, no)`| Show a confirmation dialog. | `frm.confirm('Are you sure?', () => { ... })` |
-| `prompt(fields, cb)` | Open a dynamic dialog for user input. | `frm.prompt([{...}], (v) => { ... })` |
-| `throw(msg)` | Show error and stop execution. | `frm.throw('Invalid Data')` |
-| `call(opts)` | Invoke backend API with UI freezing. | `frm.call({ method: 'ping', freeze: true })` |
-| `freeze(msg)` | Manually show loading overlay. | `frm.freeze('Processing...')` |
-| `unfreeze()` | Remove loading overlay. | `frm.unfreeze()` |
+| `msgprint(msg, it)` | Show a toast/alert. | `frm.msgprint('Action logged', 'info')` |
+| `throw(msg)` | Show error and STOP execution. | `frm.throw('Critical failure')` |
+| `set_intro(msg, clr)` | Show a persistent banner. | `frm.set_intro('Revision 2', 'blue')` |
+| `freeze(msg)` | Manual loading overlay on. | `frm.freeze('Calculating...')` |
+| `unfreeze()` | loading overlay off. | `frm.unfreeze()` |
 
 ---
 
