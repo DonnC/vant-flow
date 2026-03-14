@@ -42,25 +42,64 @@ import { BuilderStateService } from '../../services/builder-state.service';
                 <circle cx="4" cy="16" r="1.5"/><circle cx="8" cy="16" r="1.5"/>
               </svg>
             </div>
-            <!-- Field preview -->
+
+            <!-- Field preview content -->
             <div class="pl-4">
-              <div class="flex items-center gap-2 mb-0.5">
-                <span class="text-xs font-medium text-zinc-800">{{ field.label }}</span>
-                @if (field.mandatory) {
-                  <span class="text-red-500 text-xs">*</span>
-                }
-                @if (field.hidden) {
-                  <span class="ui-badge-zinc text-[10px]">hidden</span>
-                }
-                @if (field.read_only) {
-                  <span class="ui-badge-zinc text-[10px]">read only</span>
-                }
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-[10px] text-zinc-400 font-mono">{{ field.fieldname }}</span>
-                <span class="ui-badge bg-zinc-50 text-zinc-500 text-[10px] border border-zinc-100">{{ field.fieldtype }}</span>
-              </div>
+
+              <!-- ── BUTTON preview ── -->
+              @if (field.fieldtype === 'Button') {
+                <div class="mt-1.5 flex items-center justify-between">
+                  <span class="inline-flex items-center px-4 py-1.5 rounded-lg text-xs font-bold select-none shadow-sm border border-zinc-200"
+                    [ngClass]="getButtonClass(field.options)">
+                    {{ field.label }}
+                  </span>
+                  <div class="flex items-center gap-1.5 opacity-50">
+                    <span class="text-[9px] font-mono text-zinc-400">{{ field.fieldname }}</span>
+                    @if (field.hidden) { <span class="ui-badge-zinc text-[10px]">hidden</span> }
+                  </div>
+                </div>
+              } @else if (field.fieldtype === 'Text Editor') {
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="px-1.5 py-0.5 rounded bg-amber-50 text-amber-600 text-[10px] font-bold border border-amber-100 uppercase">Editor</span>
+                  <span class="text-xs font-semibold text-zinc-700">{{ field.label }}</span>
+                </div>
+                <div class="text-[10px] text-zinc-400 bg-zinc-50 border border-zinc-100 rounded p-1.5 truncate max-w-[220px]">
+                  <span class="opacity-75 italic">Rich text content...</span>
+                </div>
+              } @else if (field.fieldtype === 'Table') {
+                <div class="flex items-center gap-2 mb-1.5">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-sky-500">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <line x1="3" y1="9" x2="21" y2="9"/>
+                    <line x1="3" y1="15" x2="21" y2="15"/>
+                    <line x1="9" y1="3" x2="9" y2="21"/>
+                  </svg>
+                  <span class="text-xs text-zinc-600 tracking-tight">{{ field.label }}</span>
+                  @if (field.mandatory) { <span class="text-red-500 text-xs">*</span> }
+                  @if (field.hidden) { <span class="ui-badge-zinc text-[10px]">hidden</span> }
+                </div>
+                <div class="flex flex-wrap gap-1">
+                  @if ((field.table_fields?.length ?? 0) === 0) {
+                    <span class="text-[10px] text-zinc-400 italic">No columns configured</span>
+                  }
+                  @for (col of field.table_fields; track col.id) {
+                    <span class="px-1.5 py-0.5 rounded bg-sky-50 text-sky-600 text-[10px] border border-sky-100 font-mono">{{ col.label }}</span>
+                  }
+                </div>
+              } @else {
+                <div class="flex items-center gap-2 mb-0.5">
+                  <span class="text-xs text-zinc-600 tracking-tight">{{ field.label }}</span>
+                  @if (field.mandatory) { <span class="text-red-500 text-xs">*</span> }
+                  @if (field.hidden) { <span class="ui-badge-zinc text-[10px]">hidden</span> }
+                  @if (field.read_only) { <span class="ui-badge-zinc text-[10px]">read only</span> }
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-[10px] text-zinc-400 font-mono">{{ field.fieldname }}</span>
+                  <span class="ui-badge bg-zinc-50 text-zinc-500 text-[10px] border border-zinc-100">{{ field.fieldtype }}</span>
+                </div>
+              }
             </div>
+
             <!-- Remove button -->
             <button
               (click)="removeField($event, field.id)"
@@ -109,6 +148,17 @@ export class CanvasColumnComponent {
     e.stopPropagation();
     this.state.removeField(id);
   }
+
+  getButtonClass(style?: string): string {
+    const map: Record<string, string> = {
+      primary: 'bg-indigo-600 text-white',
+      secondary: 'bg-zinc-100 text-zinc-700 border border-zinc-300',
+      danger: 'bg-red-500 text-white',
+      ghost: 'bg-transparent text-indigo-600 border border-indigo-300',
+    };
+    return map[style ?? 'primary'] ?? map['primary'];
+  }
+
 
   onDrop(event: CdkDragDrop<any>) {
     const { container, previousContainer, currentIndex, previousIndex, item } = event;

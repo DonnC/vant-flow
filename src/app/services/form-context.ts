@@ -88,9 +88,16 @@ export class FormContext {
         return this.formData[fieldname];
     }
 
-    set_value(fieldname: string, val: any) {
-        this.formData[fieldname] = val;
-        this.triggerChange(fieldname, val);
+    set_value(fieldnameOrObj: string | Record<string, any>, value?: any) {
+        if (typeof fieldnameOrObj === 'object' && fieldnameOrObj !== null) {
+            Object.entries(fieldnameOrObj).forEach(([fieldname, val]) => {
+                this.formData[fieldname] = val;
+                this.triggerChange(fieldname, val);
+            });
+        } else if (typeof fieldnameOrObj === 'string') {
+            this.formData[fieldnameOrObj] = value;
+            this.triggerChange(fieldnameOrObj, value);
+        }
     }
 
     // ── Internal Helpers for Renderer ──────────────────────────
@@ -120,23 +127,38 @@ export class FormContext {
         });
     }
 
-    execute(script: string, event: string, value?: any) {
+    execute(script: string, event: string, value?: any): any {
+        if (!script) return;
+        let result: any = undefined;
+
+        const frappe = {
+            ui: {
+                form: {
+                    on: (ev: string, handler: Function) => {
+                        if (ev === event) {
+                            result = handler(this, value);
+                        }
+                    }
+                }
+            },
+            msgprint: (msg: string, ind: any) => this.appUtility.show_alert(msg, ind),
+            throw: (msg: string) => {
+                this.appUtility.show_alert(msg, 'error');
+                throw new Error(msg);
+            },
+            call: (opts: any) => this.appUtility.call(opts)
+        };
+
         try {
-            // Create the 'frm' and 'app' scope
-            const frm = this;
-            const app = {
-                show_alert: (msg: string, ind: any) => this.appUtility.show_alert(msg, ind),
-                prompt: (fields: DocumentField[], title?: string) => this.appUtility.prompt(fields, title)
-            };
+            const fn = new Function('frm', 'frappe', script);
+            fn(this, frappe);
 
-            // Wrap script in a function to isolate scope
-            const runner = new Function('frm', 'app', script);
-            runner(frm, app);
-
-            // If it's a specific event, trigger it
+            // Trigger internal listeners
             this.trigger(event, value);
         } catch (e) {
-            console.error('[Script Execution Error]', e);
+            console.error(`[FormContext] Error in client script (${event}):`, e);
         }
+
+        return result;
     }
 }

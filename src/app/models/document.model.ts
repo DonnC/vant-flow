@@ -1,4 +1,14 @@
-export type FieldType = 'Data' | 'Select' | 'Link' | 'Check' | 'Int' | 'Text' | 'Date' | 'Float' | 'Password';
+export type FieldType = 'Data' | 'Select' | 'Link' | 'Check' | 'Int' | 'Text' | 'Date' | 'Float' | 'Password' | 'Button' | 'Text Editor' | 'Table';
+
+/** Column definition for Table field child columns (no nested Table/Button/Text Editor) */
+export interface TableColumnDef {
+  id: string;
+  fieldname: string;
+  label: string;
+  fieldtype: 'Data' | 'Int' | 'Float' | 'Text' | 'Select' | 'Link' | 'Check' | 'Date' | 'Password';
+  mandatory?: boolean;
+  options?: string;
+}
 
 export interface DocumentField {
   id: string; // Unique ID for drag-drop tracking
@@ -8,13 +18,15 @@ export interface DocumentField {
   default?: any;
   mandatory?: boolean;
   reqd?: boolean;
-  options?: string; // Newline-separated for Select, Document name for Link
+  options?: string; // Newline-separated for Select, Link target for Link, button style for Button, content for Markdown
   hidden?: boolean;
   read_only?: boolean;
   depends_on?: string; // Visible if expression is truthy
   mandatory_depends_on?: string; // Mandatory if expression is truthy
   description?: string;
   placeholder?: string;
+  regex?: string; // Regex validator superpower
+  table_fields?: TableColumnDef[]; // Only used by Table fieldtype
 }
 
 export interface DocumentColumn {
@@ -61,4 +73,7 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   { fieldtype: 'Check', label: 'Check', icon: '✓' },
   { fieldtype: 'Date', label: 'Date', icon: '📅' },
   { fieldtype: 'Password', label: 'Password', icon: '🔒' },
+  { fieldtype: 'Button', label: 'Button', icon: '⬛' },
+  { fieldtype: 'Text Editor', label: 'Text Editor', icon: '✎' },
+  { fieldtype: 'Table', label: 'Table', icon: '⊞' },
 ];

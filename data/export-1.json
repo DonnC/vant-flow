@@ -1,0 +1,175 @@
+{
+  "name": "Loan",
+  "version": "1.0.0",
+  "sections": [
+    {
+      "id": "id_1_pehop",
+      "label": "KYC",
+      "columns": [
+        {
+          "id": "id_2_s6oea",
+          "fields": [
+            {
+              "id": "id_4_zt9wh",
+              "fieldname": "first_name",
+              "fieldtype": "Data",
+              "label": "First Name",
+              "hidden": false,
+              "read_only": false,
+              "mandatory": true
+            }
+          ]
+        },
+        {
+          "id": "id_3_78s6g",
+          "fields": [
+            {
+              "id": "id_5_25ivg",
+              "fieldname": "middle_name",
+              "fieldtype": "Data",
+              "label": "Middle Name",
+              "hidden": false,
+              "read_only": false,
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "id": "id_7_y2v1z",
+          "fields": [
+            {
+              "id": "id_6_twl6x",
+              "fieldname": "last_name",
+              "fieldtype": "Data",
+              "label": "Last Name",
+              "hidden": false,
+              "read_only": false,
+              "mandatory": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "id_8_brwpk",
+      "label": "Next Of Kin",
+      "columns": [
+        {
+          "id": "id_9_glh0j",
+          "fields": [
+            {
+              "id": "id_11_i5j1g",
+              "fieldname": "contact_person",
+              "fieldtype": "Data",
+              "label": "Contact Person",
+              "hidden": false,
+              "read_only": false,
+              "mandatory": false
+            }
+          ]
+        },
+        {
+          "id": "id_10_1t2si",
+          "fields": [
+            {
+              "id": "id_1_veg4e",
+              "fieldname": "btn_verify_customer",
+              "fieldtype": "Button",
+              "label": "Verify Customer",
+              "hidden": false,
+              "read_only": false,
+              "mandatory": false,
+              "options": "primary",
+              "description": "Click here to verify customer"
+            }
+          ]
+        }
+      ],
+      "description": "Your close relatives",
+      "columns_count": 1
+    },
+    {
+      "id": "id_2_620mg",
+      "label": "Notes",
+      "columns": [
+        {
+          "id": "id_3_s0epw",
+          "fields": [
+            {
+              "id": "id_5_5hfi4",
+              "fieldname": "note_5",
+              "fieldtype": "Markdown",
+              "label": "Note",
+              "hidden": false,
+              "read_only": false,
+              "mandatory": false,
+              "options": "### Note\n\nAdd your content here..."
+            }
+          ]
+        },
+        {
+          "id": "id_4_kn8bt",
+          "fields": []
+        }
+      ],
+      "columns_count": 1
+    },
+    {
+      "id": "id_6_nwxxv",
+      "label": "Table Info",
+      "columns": [
+        {
+          "id": "id_7_fuwga",
+          "fields": [
+            {
+              "id": "id_9_4lium",
+              "fieldname": "items_9",
+              "fieldtype": "Table",
+              "label": "Items",
+              "hidden": false,
+              "read_only": false,
+              "mandatory": false,
+              "table_fields": [
+                {
+                  "id": "id_10_ldeoz",
+                  "fieldname": "id",
+                  "label": "ID",
+                  "fieldtype": "Int",
+                  "mandatory": true
+                },
+                {
+                  "id": "id_11_kgabo",
+                  "fieldname": "name",
+                  "label": "Name",
+                  "fieldtype": "Data",
+                  "mandatory": true
+                },
+                {
+                  "id": "id_12_tmhiw",
+                  "fieldname": "school",
+                  "label": "School",
+                  "fieldtype": "Data"
+                },
+                {
+                  "id": "id_13_imp8n",
+                  "fieldname": "father_name",
+                  "label": "Father Name",
+                  "fieldtype": "Data"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "id_8_4voa2",
+          "fields": []
+        }
+      ]
+    }
+  ],
+  "client_script": "frm.on('first_name', (val) => {\n  if(val === 'john') {\n     frm.set_value('middle_name', 'Dynamic-404');\n     frm.set_df_property('middle_name', 'read_only', 1);\n     frm.set_df_property('middle_name', 'label', 'Middle Dynamic');\n}\n});",
+  "intro_text": "Fill in all info to the best of your knowledge",
+  "intro_color": "gray",
+  "module": "DigiLoans",
+  "description": "User loan application form"
+}

@@ -1,6 +1,7 @@
 import { Component, Input, OnInit, OnDestroy, signal, inject, Output, EventEmitter, effect, WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { QuillModule, QuillEditorComponent } from 'ngx-quill';
 import { DocumentDefinition, DocumentField, DocumentSection, DocumentColumn } from '../../models/document.model';
 import { FormContext } from '../../services/form-context';
 import { AppUtilityService } from '../../services/app-utility.service';
@@ -8,26 +9,42 @@ import { AppUtilityService } from '../../services/app-utility.service';
 @Component({
   selector: 'app-form-renderer',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, QuillModule, QuillEditorComponent],
   providers: [FormContext],
   template: `
-    <div class="w-full max-w-4xl mx-auto py-10 px-4">
-      <div class="card bg-white p-8">
-        <!-- Form Header -->
-        <div class="mb-8 border-b border-zinc-100 pb-6">
-          <div class="flex items-center justify-between gap-4">
-            <h2 class="text-3xl font-extrabold text-zinc-900 tracking-tight">{{ document.name }}</h2>
-            <span class="px-2 py-0.5 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 font-mono text-[10px] tracking-widest uppercase">
-              {{ document.version || 'v1.0.0' }}
-            </span>
+    <div class="w-full max-w-[1400px] mx-auto py-8 px-4">
+      <div class="card bg-white shadow-2xl">
+        <!-- Combined Sticky Header (Frappe style) -->
+        <div class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-zinc-100 px-8 py-5 flex items-center justify-between rounded-t-[1.5rem]">
+          <div class="flex flex-col gap-0.5">
+            <div class="flex items-center gap-3">
+              <h2 class="text-xl font-bold text-zinc-900 tracking-tight">{{ document.name }}</h2>
+              <span class="px-2 py-0.5 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 font-mono text-[10px] tracking-widest uppercase">
+                {{ document.version || 'v1.0.0' }}
+              </span>
+            </div>
+            @if (document.description || document.module) {
+              <div class="flex items-center gap-1.5 opacity-60">
+                @if (document.module) {
+                  <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-r border-zinc-200 pr-2">{{ document.module }}</span>
+                }
+                @if (document.description) {
+                  <span class="text-[11px] text-zinc-400 truncate max-w-md">{{ document.description }}</span>
+                }
+              </div>
+            }
           </div>
-          @if (document.module) {
-            <p class="text-[11px] font-bold text-zinc-400 mt-2 uppercase tracking-[0.2em]">{{ document.module }}</p>
-          }
-          @if (document.description) {
-            <p class="text-[13px] text-zinc-500 mt-1.5 leading-relaxed max-w-3xl">{{ document.description }}</p>
-          }
+          <div class="flex items-center gap-3">
+             <button (click)="$event.stopPropagation(); saveDraft()" class="px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all">
+               Save as Draft
+             </button>
+             <button (click)="$event.stopPropagation(); submit()" class="ui-btn-primary px-6 py-2 text-sm shadow-indigo-100 shadow-lg active:scale-95">
+               Submit
+             </button>
+          </div>
         </div>
+
+        <div class="p-8">
 
         <!-- System Intro (Static) -->
         @if (document.intro_text && !ctx.dynamicIntro()) {
@@ -56,11 +73,8 @@ import { AppUtilityService } from '../../services/app-utility.service';
                <div class="section-container group animate-in fade-in slide-in-from-bottom-2 duration-300">
                   @if (section.label) {
                     <div class="flex items-center gap-3 mb-4">
-                      <h3 class="text-sm font-bold text-zinc-800 uppercase tracking-wider">{{ section.label }}</h3>
-                      <div class="h-[1px] flex-1 bg-zinc-100"></div>
+                      <h3 class="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em]">{{ section.label }}</h3>
                     </div>
-                  } @else {
-                    <div class="h-[1px] w-full bg-zinc-100 mb-6"></div>
                   }
                   
                   @if (section.description) {
@@ -74,29 +88,31 @@ import { AppUtilityService } from '../../services/app-utility.service';
                           @for (field of col.fields; track field.id) {
                             @if (!ctx.getFieldSignal(field.fieldname, 'hidden')()) {
                               <div class="field-group transition-all duration-200">
-                                <label class="flex items-center justify-between mb-1.5">
-                                  <span class="text-[12px] font-bold text-zinc-700 uppercase tracking-tight flex items-center gap-1">
-                                    {{ ctx.getFieldSignal(field.fieldname, 'label')() || field.label }}
-                                    @if (ctx.getFieldSignal(field.fieldname, 'mandatory')()) {
-                                      <span class="text-red-500 font-black">*</span>
+                                @if (field.fieldtype !== 'Button' && field.fieldtype !== 'Check') {
+                                  <label class="flex items-center justify-between mb-1.5">
+                                    <span class="text-[12.5px] text-zinc-600 tracking-tight flex items-center gap-1 font-medium">
+                                      {{ ctx.getFieldSignal(field.fieldname, 'label')() || field.label }}
+                                      @if (ctx.getFieldSignal(field.fieldname, 'mandatory')()) {
+                                        <span class="text-red-500 font-bold">*</span>
+                                      }
+                                    </span>
+                                    @if (field.description) {
+                                      <span class="text-[10px] text-zinc-400 font-normal italic">{{ field.description }}</span>
                                     }
-                                  </span>
-                                  @if (field.description) {
-                                    <span class="text-[10px] text-zinc-400 font-normal italic">{{ field.description }}</span>
-                                  }
-                                </label>
+                                  </label>
+                                }
 
                                 <!-- Field Input based on type -->
-                                <div class="relative group/input">
+                                <div class="relative group/input" [class.regex-error]="field.regex && formData[field.fieldname] && !isValidRegex(field.fieldname, field.regex)">
                                   @switch (field.fieldtype) {
                                     @case ('Check') {
                                       <div class="flex items-center gap-3 py-2">
                                         <input type="checkbox"
                                           class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
-                                          [(ngModel)]="formData[field.fieldname]"
-                                          (ngModelChange)="onFieldChange(field.fieldname)"
+                                          [ngModel]="formData[field.fieldname] === 1"
+                                          (ngModelChange)="onFieldChange(field.fieldname, $event ? 1 : 0)"
                                           [disabled]="ctx.getFieldSignal(field.fieldname, 'read_only')()">
-                                        <span class="text-[13px] text-zinc-600 font-medium select-none">{{ field.label }}</span>
+                                        <span class="text-[13px] text-zinc-600 font-medium select-none">{{ ctx.getFieldSignal(field.fieldname, 'label')() || field.label }}</span>
                                       </div>
                                     }
                                     @case ('Text') {
@@ -120,7 +136,109 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                         }
                                       </select>
                                     }
+                                    @case ('Button') {
+                                      <div class="py-1">
+                                        <button 
+                                          type="button"
+                                          (click)="onFieldChange(field.fieldname)"
+                                          [disabled]="ctx.getFieldSignal(field.fieldname, 'read_only')()"
+                                          class="px-5 py-2 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                                          [ngClass]="getButtonClass(field.options)">
+                                          {{ ctx.getFieldSignal(field.fieldname, 'label')() || field.label }}
+                                        </button>
+                                      </div>
+                                    }
+                                    @case ('Text Editor') {
+                                      <div class="border border-zinc-200 rounded-lg overflow-hidden bg-white focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-50/50 transition-all">
+                                        <quill-editor
+                                          class="ql-frappe-style"
+                                          [(ngModel)]="formData[field.fieldname]"
+                                          (onContentChanged)="onFieldChange(field.fieldname)"
+                                          [readOnly]="ctx.getFieldSignal(field.fieldname, 'read_only')()"
+                                          [placeholder]="field.placeholder || 'Type here...'"
+                                          theme="snow"
+                                        ></quill-editor>
+                                      </div>
+                                    }
+                                    @case ('Table') {
+                                      <div class="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                                        <div class="overflow-x-auto">
+                                          <table class="w-full text-left border-collapse">
+                                            <thead>
+                                              <tr class="bg-zinc-50/80 border-b border-zinc-200">
+                                                <th class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest w-12 text-center">#</th>
+                                                @for (col of field.table_fields; track col.id) {
+                                                  <th class="p-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                                                    {{ col.label }}
+                                                    @if (col.mandatory) { <span class="text-red-500">*</span> }
+                                                  </th>
+                                                }
+                                                <th class="p-3 w-10"></th>
+                                              </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-zinc-100">
+                                              @for (row of formData[field.fieldname]; track $index) {
+                                                <tr class="hover:bg-zinc-50/50 transition-colors group/row">
+                                                  <td class="p-3 text-center text-[11px] font-mono text-zinc-400">{{ $index + 1 }}</td>
+                                                  @for (col of field.table_fields; track col.id) {
+                                                    <td class="p-2">
+                                                      @switch (col.fieldtype) {
+                                                        @case ('Check') {
+                                                          <div class="flex justify-center">
+                                                            <input type="checkbox" [(ngModel)]="row[col.fieldname]" (ngModelChange)="onFieldChange(field.fieldname)" class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500">
+                                                          </div>
+                                                        }
+                                                        @case ('Select') {
+                                                          <select [(ngModel)]="row[col.fieldname]" (ngModelChange)="onFieldChange(field.fieldname)" class="w-full p-1.5 text-xs bg-transparent border-0 focus:ring-0 focus:bg-white rounded hover:bg-zinc-100/50 transition-all">
+                                                            <option value="">-</option>
+                                                            @for (opt of getOptions(col.options); track opt) {
+                                                              <option [value]="opt">{{ opt }}</option>
+                                                            }
+                                                          </select>
+                                                        }
+                                                        @default {
+                                                          <input 
+                                                            [type]="col.fieldtype === 'Int' || col.fieldtype === 'Float' ? 'number' : 'text'"
+                                                            [(ngModel)]="row[col.fieldname]"
+                                                            (ngModelChange)="onFieldChange(field.fieldname)"
+                                                            class="w-full p-1.5 text-xs bg-transparent border-0 focus:ring-0 focus:bg-white rounded hover:bg-zinc-100/50 transition-all"
+                                                            [placeholder]="col.label">
+                                                        }
+                                                      }
+                                                    </td>
+                                                  }
+                                                  <td class="p-2 text-center">
+                                                    <button (click)="removeTableRow(field.fieldname, $index)" class="p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover/row:opacity-100 transition-all">
+                                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                                    </button>
+                                                  </td>
+                                                </tr>
+                                              }
+                                              @if (!formData[field.fieldname]?.length) {
+                                                <tr>
+                                                  <td [attr.colspan]="(field.table_fields?.length ?? 0) + 2" class="p-8 text-center">
+                                                    <div class="flex flex-col items-center gap-2">
+                                                      <div class="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-300">
+                                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                                                      </div>
+                                                      <p class="text-[12px] text-zinc-400 font-medium">No rows added yet</p>
+                                                    </div>
+                                                  </td>
+                                                </tr>
+                                              }
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                        <div class="p-3 bg-zinc-50/50 border-t border-zinc-200">
+                                          <button (click)="addTableRow(field.fieldname)" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold text-zinc-600 hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-sm">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                            Add Row
+                                          </button>
+                                        </div>
+                                      </div>
+                                    }
                                     @case ('Date') {
+
                                       <input type="date" 
                                         class="ui-input"
                                         [(ngModel)]="formData[field.fieldname]"
@@ -163,12 +281,11 @@ import { AppUtilityService } from '../../services/app-utility.service';
            }
         </div>
 
-        <!-- Submit -->
-        <div class="mt-12 flex items-center justify-end gap-4 pt-8 border-t border-zinc-100">
-           <button class="px-6 py-2.5 text-sm font-medium text-zinc-500 hover:text-zinc-800 transition-colors">Save as Draft</button>
-           <button (click)="submit()" class="ui-btn-primary px-10 py-3 text-base shadow-indigo-100 shadow-xl hover:shadow-indigo-200">
-              Complete Submission
-           </button>
+        </div>
+
+        <!-- Submit placeholder (Bottom) -->
+        <div class="px-8 pb-10 flex items-center justify-center">
+           <p class="text-[10px] text-zinc-300 font-medium uppercase tracking-[0.3em]">End of Form</p>
         </div>
       </div>
     </div>
@@ -182,6 +299,51 @@ import { AppUtilityService } from '../../services/app-utility.service';
     .ui-input, .ui-textarea, .ui-select {
       @apply bg-zinc-50/50 border-zinc-200 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition-all duration-300;
       border-radius: 0.75rem;
+    }
+    .regex-error .ui-input, .regex-error .ui-textarea, .regex-error .ui-select, .regex-error .ql-container {
+      @apply border-red-500 bg-red-50/30 focus:ring-red-500/10 !important;
+    }
+    .ql-frappe-style .ql-toolbar {
+      @apply bg-zinc-50 border-0 border-b border-zinc-200 py-3 px-4 !important;
+      border-top-left-radius: 0.5rem;
+      border-top-right-radius: 0.5rem;
+    }
+    .ql-frappe-style .ql-container {
+      @apply border-0 text-zinc-700 font-sans !important;
+      font-size: 14px;
+      height: auto !important;
+      min-height: 200px !important;
+      max-height: 800px;
+      resize: vertical;
+      overflow: auto;
+      border-bottom-left-radius: 0.5rem;
+      border-bottom-right-radius: 0.5rem;
+    }
+    .ql-frappe-style .ql-editor {
+      @apply px-6 py-5 leading-relaxed;
+      min-height: 200px;
+      height: auto !important;
+      overflow-y: visible;
+    }
+    /* Simple CSS resize handle styling */
+    .ql-frappe-style .ql-container::-webkit-resizer {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23d1d5db' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 19l4-4M10 19l9-9'/%3E%3C/svg%3E");
+      background-size: 10px 10px;
+      background-repeat: no-repeat;
+      background-position: bottom right;
+      cursor: ns-resize;
+    }
+    .ql-frappe-style .ql-editor.ql-blank::before {
+      @apply left-6 text-zinc-300 italic;
+    }
+    .ql-frappe-style .ql-picker-label {
+      @apply text-zinc-600 !important;
+    }
+    .ql-frappe-style .ql-stroke {
+      @apply stroke-zinc-500 !important;
+    }
+    .ql-frappe-style .ql-fill {
+      @apply fill-zinc-500 !important;
     }
   `]
 })
@@ -215,20 +377,83 @@ export class FormRendererComponent implements OnInit, OnDestroy {
     this.document.sections.forEach(s => {
       s.columns.forEach(c => {
         c.fields.forEach(f => {
-          this.formData[f.fieldname] = f.default !== undefined ? f.default : '';
+          if (f.fieldtype === 'Table') {
+            this.formData[f.fieldname] = f.default || [];
+          } else if (f.fieldtype === 'Check') {
+            this.formData[f.fieldname] = f.default ? 1 : 0;
+          } else {
+            this.formData[f.fieldname] = f.default !== undefined ? f.default : '';
+          }
         });
       });
     });
   }
 
-  onFieldChange(fieldname: string) {
+
+  onFieldChange(fieldname: string, val?: any) {
+    if (val !== undefined) {
+      this.formData[fieldname] = val;
+    }
+    this.evaluateDependsOn();
     this.ctx.triggerChange(fieldname, this.formData[fieldname]);
     this.executeScript(fieldname, this.formData[fieldname]);
   }
 
-  private executeScript(event: string, value?: any) {
-    if (!this.document.client_script) return;
-    this.ctx.execute(this.document.client_script, event, value);
+  private executeScript(event: string, value?: any): any {
+    if (!this.document.client_script) return true;
+    return this.ctx.execute(this.document.client_script, event, value);
+  }
+
+  validateForm(): boolean {
+    let isValid = true;
+
+    // 1. Check Mandatory Fields
+    this.document.sections.forEach(s => {
+      if (this.ctx.getSectionSignal(s.id, 'hidden')()) return;
+      s.columns.forEach(c => {
+        c.fields.forEach(f => {
+          if (this.ctx.getFieldSignal(f.fieldname, 'hidden')()) return;
+          const isMandatory = this.ctx.getFieldSignal(f.fieldname, 'mandatory')();
+          const val = this.formData[f.fieldname];
+
+          if (isMandatory && (val === undefined || val === null || val === '')) {
+            isValid = false;
+          }
+
+          // 2. Check Regex
+          if (f.regex && val && !this.isValidRegex(f.fieldname, f.regex)) {
+            isValid = false;
+          }
+        });
+      });
+    });
+
+    if (!isValid) {
+      this.utils.show_alert('Please fill in all mandatory fields correctly before submitting.', 'error');
+      return false;
+    }
+
+    // 3. Script Hook: validate
+    const scriptResult = this.executeScript('validate');
+    if (scriptResult === false) {
+      return false;
+    }
+
+    return true;
+  }
+
+  saveDraft() {
+    if (this.validateForm()) {
+      console.log('Form Saved as Draft:', this.formData);
+      this.utils.show_alert('Draft saved successfully', 'success');
+    }
+  }
+
+  submit() {
+    if (this.validateForm()) {
+      this.formSubmit.emit(this.formData);
+      this.utils.show_alert('Form submitted successfully', 'success');
+    }
   }
 
   private evaluateDependsOn() {
@@ -259,7 +484,6 @@ export class FormRendererComponent implements OnInit, OnDestroy {
 
   private evalExpression(expr: string): boolean {
     try {
-      // Create a function with 'doc' context
       const fn = new Function('doc', `return (${expr})`);
       return !!fn(this.formData);
     } catch (e) {
@@ -296,7 +520,35 @@ export class FormRendererComponent implements OnInit, OnDestroy {
     return map[color] || map.gray;
   }
 
-  submit() {
-    this.formSubmit.emit(this.formData);
+  getButtonClass(style?: string): string {
+    const map: Record<string, string> = {
+      primary: 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100',
+      secondary: 'bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50',
+      danger: 'bg-red-600 text-white hover:bg-red-700 shadow-red-100',
+      ghost: 'bg-transparent text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100',
+    };
+    return map[style ?? 'primary'] || map['primary'];
+  }
+
+  isValidRegex(fieldname: string, pattern: string): boolean {
+    const value = this.formData[fieldname];
+    if (!value) return true;
+    try {
+      const regex = new RegExp(pattern);
+      return regex.test(String(value));
+    } catch (e) {
+      return false;
+    }
+  }
+
+  addTableRow(fieldname: string) {
+    if (!this.formData[fieldname]) this.formData[fieldname] = [];
+    this.formData[fieldname].push({});
+    this.onFieldChange(fieldname);
+  }
+
+  removeTableRow(fieldname: string, index: number) {
+    this.formData[fieldname].splice(index, 1);
+    this.onFieldChange(fieldname);
   }
 }

@@ -283,7 +283,7 @@ type RightTab = 'properties' | 'script';
           <span class="text-xs font-medium text-amber-700">Preview Mode — Client scripts are active. Changes made here won't affect the builder.</span>
         </div>
         
-        <app-form-renderer [document]="state.document()" (formSubmit)="onFormSubmit($event)"></app-form-renderer>
+        <app-form-renderer class="w-full" [document]="state.document()" (formSubmit)="onFormSubmit($event)"></app-form-renderer>
 
         @if (lastSubmittedData) {
           <div class="w-full max-w-3xl px-4 py-8 border-t border-zinc-200 mt-auto bg-white shadow-inner animate-in slide-in-from-bottom-4 duration-300">

@@ -1,5 +1,5 @@
 import { Injectable, signal, computed, WritableSignal } from '@angular/core';
-import { DocumentDefinition, DocumentField, DocumentSection, DocumentColumn, FieldType } from '../models/document.model';
+import { DocumentDefinition, DocumentField, DocumentSection, DocumentColumn, FieldType, TableColumnDef } from '../models/document.model';
 
 let _uid = 0;
 function uid() { return `id_${++_uid}_${Math.random().toString(36).slice(2, 7)}`; }
@@ -159,8 +159,22 @@ export class BuilderStateService {
 
     // ── Fields ────────────────────────────────────────────────
     addField(sectionId: string, colId: string, fieldtype: FieldType, index?: number) {
-        const label = fieldtype === 'Check' ? 'Checkbox Field' : `${fieldtype} Field`;
+        const defaultLabels: Partial<Record<FieldType, string>> = {
+            Check: 'Checkbox Field',
+            Button: 'Click Me',
+            'Text Editor': 'Details',
+            Table: 'Items',
+        };
+        const label = defaultLabels[fieldtype] ?? `${fieldtype} Field`;
         const slug = label.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '_') + '_' + (_uid + 1);
+
+        // Type-specific defaults
+        const typeDefaults: Partial<DocumentField> = {};
+        if (fieldtype === 'Check') typeDefaults.default = 0;
+        if (fieldtype === 'Button') typeDefaults.options = 'primary';
+        if (fieldtype === 'Text Editor') typeDefaults.options = '<p>Enter rich text here...</p>';
+        if (fieldtype === 'Table') typeDefaults.table_fields = [];
+
         const field: DocumentField = {
             id: uid(),
             fieldname: slug,
@@ -169,7 +183,7 @@ export class BuilderStateService {
             hidden: false,
             read_only: false,
             mandatory: false,
-            default: fieldtype === 'Check' ? 0 : undefined
+            ...typeDefaults
         };
         this.document.update(doc => ({
             ...doc,
@@ -280,5 +294,69 @@ export class BuilderStateService {
         this.selectedSectionId.set(null);
         this.showFormSettings.set(false);
         this.selectedFieldId.set(id);
+    }
+
+    // ── Table Field Columns ──────────────────────────────────────
+    addTableColumn(fieldId: string) {
+        const colId = uid();
+        const col: TableColumnDef = {
+            id: colId,
+            fieldname: `col_${colId.slice(-5)}`,
+            label: 'Column',
+            fieldtype: 'Data',
+        };
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.map((s: DocumentSection) => ({
+                ...s,
+                columns: s.columns.map((c: DocumentColumn) => ({
+                    ...c,
+                    fields: c.fields.map((f: DocumentField) =>
+                        f.id === fieldId
+                            ? { ...f, table_fields: [...(f.table_fields ?? []), col] }
+                            : f
+                    )
+                }))
+            }))
+        }));
+    }
+
+    removeTableColumn(fieldId: string, colId: string) {
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.map((s: DocumentSection) => ({
+                ...s,
+                columns: s.columns.map((c: DocumentColumn) => ({
+                    ...c,
+                    fields: c.fields.map((f: DocumentField) =>
+                        f.id === fieldId
+                            ? { ...f, table_fields: (f.table_fields ?? []).filter(tc => tc.id !== colId) }
+                            : f
+                    )
+                }))
+            }))
+        }));
+    }
+
+    updateTableColumn(fieldId: string, colId: string, patch: Partial<TableColumnDef>) {
+        this.document.update(doc => ({
+            ...doc,
+            sections: doc.sections.map((s: DocumentSection) => ({
+                ...s,
+                columns: s.columns.map((c: DocumentColumn) => ({
+                    ...c,
+                    fields: c.fields.map((f: DocumentField) =>
+                        f.id === fieldId
+                            ? {
+                                ...f,
+                                table_fields: (f.table_fields ?? []).map(tc =>
+                                    tc.id === colId ? { ...tc, ...patch } : tc
+                                )
+                            }
+                            : f
+                    )
+                }))
+            }))
+        }));
     }
 }
