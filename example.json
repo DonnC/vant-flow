@@ -1,139 +1,192 @@
 {
-    "name": "Employee Onboarding Portal",
-    "module": "Human Resources",
-    "version": "2.1.0",
-    "description": "A comprehensive onboarding form for new employees, demonstrating the full power of the Flow Engine including multi-column layouts, table management, and advanced scripting APIs.",
-    "intro_text": "<b>Welcome to Onboarding!</b><br>Please fill in all mandatory sections. The form will dynamically adapt based on your inputs. Use the 'Help' buttons for guidance.",
-    "intro_color": "blue",
+    "name": "Master Feature Showcase (The Lab)",
+    "module": "Engineering",
+    "version": "3.0.0",
+    "description": "This is the ultimate test document covering 100% of the Kai-NG-Flow features. Use it to verify all field types, multi-column grid layouts, and the complete scripting API. It includes examples of advanced dependencies, recursive table validation, and dynamic UI state manipulation.",
+    "intro_text": "<b>Welcome to The Lab.</b><br>This form is designed to exhaust every feature of the engine. Explore the sections, trigger scripts, and observe the reactive UI.",
+    "intro_color": "green",
     "sections": [
         {
-            "id": "sec_basic",
-            "label": "Basic Information",
+            "id": "sec_core",
+            "label": "Section 1: Core Fields (6 Columns)",
+            "columns_count": 6,
+            "columns": [
+                {
+                    "id": "c1",
+                    "fields": [
+                        {
+                            "id": "f_data",
+                            "fieldname": "f_data",
+                            "fieldtype": "Data",
+                            "label": "Data",
+                            "mandatory": true
+                        }
+                    ]
+                },
+                {
+                    "id": "c2",
+                    "fields": [
+                        {
+                            "id": "f_select",
+                            "fieldname": "f_select",
+                            "fieldtype": "Select",
+                            "label": "Select",
+                            "options": "Option A\nOption B",
+                            "default": "Option A"
+                        }
+                    ]
+                },
+                {
+                    "id": "c3",
+                    "fields": [
+                        {
+                            "id": "f_date",
+                            "fieldname": "f_date",
+                            "fieldtype": "Date",
+                            "label": "Date"
+                        }
+                    ]
+                },
+                {
+                    "id": "c4",
+                    "fields": [
+                        {
+                            "id": "f_int",
+                            "fieldname": "f_int",
+                            "fieldtype": "Int",
+                            "label": "Int",
+                            "default": 42
+                        }
+                    ]
+                },
+                {
+                    "id": "c5",
+                    "fields": [
+                        {
+                            "id": "f_float",
+                            "fieldname": "f_float",
+                            "fieldtype": "Float",
+                            "label": "Float",
+                            "default": 3.14
+                        }
+                    ]
+                },
+                {
+                    "id": "c6",
+                    "fields": [
+                        {
+                            "id": "f_check",
+                            "fieldname": "f_check",
+                            "fieldtype": "Check",
+                            "label": "Check",
+                            "default": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "sec_ext",
+            "label": "Section 2: Extended Fields (3 Columns)",
             "columns_count": 3,
             "columns": [
                 {
-                    "id": "col_1_1",
+                    "id": "c21",
                     "fields": [
                         {
-                            "id": "f_name",
-                            "fieldname": "full_name",
-                            "fieldtype": "Data",
-                            "label": "Full Name",
-                            "mandatory": true,
-                            "placeholder": "Jane Doe"
-                        },
-                        {
-                            "id": "f_dob",
-                            "fieldname": "date_of_birth",
-                            "fieldtype": "Date",
-                            "label": "Date of Birth"
-                        }
-                    ]
-                },
-                {
-                    "id": "col_1_2",
-                    "fields": [
-                        {
-                            "id": "f_email",
-                            "fieldname": "email",
-                            "fieldtype": "Data",
-                            "label": "Email Address",
-                            "mandatory": true,
-                            "regex": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
-                            "description": "We will send the offer letter here."
-                        },
-                        {
-                            "id": "f_dept",
-                            "fieldname": "department",
-                            "fieldtype": "Select",
-                            "label": "Department",
-                            "options": "Engineering\nProduct\nDesign\nSales\nMarketing"
-                        }
-                    ]
-                },
-                {
-                    "id": "col_1_3",
-                    "fields": [
-                        {
-                            "id": "f_role",
-                            "fieldname": "role",
+                            "id": "f_link",
+                            "fieldname": "f_link",
                             "fieldtype": "Link",
-                            "label": "Position/Role",
-                            "options": "Software Engineer\nProduct Manager\nHR Specialist"
-                        },
+                            "label": "Link (Autocomplete)",
+                            "options": "Search Item A\nSearch Item B"
+                        }
+                    ]
+                },
+                {
+                    "id": "c22",
+                    "fields": [
                         {
-                            "id": "f_remote",
-                            "fieldname": "remote_working",
-                            "fieldtype": "Check",
-                            "label": "Remote Worker?",
-                            "default": 0
+                            "id": "f_pass",
+                            "fieldname": "f_password",
+                            "fieldtype": "Password",
+                            "label": "Secret Password"
+                        }
+                    ]
+                },
+                {
+                    "id": "c23",
+                    "fields": [
+                        {
+                            "id": "f_btn",
+                            "fieldname": "btn_api_trigger",
+                            "fieldtype": "Button",
+                            "label": "Trigger API Call",
+                            "options": "primary"
                         }
                     ]
                 }
             ]
         },
         {
-            "id": "sec_contract",
-            "label": "Contract & Compensation",
+            "id": "sec_rich",
+            "label": "Section 3: Rich Inputs (1 Column)",
             "columns_count": 1,
             "columns": [
                 {
-                    "id": "col_2_1",
+                    "id": "c31",
                     "fields": [
                         {
-                            "id": "f_salary",
-                            "fieldname": "annual_salary",
-                            "fieldtype": "Float",
-                            "label": "Annual Base Salary ($)",
-                            "mandatory": true,
-                            "default": 50000
+                            "id": "f_text",
+                            "fieldname": "f_text",
+                            "fieldtype": "Text",
+                            "label": "Text Area",
+                            "placeholder": "Enter multi-line text..."
                         },
                         {
-                            "id": "f_terms",
-                            "fieldname": "contract_terms",
+                            "id": "f_editor",
+                            "fieldname": "f_editor",
                             "fieldtype": "Text Editor",
-                            "label": "Special Contract Terms",
-                            "options": "<p>Standard probationary period applies (3 months).</p>"
+                            "label": "Rich Text Editor",
+                            "default": "<p>Initial <b>bold</b> content.</p>"
                         }
                     ]
                 }
             ]
         },
         {
-            "id": "sec_equipment",
-            "label": "Technical Equipment",
-            "description": "Specify the assets required for this employee.",
+            "id": "sec_table",
+            "label": "Section 4: Data Grids (Recursive Validation)",
             "columns_count": 1,
             "columns": [
                 {
-                    "id": "col_3_1",
+                    "id": "c41",
                     "fields": [
                         {
-                            "id": "f_assets",
-                            "fieldname": "requested_assets",
+                            "id": "f_table",
+                            "fieldname": "child_table",
                             "fieldtype": "Table",
-                            "label": "Equipment List",
+                            "label": "Infrastructure Nodes",
                             "table_fields": [
                                 {
-                                    "id": "tc_item",
-                                    "fieldname": "item",
-                                    "label": "Item Name",
+                                    "id": "tc1",
+                                    "fieldname": "node_id",
+                                    "label": "Node ID",
                                     "fieldtype": "Data",
-                                    "mandatory": true
+                                    "mandatory": true,
+                                    "regex": "^NODE-[0-9]{3}$"
                                 },
                                 {
-                                    "id": "tc_qty",
-                                    "fieldname": "quantity",
-                                    "label": "Qty",
-                                    "fieldtype": "Int",
-                                    "mandatory": true
+                                    "id": "tc2",
+                                    "fieldname": "node_type",
+                                    "label": "Type",
+                                    "fieldtype": "Select",
+                                    "options": "Compute\nStorage\nNetwork"
                                 },
                                 {
-                                    "id": "tc_sn",
-                                    "fieldname": "serial_no",
-                                    "label": "Assigned S/N",
-                                    "fieldtype": "Data",
-                                    "read_only": true
+                                    "id": "tc3",
+                                    "fieldname": "online",
+                                    "label": "Online",
+                                    "fieldtype": "Check"
                                 }
                             ]
                         }
@@ -142,32 +195,56 @@
             ]
         },
         {
-            "id": "sec_actions",
-            "label": "Verification Actions",
-            "columns_count": 2,
+            "id": "sec_logic",
+            "label": "Section 5: Dynamic Visibility (4 Columns)",
+            "columns_count": 4,
             "columns": [
                 {
-                    "id": "col_4_1",
+                    "id": "c51",
                     "fields": [
                         {
-                            "id": "f_btn_verify",
-                            "fieldname": "btn_verify_email",
-                            "fieldtype": "Button",
-                            "label": "Verify Email Domain",
-                            "options": "secondary"
+                            "id": "f_trigger",
+                            "fieldname": "show_advanced",
+                            "fieldtype": "Check",
+                            "label": "Enable Advanced Options",
+                            "default": 0
                         }
                     ]
                 },
                 {
-                    "id": "col_4_2",
+                    "id": "c52",
                     "fields": [
                         {
-                            "id": "f_status",
-                            "fieldname": "status",
+                            "id": "f_adv1",
+                            "fieldname": "adv_opt_1",
+                            "fieldtype": "Data",
+                            "label": "Advanced Setting A",
+                            "depends_on": "doc.show_advanced"
+                        }
+                    ]
+                },
+                {
+                    "id": "c53",
+                    "fields": [
+                        {
+                            "id": "f_adv2",
+                            "fieldname": "adv_opt_2",
                             "fieldtype": "Select",
-                            "label": "Onboarding Status",
-                            "options": "Draft\nPending Review\nActive\nArchived",
-                            "default": "Draft"
+                            "label": "Advanced Level",
+                            "options": "Low\nMedium\nHigh",
+                            "depends_on": "doc.show_advanced"
+                        }
+                    ]
+                },
+                {
+                    "id": "c54",
+                    "fields": [
+                        {
+                            "id": "f_adv3",
+                            "fieldname": "btn_reset",
+                            "fieldtype": "Button",
+                            "label": "Reset Form",
+                            "depends_on": "doc.show_advanced"
                         }
                     ]
                 }
@@ -176,25 +253,15 @@
     ],
     "actions": {
         "save": {
-            "label": "Save Progress",
+            "label": "Save (Native)",
             "visible": true,
             "type": "secondary"
         },
         "submit": {
-            "label": "Confirm Onboarding",
+            "label": "Deploy to Cloud",
             "visible": true,
             "type": "primary"
-        },
-        "approve": {
-            "label": "Approve Hire",
-            "visible": false,
-            "type": "primary"
-        },
-        "decline": {
-            "label": "Reject Candidate",
-            "visible": false,
-            "type": "danger"
         }
     },
-    "client_script": "// Employee Onboarding Script v2.1\n\nfrm.on('refresh', (val, frm) => {\n    frm.msgprint('Form Loaded Successfully! Welcome ' + (frm.get_value('full_name') || 'New Hire'));\n    \n    if (frm.get_value('status') === 'Active') {\n        frm.set_readonly(true);\n    }\n});\n\nfrm.on('status', (val, frm) => {\n    if (val === 'Active') {\n        frm.set_intro('This record is now Active and locked for editing.', 'red');\n        frm.set_readonly(true);\n    } else {\n        frm.set_intro('Complete the onboarding details below.', 'blue');\n        frm.set_readonly(false);\n    }\n});\n\nfrm.on('remote_working', (val, frm) => {\n    if (val) {\n        frm.set_df_property('requested_assets', 'description', 'Standard Home-Office bundle will be added automatically.');\n    } else {\n        frm.set_df_property('requested_assets', 'description', 'Standard Office equipment will be assigned on Day 1.');\n    }\n});\n\nfrm.on('btn_verify_email', (val, frm) => {\n    const email = frm.get_value('email');\n    if (!email) {\n        frm.throw('Please enter an email address first.');\n        return;\n    }\n\n    frm.freeze('Verifying domain...');\n    \n    // Simulated API call\n    frm.call({\n        method: 'https://api.example.com/verify-domain',\n        args: { email: email },\n        callback: (response) => {\n            frm.unfreeze();\n            if (email.endsWith('@example.com')) {\n                frm.msgprint('Internal domain verified!', 'success');\n                frm.set_value('department', 'Engineering');\n            } else {\n                frm.prompt([\n                    { label: 'Alternative Group', fieldname: 'group', fieldtype: 'Select', options: 'Guest\\nContractor' },\n                    { label: 'Reference ID', fieldname: 'ref', fieldtype: 'Data', mandatory: true }\n                ], (v) => {\n                   frm.msgprint('Applied alternative group: ' + v.group);\n                }, 'External User Setup');\n            }\n        }\n    });\n});\n\n// Trigger validation manually if needed\nfrm.on('annual_salary', (val, frm) => {\n    if (val < 20000) {\n        frm.msgprint('Salary is below company minimum policy!', 'orange');\n    }\n});"
+    "client_script": "// 🔬 Master Feature Test Script\n\nfrm.on('refresh', (val, frm) => {\n    frm.msgprint('The Lab is online. All systems nominal.', 'success');\n    \n    // Test 1: Button label and custom button injection\n    frm.set_button_label('save', 'Persist Locally');\n    frm.add_custom_button('Inspect Context', () => {\n        console.log('Current Data:', frm.get_value('f_data'));\n        frm.msgprint('Context inspected in console.');\n    }, 'ghost');\n});\n\nfrm.on('f_data', (val, frm) => {\n    // Test 2: Dynamic Label Change\n    if (val === 'admin') {\n        frm.set_df_property('f_data', 'label', 'Administrator Access');\n        frm.set_intro('ROOT ACCESS GRANTED', 'red');\n    } else {\n        frm.set_df_property('f_data', 'label', 'Standard User Data');\n    }\n});\n\nfrm.on('btn_api_trigger', (val, frm) => {\n    // Test 3: Complex Dialog & API Sequence\n    frm.confirm('Initialize remote sync sequence?', () => {\n        frm.freeze('Syncing nodes...');\n        frm.call({\n            method: 'https://api.github.com/zen',\n            callback: (r) => {\n                frm.unfreeze();\n                frm.set_intro('Last Sync Status: ' + r, 'blue');\n                frm.msgprint('Remote sync complete!', 'success');\n                \n                // Trigger prompt for metadata\n                frm.prompt([\n                    { label: 'Cluster Name', fieldname: 'cluster', fieldtype: 'Data', mandatory: true },\n                    { label: 'Region', fieldname: 'region', fieldtype: 'Select', options: 'US-East\\nEU-West\\nAP-South' }\n                ], (res) => {\n                    frm.msgprint('Cluster \"' + res.cluster + '\" provisioned in ' + res.region);\n                }, 'Cloud Provisioning');\n            }\n        });\n    });\n});\n\nfrm.on('btn_reset', (val, frm) => {\n    // Test 4: Batch Value Update & ReadOnly Control\n    frm.set_value({\n        f_data: '',\n        f_int: 0,\n        f_float: 0.0,\n        f_check: 0,\n        show_advanced: 0\n    });\n    frm.msgprint('Form state reset.');\n});\n\nfrm.on('f_password', (val, frm) => {\n    // Test 5: Locking form\n    if (val === 'LOCK') {\n        frm.set_readonly(true);\n        frm.set_intro('DOCUMENT LOCKED BY SYSTEM', 'red');\n        frm.add_custom_button('Unlock Documents', () => {\n            frm.set_readonly(false);\n            frm.set_intro('Document unlocked.', 'green');\n            frm.clear_custom_buttons();\n        }, 'primary');\n    }\n});\n\nfrm.on('validate', (val, frm) => {\n    // Test 6: Validation Hook Interception\n    if (frm.get_value('f_int') > 1000) {\n        frm.throw('Int value cannot exceed 1000 in this lab.');\n        return false;\n    }\n});"
 }

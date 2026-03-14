@@ -79,7 +79,7 @@ export class ScriptEditorComponent {
   editorInstance: any;
 
   insertOnRefresh() {
-    this.insertSnippet("frm.on('refresh', () => {\n  \n});");
+    this.insertSnippet("frm.on('refresh', (val, frm) => {\n  \n});");
   }
 
   insertMsgprint() {
@@ -145,7 +145,7 @@ export class ScriptEditorComponent {
         { label: 'frm.call (Remote Method)', code: "frm.call({\n  method: 'my_method',\n  args: {},\n  freeze: true,\n  callback: (r) => {\n    console.log(r);\n  }\n});" },
         { label: 'frm.add_custom_button', code: "frm.add_custom_button('Custom Button', () => {\n  frm.msgprint('Clicked');\n}, 'primary');" },
         { label: 'frm.set_button_label', code: "frm.set_button_label('submit', 'Send Now');" },
-        { label: 'frm.set_button_action', code: "frm.set_button_action('submit', () => {\n  frm.msgprint('Custom submit logic');\n});" },
+        { label: 'frm.set_button_action', code: "frm.set_button_action('submit', (frm) => {\n  frm.msgprint('Custom submit logic');\n});" },
       ]
     }
   ];
@@ -201,7 +201,7 @@ export class ScriptEditorComponent {
         /** Show error and stop execution */
         throw(message: string): void;
         /** Listen to field or form events */
-        on(event: 'refresh' | 'validate' | string, callback: (frm: FormContext, val?: any) => void): void;
+        on(event: 'refresh' | 'validate' | string, callback: (val: any, frm: FormContext) => void): void;
         
         /** Control global readonly state */
         set_readonly(readonly: boolean): void;
@@ -230,24 +230,6 @@ export class ScriptEditorComponent {
 
       /** The main Form Context object */
       declare const frm: FormContext;
-      
-      /** Global Application Utilities */
-      declare const frappe: {
-        ui: {
-            form: {
-                /** Listen to field or form events */
-                on(event: 'refresh' | 'validate' | string, callback: (frm: FormContext, val?: any) => void): void;
-            }
-        };
-        msgprint: (message: string, indicator?: 'success' | 'error' | 'info' | 'warning') => void;
-        confirm: (message: string, on_confirm?: () => void, on_cancel?: () => void) => void;
-        prompt: (fields: DocumentField[], callback: (values: any) => void, title?: string) => void;
-        throw: (message: string) => void;
-        call: (opts: any) => Promise<any>;
-        freeze: (message?: string) => void;
-        unfreeze: () => void;
-        show_alert: (message: string, indicator?: string) => void;
-      };
     `;
 
     // Register the lib

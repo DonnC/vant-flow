@@ -9,7 +9,7 @@ The engine is built on a **Context-Injection** pattern. Every form rendered by `
 
 1. **Metadata Core**: Forms are defined by `DocumentDefinition` JSON, which includes sections, columns, and fields.
 2. **Signal-Based Reactivity**: Each field and section's internal state (label, read-only, hidden, mandatory) is wrapped in an Angular **Signal**. This allows the scripting API to update the UI instantly without complex ChangeDetection cycles.
-3. **Scripting Sandbox**: Client scripts are executed in a controlled function scope where `frm` and `frappe` objects are injected, providing a seamless bridge between the metadata and business logic.
+3. **Scripting Sandbox**: Client scripts are executed in a controlled function scope where the `frm` object is injected, providing a seamless bridge between the metadata and business logic.
 4. **Pluggable Utility Layer**: Common UI tasks (dialogs, alerts, API calls, loading states) are handled by a centralized `AppUtilityService`, making it easy to swap themes or backend integrations.
 
 ---
@@ -23,7 +23,7 @@ Listen to form lifecycle events or field changes.
 
 *   **`refresh`**: Triggered when the form is first loaded.
     ```javascript
-    frm.on('refresh', (frm) => { ... });
+    frm.on('refresh', (val, frm) => { ... });
     ```
 *   **`fieldname`**: Triggered when a field value changes. **NOTE**: The first argument is the new value.
     ```javascript
@@ -160,9 +160,9 @@ The engine automatically runs validation on **Submission** or when `validate` ho
 
 ---
 
-### 💻 Modern Script Editor
+#### 7. Modern Script Editor
 The builder includes a professional Monaco-based editor with:
-- **Intellisense**: Full type definitions for `frm` and `frappe`.
+- **Intellisense**: Full type definitions for the `frm` context.
 - **Snippet Library**: A searchable dropdown to instantly insert common boilerplate (Hooks, API calls, UI interactions).
 
 

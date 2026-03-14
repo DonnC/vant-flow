@@ -35,7 +35,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
                   <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-r border-zinc-200 pr-2">{{ document.module }}</span>
                 }
                 @if (document.description) {
-                  <span class="text-[11px] text-zinc-400 leading-tight">{{ document.description }}</span>
+                  <span class="text-[11px] text-zinc-400 leading-tight max-w-2xl">{{ document.description }}</span>
                 }
               </div>
             }
@@ -428,8 +428,10 @@ export class FormRendererComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.initForm();
     this.ctx.initialize(this.document, this.formData);
-    // Execute script ONCE to register listeners and run 'refresh'
+    // Execute script ONCE to register listeners
     this.ctx.execute(this.document.client_script || '', 'refresh');
+    // Explicitly trigger the refresh event so handlers run
+    this.ctx.trigger('refresh');
   }
 
   ngOnDestroy() {

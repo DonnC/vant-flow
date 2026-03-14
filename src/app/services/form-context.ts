@@ -199,40 +199,9 @@ export class FormContext {
         if (!script) return;
         let setupResult: any = undefined;
 
-        const frappe = {
-            ui: {
-                form: {
-                    on: (evOrObj: string | Record<string, Function>, handler?: Function) => {
-                        if (typeof evOrObj === 'object') {
-                            // Object syntax: { refresh: fn, validate: fn, ... }
-                            Object.entries(evOrObj).forEach(([ev, fn]) => {
-                                this.on(ev, fn);
-                                if (ev === event) setupResult = fn(this, value);
-                            });
-                        } else if (typeof evOrObj === 'string' && handler) {
-                            // String syntax: on('event', fn)
-                            this.on(evOrObj, handler);
-                            if (evOrObj === event) setupResult = handler(this, value);
-                        }
-                    }
-                }
-            },
-            msgprint: (msg: string, ind: any) => this.appUtility.show_alert(msg, ind),
-            confirm: (msg: string, ok?: any, cancel?: any) => this.appUtility.confirm(msg, ok, cancel),
-            prompt: (fields: any, cb: any, title?: string) => this.appUtility.prompt(fields, title).then(v => { if (v) cb(v); }),
-            throw: (msg: string) => {
-                this.appUtility.show_alert(msg, 'error');
-                throw new Error(msg);
-            },
-            call: (opts: any) => this.appUtility.call(opts),
-            freeze: (msg?: string) => this.appUtility.freeze(msg),
-            unfreeze: () => this.appUtility.unfreeze(),
-            show_alert: (msg: string, ind: any) => this.appUtility.show_alert(msg, ind)
-        };
-
         try {
-            const fn = new Function('frm', 'frappe', script);
-            fn(this, frappe);
+            const fn = new Function('frm', script);
+            fn(this);
 
             // Important: We DON'T trigger(event, value) here anymore if we want to run script once 
             // and trigger events separately. 
