@@ -19,7 +19,7 @@
                             "fieldname": "inspector_name",
                             "fieldtype": "Data",
                             "label": "Lead Inspector",
-                            "mandatory": true,
+                            "mandatory": 1,
                             "placeholder": "Enter full name"
                         },
                         {
@@ -27,7 +27,7 @@
                             "fieldname": "batch_id",
                             "fieldtype": "Data",
                             "label": "Batch ID",
-                            "mandatory": true,
+                            "mandatory": 1,
                             "regex": "^QC-[A-Z]{2}-[0-9]{4}$",
                             "description": "Format: QC-XX-0000"
                         }

@@ -124,7 +124,10 @@ export class FormContext {
                     } else {
                         this.formData[f.fieldname] = f.default !== undefined ? f.default : '';
                     }
-                    this.trigger(f.fieldname, this.formData[f.fieldname]);
+
+                    if (f.fieldtype !== 'Button') {
+                        this.trigger(f.fieldname, this.formData[f.fieldname]);
+                    }
                 });
             });
         });

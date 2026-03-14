@@ -42,13 +42,13 @@ export class AppUtilityService {
     return new Promise(resolve => {
       // Create modal container
       const overlay = document.createElement('div');
-      overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[60]'; // High z-index
+      overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] fade-in'; // High z-index
 
       const values: Record<string, any> = {};
       fields.forEach(f => { values[f.fieldname] = f.default ?? ''; });
 
       overlay.innerHTML = `
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden zoom-in duration-200">
           <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
             <h3 class="text-base font-semibold text-zinc-900">${title}</h3>
             <button data-close class="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
@@ -88,19 +88,22 @@ export class AppUtilityService {
       const close = (result: any) => {
         overlay.classList.remove('fade-in');
         overlay.classList.add('fade-out');
+        overlay.querySelector('div')?.classList.add('zoom-out');
         setTimeout(() => {
           if (document.body.contains(overlay)) {
             document.body.removeChild(overlay);
           }
           resolve(result);
-        }, 220);
+        }, 210);
       };
 
-      overlay.querySelector('[data-close]')?.addEventListener('click', () => close(null));
-      overlay.querySelector('[data-cancel]')?.addEventListener('click', () => close(null));
-      overlay.querySelector('[data-submit]')?.addEventListener('click', () => {
+      overlay.querySelector('[data-close]')?.addEventListener('click', (e) => { e.stopPropagation(); close(null); });
+      overlay.querySelector('[data-cancel]')?.addEventListener('click', (e) => { e.stopPropagation(); close(null); });
+      overlay.querySelector('[data-submit]')?.addEventListener('click', (e) => {
+        e.stopPropagation();
         const result: Record<string, any> = {};
         let isValid = true;
+        // ... rest of prompt method is already updated in previous successful steps or will be kept 
 
         fields.forEach(f => {
           const el = overlay.querySelector(`[data-field="${f.fieldname}"]`) as HTMLInputElement;
@@ -136,15 +139,15 @@ export class AppUtilityService {
 
   confirm(message: string, on_confirm?: () => void, on_cancel?: () => void) {
     const overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[60] animate-in fade-in duration-200';
+    overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] fade-in';
     overlay.innerHTML = `
-          <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
+          <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden zoom-in duration-200">
             <div class="px-6 py-8 text-center">
               <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
               </div>
               <h3 class="text-base font-bold text-zinc-900 mb-2">Are you sure?</h3>
-              <p class="text-sm text-zinc-500">${message}</p>
+              <p class="text-sm text-zinc-500 leading-relaxed">${message}</p>
             </div>
             <div class="flex border-t border-zinc-100">
               <button data-cancel class="flex-1 px-4 py-3 text-sm font-semibold text-zinc-500 hover:bg-zinc-50 transition-colors border-r border-zinc-100">Cancel</button>
@@ -157,6 +160,7 @@ export class AppUtilityService {
     const close = () => {
       overlay.classList.remove('fade-in');
       overlay.classList.add('fade-out');
+      overlay.querySelector('div')?.classList.add('zoom-out');
       setTimeout(() => {
         if (document.body.contains(overlay)) {
           document.body.removeChild(overlay);
@@ -164,12 +168,14 @@ export class AppUtilityService {
       }, 200);
     };
 
-    overlay.querySelector('[data-cancel]')?.addEventListener('click', () => {
+    overlay.querySelector('[data-cancel]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
       close();
       if (on_cancel) setTimeout(() => on_cancel(), 210);
     });
 
-    overlay.querySelector('[data-confirm]')?.addEventListener('click', () => {
+    overlay.querySelector('[data-confirm]')?.addEventListener('click', (e) => {
+      e.stopPropagation();
       close();
       if (on_confirm) setTimeout(() => on_confirm(), 210);
     });
