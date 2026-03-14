@@ -223,6 +223,13 @@ export class ScriptEditorComponent {
             freeze_message?: string 
         }): Promise<any>;
         
+        /** Reset form to its original state (clears data and custom intros) */
+        reset(): void;
+        /** Add a row to a table field */
+        add_row(fieldname: string, row?: any): void;
+        /** Remove a row from a table field */
+        remove_row(fieldname: string, index: number): void;
+        
         /** Global UI freezing */
         freeze(message?: string): void;
         unfreeze(): void;

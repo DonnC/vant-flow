@@ -86,10 +86,14 @@ export class AppUtilityService {
       document.body.appendChild(overlay);
 
       const close = (result: any) => {
-        if (document.body.contains(overlay)) {
-          document.body.removeChild(overlay);
-        }
-        resolve(result);
+        overlay.classList.remove('fade-in');
+        overlay.classList.add('fade-out');
+        setTimeout(() => {
+          if (document.body.contains(overlay)) {
+            document.body.removeChild(overlay);
+          }
+          resolve(result);
+        }, 220);
       };
 
       overlay.querySelector('[data-close]')?.addEventListener('click', () => close(null));
@@ -151,19 +155,23 @@ export class AppUtilityService {
     document.body.appendChild(overlay);
 
     const close = () => {
-      if (document.body.contains(overlay)) {
-        document.body.removeChild(overlay);
-      }
+      overlay.classList.remove('fade-in');
+      overlay.classList.add('fade-out');
+      setTimeout(() => {
+        if (document.body.contains(overlay)) {
+          document.body.removeChild(overlay);
+        }
+      }, 200);
     };
 
     overlay.querySelector('[data-cancel]')?.addEventListener('click', () => {
       close();
-      if (on_cancel) on_cancel();
+      if (on_cancel) setTimeout(() => on_cancel(), 210);
     });
 
     overlay.querySelector('[data-confirm]')?.addEventListener('click', () => {
       close();
-      if (on_confirm) on_confirm();
+      if (on_confirm) setTimeout(() => on_confirm(), 210);
     });
 
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
