@@ -57,10 +57,22 @@ export class AppUtilityService {
             ${fields.map(f => `
               <div>
                 <label class="ui-label">${f.label}${f.mandatory ? '<span class="text-red-500 ml-0.5">*</span>' : ''}</label>
-                <input data-field="${f.fieldname}" type="${f.fieldtype === 'Password' ? 'password' : 'text'}"
-                       ${f.read_only ? 'disabled' : ''}
-                       class="ui-input ${f.read_only ? 'bg-zinc-50 border-zinc-100 text-zinc-400 cursor-not-allowed' : ''}" 
-                       placeholder="${f.placeholder || ''}" value="${values[f.fieldname] ?? ''}">
+                ${f.fieldtype === 'Select'
+          ? `
+                    <select data-field="${f.fieldname}" class="ui-select ${f.read_only ? 'opacity-50 cursor-not-allowed' : ''}" ${f.read_only ? 'disabled' : ''}>
+                      <option value="">Select ${f.label}...</option>
+                      ${(f.options || '').split('\n').filter(o => o.trim()).map(o => `
+                        <option value="${o.trim()}" ${o.trim() === (values[f.fieldname] || '') ? 'selected' : ''}>${o.trim()}</option>
+                      `).join('')}
+                    </select>
+                  `
+          : `
+                    <input data-field="${f.fieldname}" type="${f.fieldtype === 'Password' ? 'password' : 'text'}"
+                           ${f.read_only ? 'disabled' : ''}
+                           class="ui-input ${f.read_only ? 'bg-zinc-50 border-zinc-100 text-zinc-400 cursor-not-allowed' : ''}" 
+                           placeholder="${f.placeholder || ''}" value="${values[f.fieldname] ?? ''}">
+                  `
+        }
               </div>
             `).join('')}
           </div>

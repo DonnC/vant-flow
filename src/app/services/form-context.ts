@@ -112,6 +112,45 @@ export class FormContext {
         this.customButtons.set([]);
     }
 
+    reset() {
+        // Reset data to defaults
+        this.document.sections.forEach(s => {
+            s.columns.forEach(c => {
+                c.fields.forEach(f => {
+                    if (f.fieldtype === 'Table') {
+                        this.formData[f.fieldname] = f.default || [];
+                    } else if (f.fieldtype === 'Check') {
+                        this.formData[f.fieldname] = f.default ? 1 : 0;
+                    } else {
+                        this.formData[f.fieldname] = f.default !== undefined ? f.default : '';
+                    }
+                    this.trigger(f.fieldname, this.formData[f.fieldname]);
+                });
+            });
+        });
+
+        this.dynamicIntro.set(null);
+        this.customButtons.set([]);
+        this.isReadOnly.set(false);
+        this.trigger('refresh');
+    }
+
+    add_row(fieldname: string, row: any = {}) {
+        if (!this.formData[fieldname]) this.formData[fieldname] = [];
+        this.formData[fieldname].push(row);
+        const index = this.formData[fieldname].length - 1;
+        this.trigger(`${fieldname}_add`, { row, index });
+        this.trigger(fieldname, this.formData[fieldname]);
+    }
+
+    remove_row(fieldname: string, index: number) {
+        if (!this.formData[fieldname]) return;
+        const row = this.formData[fieldname][index];
+        this.formData[fieldname].splice(index, 1);
+        this.trigger(`${fieldname}_remove`, { row, index });
+        this.trigger(fieldname, this.formData[fieldname]);
+    }
+
     call(opts: { method: string; args?: any; callback?: (r: any) => void; freeze?: boolean; freeze_message?: string }) {
         return this.appUtility.call(opts).then(r => {
             if (opts.callback) opts.callback(r);

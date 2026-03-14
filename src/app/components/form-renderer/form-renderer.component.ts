@@ -648,13 +648,10 @@ export class FormRendererComponent implements OnInit, OnDestroy {
   }
 
   addTableRow(fieldname: string) {
-    if (!this.formData[fieldname]) this.formData[fieldname] = [];
-    this.formData[fieldname].push({});
-    this.onFieldChange(fieldname);
+    this.ctx.add_row(fieldname);
   }
 
   removeTableRow(fieldname: string, index: number) {
-    this.formData[fieldname].splice(index, 1);
-    this.onFieldChange(fieldname);
+    this.ctx.remove_row(fieldname, index);
   }
 }

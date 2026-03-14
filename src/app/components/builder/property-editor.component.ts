@@ -337,6 +337,25 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
                       </label>
                     </div>
                   </div>
+
+                  <!-- Options for Table Column (Select/Link) -->
+                  @if (col.fieldtype === 'Select' || col.fieldtype === 'Link') {
+                  <div class="space-y-1 pt-1">
+                    <label class="text-[9px] font-bold text-zinc-400 uppercase">
+                      {{ col.fieldtype === 'Select' ? 'Options (one per line)' : 'Linked Document' }}
+                    </label>
+                    @if (col.fieldtype === 'Select') {
+                      <textarea class="ui-textarea !p-1.5 !text-[11px] font-mono" rows="2" 
+                        [ngModel]="col.options" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { options: $event })"
+                        placeholder="Option 1&#10;Option 2">
+                      </textarea>
+                    } @else {
+                      <input class="ui-input !p-1.5 !text-[11px]" [ngModel]="col.options" 
+                        (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { options: $event })" 
+                        placeholder="e.g. Customer">
+                    }
+                  </div>
+                  }
                 </div>
               }
             </div>
