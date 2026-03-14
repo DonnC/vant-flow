@@ -455,9 +455,9 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
                 </p>
                 <div class="bg-zinc-900 text-indigo-300 p-2 rounded font-mono text-[10px] space-y-2 overflow-x-auto">
                   <div><span class="text-zinc-500">// Runs on form load</span>
-                  <br>frm.on('refresh', () => &#123; ... &#125;);</div>
+                  <br>frm.on('refresh', () => {{ '{' }} ... {{ '}' }});</div>
                   <div><span class="text-zinc-500">// Runs on field change</span>
-                  <br>frm.on('fieldname', (val) => &#123; ... &#125;);</div>
+                  <br>frm.on('fieldname', (val, frm) => {{ '{' }} ... {{ '}' }});</div>
                 </div>
               </div>
 
@@ -467,12 +467,12 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
                   <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
                   Prompts & Alerts
                 </p>
-                <div class="bg-zinc-900 text-indigo-300 p-2 rounded font-mono text-[10px] space-y-2 overflow-x-auto">
-                  <div>app.show_alert('Saved!', 'success');</div>
-                  <div>app.prompt([
-                    <br>&nbsp;&nbsp;&#123; label: 'Name', fieldname: 'n', fieldtype: 'Data' &#125;
-                    <br>], 'Dialog Title').then(v => ...);</div>
-                </div>
+                 <div class="bg-zinc-900 text-indigo-300 p-2 rounded font-mono text-[10px] space-y-2 overflow-x-auto">
+                   <div>frm.msgprint('Success!', 'success');</div>
+                   <div>frm.prompt([
+                     <br>&nbsp;&nbsp;{{ '{' }} label: 'Name', fieldname: 'n', fieldtype: 'Data' {{ '}' }}
+                     <br>], (v) => ..., 'Dialog Title');</div>
+                 </div>
               </div>
             </div>
           </details>

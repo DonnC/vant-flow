@@ -58,7 +58,9 @@ export class AppUtilityService {
               <div>
                 <label class="ui-label">${f.label}${f.mandatory ? '<span class="text-red-500 ml-0.5">*</span>' : ''}</label>
                 <input data-field="${f.fieldname}" type="${f.fieldtype === 'Password' ? 'password' : 'text'}"
-                       class="ui-input" placeholder="${f.placeholder || ''}" value="${values[f.fieldname] ?? ''}">
+                       ${f.read_only ? 'disabled' : ''}
+                       class="ui-input ${f.read_only ? 'bg-zinc-50 border-zinc-100 text-zinc-400 cursor-not-allowed' : ''}" 
+                       placeholder="${f.placeholder || ''}" value="${values[f.fieldname] ?? ''}">
               </div>
             `).join('')}
           </div>

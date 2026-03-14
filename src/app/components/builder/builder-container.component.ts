@@ -223,6 +223,15 @@ type RightTab = 'properties' | 'script';
           [class.bg-indigo-500]="isResizing()"
         ></div>
 
+        @if (!rightSidebarVisible()) {
+          <button 
+            (click)="rightSidebarVisible.set(true)"
+            class="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-12 bg-white border border-r-0 border-zinc-200 rounded-l-md flex items-center justify-center hover:bg-zinc-50 transition-all shadow-sm z-20 group"
+          >
+            <div class="w-1 h-3 bg-zinc-300 rounded-full group-hover:bg-indigo-400"></div>
+          </button>
+        }
+
         <aside 
           class="shrink-0 bg-white border-l border-zinc-200 flex flex-col overflow-hidden transition-all duration-300 ease-in-out relative group"
           [style.width.px]="rightSidebarVisible() ? sidebarWidth() : 0"

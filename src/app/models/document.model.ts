@@ -42,7 +42,7 @@ export interface DocumentSection {
   depends_on?: string; // Evaluate expression to show/hide section
   hidden?: boolean; // New: for scripting API control
   collapsible?: boolean;
-  columns_count?: 1 | 2;
+  columns_count?: number;
   columns: DocumentColumn[];
 }
 

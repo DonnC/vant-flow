@@ -1,0 +1,200 @@
+{
+    "name": "Employee Onboarding Portal",
+    "module": "Human Resources",
+    "version": "2.1.0",
+    "description": "A comprehensive onboarding form for new employees, demonstrating the full power of the Flow Engine including multi-column layouts, table management, and advanced scripting APIs.",
+    "intro_text": "<b>Welcome to Onboarding!</b><br>Please fill in all mandatory sections. The form will dynamically adapt based on your inputs. Use the 'Help' buttons for guidance.",
+    "intro_color": "blue",
+    "sections": [
+        {
+            "id": "sec_basic",
+            "label": "Basic Information",
+            "columns_count": 3,
+            "columns": [
+                {
+                    "id": "col_1_1",
+                    "fields": [
+                        {
+                            "id": "f_name",
+                            "fieldname": "full_name",
+                            "fieldtype": "Data",
+                            "label": "Full Name",
+                            "mandatory": true,
+                            "placeholder": "Jane Doe"
+                        },
+                        {
+                            "id": "f_dob",
+                            "fieldname": "date_of_birth",
+                            "fieldtype": "Date",
+                            "label": "Date of Birth"
+                        }
+                    ]
+                },
+                {
+                    "id": "col_1_2",
+                    "fields": [
+                        {
+                            "id": "f_email",
+                            "fieldname": "email",
+                            "fieldtype": "Data",
+                            "label": "Email Address",
+                            "mandatory": true,
+                            "regex": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+                            "description": "We will send the offer letter here."
+                        },
+                        {
+                            "id": "f_dept",
+                            "fieldname": "department",
+                            "fieldtype": "Select",
+                            "label": "Department",
+                            "options": "Engineering\nProduct\nDesign\nSales\nMarketing"
+                        }
+                    ]
+                },
+                {
+                    "id": "col_1_3",
+                    "fields": [
+                        {
+                            "id": "f_role",
+                            "fieldname": "role",
+                            "fieldtype": "Link",
+                            "label": "Position/Role",
+                            "options": "Software Engineer\nProduct Manager\nHR Specialist"
+                        },
+                        {
+                            "id": "f_remote",
+                            "fieldname": "remote_working",
+                            "fieldtype": "Check",
+                            "label": "Remote Worker?",
+                            "default": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "sec_contract",
+            "label": "Contract & Compensation",
+            "columns_count": 1,
+            "columns": [
+                {
+                    "id": "col_2_1",
+                    "fields": [
+                        {
+                            "id": "f_salary",
+                            "fieldname": "annual_salary",
+                            "fieldtype": "Float",
+                            "label": "Annual Base Salary ($)",
+                            "mandatory": true,
+                            "default": 50000
+                        },
+                        {
+                            "id": "f_terms",
+                            "fieldname": "contract_terms",
+                            "fieldtype": "Text Editor",
+                            "label": "Special Contract Terms",
+                            "options": "<p>Standard probationary period applies (3 months).</p>"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "sec_equipment",
+            "label": "Technical Equipment",
+            "description": "Specify the assets required for this employee.",
+            "columns_count": 1,
+            "columns": [
+                {
+                    "id": "col_3_1",
+                    "fields": [
+                        {
+                            "id": "f_assets",
+                            "fieldname": "requested_assets",
+                            "fieldtype": "Table",
+                            "label": "Equipment List",
+                            "table_fields": [
+                                {
+                                    "id": "tc_item",
+                                    "fieldname": "item",
+                                    "label": "Item Name",
+                                    "fieldtype": "Data",
+                                    "mandatory": true
+                                },
+                                {
+                                    "id": "tc_qty",
+                                    "fieldname": "quantity",
+                                    "label": "Qty",
+                                    "fieldtype": "Int",
+                                    "mandatory": true
+                                },
+                                {
+                                    "id": "tc_sn",
+                                    "fieldname": "serial_no",
+                                    "label": "Assigned S/N",
+                                    "fieldtype": "Data",
+                                    "read_only": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "sec_actions",
+            "label": "Verification Actions",
+            "columns_count": 2,
+            "columns": [
+                {
+                    "id": "col_4_1",
+                    "fields": [
+                        {
+                            "id": "f_btn_verify",
+                            "fieldname": "btn_verify_email",
+                            "fieldtype": "Button",
+                            "label": "Verify Email Domain",
+                            "options": "secondary"
+                        }
+                    ]
+                },
+                {
+                    "id": "col_4_2",
+                    "fields": [
+                        {
+                            "id": "f_status",
+                            "fieldname": "status",
+                            "fieldtype": "Select",
+                            "label": "Onboarding Status",
+                            "options": "Draft\nPending Review\nActive\nArchived",
+                            "default": "Draft"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "actions": {
+        "save": {
+            "label": "Save Progress",
+            "visible": true,
+            "type": "secondary"
+        },
+        "submit": {
+            "label": "Confirm Onboarding",
+            "visible": true,
+            "type": "primary"
+        },
+        "approve": {
+            "label": "Approve Hire",
+            "visible": false,
+            "type": "primary"
+        },
+        "decline": {
+            "label": "Reject Candidate",
+            "visible": false,
+            "type": "danger"
+        }
+    },
+    "client_script": "// Employee Onboarding Script v2.1\n\nfrm.on('refresh', (val, frm) => {\n    frm.msgprint('Form Loaded Successfully! Welcome ' + (frm.get_value('full_name') || 'New Hire'));\n    \n    if (frm.get_value('status') === 'Active') {\n        frm.set_readonly(true);\n    }\n});\n\nfrm.on('status', (val, frm) => {\n    if (val === 'Active') {\n        frm.set_intro('This record is now Active and locked for editing.', 'red');\n        frm.set_readonly(true);\n    } else {\n        frm.set_intro('Complete the onboarding details below.', 'blue');\n        frm.set_readonly(false);\n    }\n});\n\nfrm.on('remote_working', (val, frm) => {\n    if (val) {\n        frm.set_df_property('requested_assets', 'description', 'Standard Home-Office bundle will be added automatically.');\n    } else {\n        frm.set_df_property('requested_assets', 'description', 'Standard Office equipment will be assigned on Day 1.');\n    }\n});\n\nfrm.on('btn_verify_email', (val, frm) => {\n    const email = frm.get_value('email');\n    if (!email) {\n        frm.throw('Please enter an email address first.');\n        return;\n    }\n\n    frm.freeze('Verifying domain...');\n    \n    // Simulated API call\n    frm.call({\n        method: 'https://api.example.com/verify-domain',\n        args: { email: email },\n        callback: (response) => {\n            frm.unfreeze();\n            if (email.endsWith('@example.com')) {\n                frm.msgprint('Internal domain verified!', 'success');\n                frm.set_value('department', 'Engineering');\n            } else {\n                frm.prompt([\n                    { label: 'Alternative Group', fieldname: 'group', fieldtype: 'Select', options: 'Guest\\nContractor' },\n                    { label: 'Reference ID', fieldname: 'ref', fieldtype: 'Data', mandatory: true }\n                ], (v) => {\n                   frm.msgprint('Applied alternative group: ' + v.group);\n                }, 'External User Setup');\n            }\n        }\n    });\n});\n\n// Trigger validation manually if needed\nfrm.on('annual_salary', (val, frm) => {\n    if (val < 20000) {\n        frm.msgprint('Salary is below company minimum policy!', 'orange');\n    }\n});"
+}

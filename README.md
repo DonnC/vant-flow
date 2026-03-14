@@ -21,34 +21,38 @@ The `frm` object is the primary way to interact with the form. Below is the comp
 #### 1. `frm.on(event, callback)`
 Listen to form lifecycle events or field changes.
 
-*   **`refresh`**: Triggered when the form is first loaded or reset.
+*   **`refresh`**: Triggered when the form is first loaded.
     ```javascript
-    // Use case: Set form readonly based on status
-    frm.on('refresh', () => {
-        if (frm.get_value('status') === 'Closed') {
-            frm.set_readonly(true);
-            frm.set_intro('This record is closed and cannot be edited.', 'red');
-        }
-    });
+    frm.on('refresh', (frm) => { ... });
     ```
-*   **`validate`**: Triggered before saving/submitting. Return `false` to stop.
-    ```javascript
-    // Use case: Complex multi-field validation
-    frm.on('validate', () => {
-        if (frm.get_value('start_date') > frm.get_value('end_date')) {
-            frm.throw('End Date cannot be before Start Date');
-            return false;
-        }
-    });
-    ```
-*   **`fieldname`**: Triggered when a specific field value changes.
+*   **`fieldname`**: Triggered when a field value changes. **NOTE**: The first argument is the new value.
     ```javascript
     // Use case: Auto-calculate totals
-    frm.on('quantity', (val) => {
+    frm.on('quantity', (val, frm) => {
         const price = frm.get_value('unit_price');
         frm.set_value('total', val * price);
     });
     ```
+
+#### Grid Layout Support
+The engine now supports advanced multi-column layouts via the `columns_count` property:
+- **1 Column**: Full width.
+- **2 Columns**: 50/50 split.
+- **3 Columns**: `md:w-1/3` split.
+- **4 Columns**: `md:w-1/4` split.
+
+---
+
+### 📦 Comprehensive Demo Data
+For a deep dive into all features, refer to [example.json](file:///c:/Users/DEVELOPER/Documents/Projects/Web/kai-ng-flow/example.json). This file contains a production-grade onboarding form that utilizes:
+- 3-column personal info section.
+- Recursive table validation.
+- Sophisticated scripting with `frm.call` and `frm.prompt`.
+- Dynamic button labels and visibility.
+
+---
+
+### 💻 Modern Script Editor
 
 #### 2. `frm.set_value(fieldname, value)`
 Update field data. Supports overloaded syntax for batch updates.

@@ -188,7 +188,7 @@ export class FormContext {
         let result = true;
         (this.eventListeners.get(event) ?? []).forEach(cb => {
             try {
-                const r = cb(this, data);
+                const r = cb(data, this);
                 if (r === false) result = false;
             } catch (e) { console.error(`[frm.trigger] Error in handler for '${event}'`, e); }
         });

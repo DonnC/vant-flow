@@ -35,7 +35,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
                   <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-r border-zinc-200 pr-2">{{ document.module }}</span>
                 }
                 @if (document.description) {
-                  <span class="text-[11px] text-zinc-400 truncate max-w-md">{{ document.description }}</span>
+                  <span class="text-[11px] text-zinc-400 leading-tight">{{ document.description }}</span>
                 }
               </div>
             }
@@ -127,9 +127,6 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                         <span class="text-red-500 font-bold">*</span>
                                       }
                                     </span>
-                                    @if (field.description) {
-                                      <span class="text-[10px] text-zinc-400 font-normal italic">{{ field.description }}</span>
-                                    }
                                   </label>
                                 }
 
@@ -142,7 +139,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                           class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
                                           [ngModel]="formData[field.fieldname] === 1"
                                           (ngModelChange)="onFieldChange(field.fieldname, $event ? 1 : 0)"
-                                          [disabled]="ctx.getFieldSignal(field.fieldname, 'read_only')()">
+                                          [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()">
                                         <span class="text-[13px] text-zinc-600 font-medium select-none">{{ ctx.getFieldSignal(field.fieldname, 'label')() || field.label }}</span>
                                       </div>
                                     }
@@ -153,14 +150,14 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                         [(ngModel)]="formData[field.fieldname]"
                                         (ngModelChange)="onFieldChange(field.fieldname)"
                                         [placeholder]="field.placeholder || ''"
-                                        [disabled]="ctx.getFieldSignal(field.fieldname, 'read_only')()"></textarea>
+                                        [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()"></textarea>
                                     }
                                     @case ('Select') {
                                       <select 
                                         class="ui-select"
                                         [(ngModel)]="formData[field.fieldname]"
                                         (ngModelChange)="onFieldChange(field.fieldname)"
-                                        [disabled]="ctx.getFieldSignal(field.fieldname, 'read_only')()">
+                                        [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()">
                                         <option value="">Select an option...</option>
                                         @for (opt of getOptions(field.options); track opt) {
                                           <option [value]="opt">{{ opt }}</option>
@@ -172,7 +169,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                         <button 
                                           type="button"
                                           (click)="onFieldChange(field.fieldname)"
-                                          [disabled]="ctx.getFieldSignal(field.fieldname, 'read_only')()"
+                                          [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()"
                                           class="px-5 py-2 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:active:scale-100"
                                           [ngClass]="getButtonClass(field.options)">
                                           {{ ctx.getFieldSignal(field.fieldname, 'label')() || field.label }}
@@ -248,7 +245,9 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                                     </td>
                                                   }
                                                   <td class="p-2 text-center">
-                                                    <button (click)="removeTableRow(field.fieldname, $index)" class="p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover/row:opacity-100 transition-all">
+                                                    <button (click)="removeTableRow(field.fieldname, $index)" 
+                                                            [disabled]="ctx.isReadOnly()"
+                                                            class="p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-0 opacity-0 group-hover/row:opacity-100 transition-all">
                                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                                                     </button>
                                                   </td>
@@ -269,12 +268,14 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                             </tbody>
                                           </table>
                                         </div>
-                                        <div class="p-3 bg-zinc-50/50 border-t border-zinc-200">
-                                          <button (click)="addTableRow(field.fieldname)" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold text-zinc-600 hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-sm">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                            Add Row
-                                          </button>
-                                        </div>
+                                        @if (!ctx.isReadOnly()) {
+                                          <div class="p-3 bg-zinc-50/50 border-t border-zinc-200">
+                                            <button (click)="addTableRow(field.fieldname)" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold text-zinc-600 hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-sm">
+                                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                                              Add Row
+                                            </button>
+                                          </div>
+                                        }
                                       </div>
                                     }
                                     @case ('Date') {
@@ -283,7 +284,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                         class="ui-input"
                                         [(ngModel)]="formData[field.fieldname]"
                                         (ngModelChange)="onFieldChange(field.fieldname)"
-                                        [disabled]="ctx.getFieldSignal(field.fieldname, 'read_only')()">
+                                        [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()">
                                     }
                                     @case ('Password') {
                                       <input type="password" 
@@ -291,7 +292,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                         [(ngModel)]="formData[field.fieldname]"
                                         (ngModelChange)="onFieldChange(field.fieldname)"
                                         [placeholder]="field.placeholder || ''"
-                                        [disabled]="ctx.getFieldSignal(field.fieldname, 'read_only')()">
+                                        [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()">
                                     }
                                     @default {
                                       <input 
@@ -300,8 +301,15 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                         [(ngModel)]="formData[field.fieldname]"
                                         (ngModelChange)="onFieldChange(field.fieldname)"
                                         [placeholder]="field.placeholder || ''"
-                                        [disabled]="ctx.getFieldSignal(field.fieldname, 'read_only')()">
+                                        [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()">
                                     }
+                                  }
+                                  
+                                  <!-- Field Description at bottom -->
+                                  @if (field.description) {
+                                    <div class="mt-1.5 px-0.5">
+                                      <span class="text-[10.5px] text-zinc-400 font-normal leading-relaxed italic block tracking-tight">{{ field.description }}</span>
+                                    </div>
                                   }
                                   
                                   <!-- Read Only Overlay if needed -->
@@ -568,7 +576,18 @@ export class FormRendererComponent implements OnInit, OnDestroy {
 
   getColumnClass(section: DocumentSection) {
     if (this.isSingleFieldSection(section)) return 'w-full';
-    return section.columns_count === 1 ? 'w-full' : 'w-full md:w-1/2';
+    const count = section.columns.length || section.columns_count || 1;
+
+    const classes: Record<number, string> = {
+      1: 'w-full',
+      2: 'w-full md:w-1/2',
+      3: 'w-full md:w-1/3',
+      4: 'w-full md:w-1/4',
+      5: 'w-full md:w-1/5',
+      6: 'w-full md:w-1/6'
+    };
+
+    return classes[count] || 'w-full md:w-1/2';
   }
 
   getOptions(optStr?: string): string[] {
