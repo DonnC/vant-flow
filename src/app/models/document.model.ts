@@ -45,6 +45,20 @@ export interface DocumentSection {
   columns: DocumentColumn[];
 }
 
+export interface FormActionButton {
+  label: string;
+  visible: boolean;
+  type?: string;
+  action?: string; // Custom script event to trigger
+}
+
+export interface FormActionsConfig {
+  save?: FormActionButton;
+  submit?: FormActionButton;
+  approve?: FormActionButton;
+  decline?: FormActionButton;
+}
+
 export interface DocumentDefinition {
   name: string;
   module?: string;
@@ -54,6 +68,7 @@ export interface DocumentDefinition {
   intro_color?: 'blue' | 'orange' | 'red' | 'gray';
   sections: DocumentSection[];
   client_script?: string;
+  actions?: FormActionsConfig;
 }
 
 // Palette items used by the left sidebar (not actual fields yet)

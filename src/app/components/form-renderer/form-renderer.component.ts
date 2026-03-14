@@ -19,6 +19,12 @@ import { AppUtilityService } from '../../services/app-utility.service';
           <div class="flex flex-col gap-0.5">
             <div class="flex items-center gap-3">
               <h2 class="text-xl font-bold text-zinc-900 tracking-tight">{{ document.name }}</h2>
+              @if (ctx.isReadOnly()) {
+                <span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold border border-amber-100 uppercase tracking-tighter">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                  Read Only
+                </span>
+              }
               <span class="px-2 py-0.5 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 font-mono text-[10px] tracking-widest uppercase">
                 {{ document.version || 'v1.0.0' }}
               </span>
@@ -34,13 +40,38 @@ import { AppUtilityService } from '../../services/app-utility.service';
               </div>
             }
           </div>
-          <div class="flex items-center gap-3">
-             <button (click)="$event.stopPropagation(); saveDraft()" class="px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all">
-               Save as Draft
-             </button>
-             <button (click)="$event.stopPropagation(); submit()" class="ui-btn-primary px-6 py-2 text-sm shadow-indigo-100 shadow-lg active:scale-95">
-               Submit
-             </button>
+          <div class="flex items-center gap-2">
+             <!-- Custom Buttons -->
+             @for (btn of ctx.customButtons(); track btn.id) {
+               <button (click)="btn.action()" 
+                       [class]="'px-4 py-2 text-sm font-bold rounded-lg transition-all ' + getButtonClass(btn.type)">
+                 {{ btn.label }}
+               </button>
+             }
+
+             <!-- Default Actions -->
+             @if (ctx.actionsConfig()?.decline?.visible !== false) {
+               <button (click)="onAction('decline')" 
+                       [class]="'px-4 py-2 text-sm font-bold rounded-lg transition-all ' + getButtonClass(ctx.actionsConfig()?.decline?.type || 'danger')">
+                 {{ ctx.actionsConfig()?.decline?.label || 'Decline' }}
+               </button>
+             }
+             @if (ctx.actionsConfig()?.approve?.visible !== false) {
+               <button (click)="onAction('approve')" 
+                       [class]="'px-4 py-2 text-sm font-bold rounded-lg transition-all ' + getButtonClass(ctx.actionsConfig()?.approve?.type || 'primary')">
+                 {{ ctx.actionsConfig()?.approve?.label || 'Approve' }}
+               </button>
+             }
+             @if (ctx.actionsConfig()?.save?.visible !== false) {
+               <button (click)="onAction('save')" class="px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all">
+                 {{ ctx.actionsConfig()?.save?.label || 'Save as Draft' }}
+               </button>
+             }
+             @if (ctx.actionsConfig()?.submit?.visible !== false) {
+               <button (click)="onAction('submit')" class="ui-btn-primary px-6 py-2 text-sm shadow-indigo-100 shadow-lg active:scale-95">
+                 {{ ctx.actionsConfig()?.submit?.label || 'Submit' }}
+               </button>
+             }
           </div>
         </div>
 
@@ -149,12 +180,12 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                       </div>
                                     }
                                     @case ('Text Editor') {
-                                      <div class="border border-zinc-200 rounded-lg overflow-hidden bg-white focus-within:border-indigo-400 focus-within:ring-2 focus-within:ring-indigo-50/50 transition-all">
+                                      <div class="rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-50/50 transition-all">
                                         <quill-editor
                                           class="ql-frappe-style"
                                           [(ngModel)]="formData[field.fieldname]"
                                           (onContentChanged)="onFieldChange(field.fieldname)"
-                                          [readOnly]="ctx.getFieldSignal(field.fieldname, 'read_only')()"
+                                          [readOnly]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()"
                                           [placeholder]="field.placeholder || 'Type here...'"
                                           theme="snow"
                                         ></quill-editor>
@@ -185,11 +216,19 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                                       @switch (col.fieldtype) {
                                                         @case ('Check') {
                                                           <div class="flex justify-center">
-                                                            <input type="checkbox" [(ngModel)]="row[col.fieldname]" (ngModelChange)="onFieldChange(field.fieldname)" class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500">
+                                                            <input type="checkbox" 
+                                                              [disabled]="ctx.isReadOnly()"
+                                                              [(ngModel)]="row[col.fieldname]" 
+                                                              (ngModelChange)="onFieldChange(field.fieldname)" 
+                                                              class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500">
                                                           </div>
                                                         }
                                                         @case ('Select') {
-                                                          <select [(ngModel)]="row[col.fieldname]" (ngModelChange)="onFieldChange(field.fieldname)" class="w-full p-1.5 text-xs bg-transparent border-0 focus:ring-0 focus:bg-white rounded hover:bg-zinc-100/50 transition-all">
+                                                          <select 
+                                                            [disabled]="ctx.isReadOnly()"
+                                                            [(ngModel)]="row[col.fieldname]" 
+                                                            (ngModelChange)="onFieldChange(field.fieldname)" 
+                                                            class="w-full p-1.5 text-xs bg-transparent border-0 focus:ring-0 focus:bg-white rounded hover:bg-zinc-100/50 transition-all">
                                                             <option value="">-</option>
                                                             @for (opt of getOptions(col.options); track opt) {
                                                               <option [value]="opt">{{ opt }}</option>
@@ -198,6 +237,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                                         }
                                                         @default {
                                                           <input 
+                                                            [disabled]="ctx.isReadOnly()"
                                                             [type]="col.fieldtype === 'Int' || col.fieldtype === 'Float' ? 'number' : 'text'"
                                                             [(ngModel)]="row[col.fieldname]"
                                                             (ngModelChange)="onFieldChange(field.fieldname)"
@@ -308,6 +348,9 @@ import { AppUtilityService } from '../../services/app-utility.service';
       border-top-left-radius: 0.5rem;
       border-top-right-radius: 0.5rem;
     }
+    .ql-frappe-style.ql-snow {
+      @apply border-0 !important;
+    }
     .ql-frappe-style .ql-container {
       @apply border-0 text-zinc-700 font-sans !important;
       font-size: 14px;
@@ -344,6 +387,18 @@ import { AppUtilityService } from '../../services/app-utility.service';
     }
     .ql-frappe-style .ql-fill {
       @apply fill-zinc-500 !important;
+    }
+    
+    /* Layout cleanups for readonly */
+    .form-readonly .canvas-field {
+      @apply pointer-events-none opacity-90;
+    }
+    .form-readonly .ql-toolbar {
+      @apply hidden !important;
+    }
+    .form-readonly .ql-container {
+      @apply border-zinc-100 bg-zinc-50/50 !important;
+      resize: none;
     }
   `]
 })
@@ -522,12 +577,29 @@ export class FormRendererComponent implements OnInit, OnDestroy {
 
   getButtonClass(style?: string): string {
     const map: Record<string, string> = {
-      primary: 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100',
-      secondary: 'bg-white border border-zinc-200 text-zinc-700 hover:bg-zinc-50',
-      danger: 'bg-red-600 text-white hover:bg-red-700 shadow-red-100',
-      ghost: 'bg-transparent text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100',
+      primary: 'ui-btn-primary shadow-indigo-100 shadow-md',
+      secondary: 'ui-btn-secondary border border-zinc-200 text-zinc-700 hover:bg-zinc-50',
+      danger: 'ui-btn-destructive shadow-red-100 shadow-md',
+      ghost: 'ui-btn-ghost hover:bg-zinc-100',
     };
-    return map[style ?? 'primary'] || map['primary'];
+    return map[style ?? 'secondary'] || map['secondary'];
+  }
+
+  onAction(id: string) {
+    const config = (this.ctx.actionsConfig() as any)?.[id.toLowerCase()];
+    if (!config) return;
+
+    if (config.runtimeAction) {
+      config.runtimeAction(this.ctx);
+    } else if (config.action) {
+      this.ctx.execute(config.action, id);
+    } else {
+      if (id === 'save') this.saveDraft();
+      else if (id === 'submit') this.submit();
+      else {
+        this.utils.show_alert(`${id.charAt(0).toUpperCase() + id.slice(1)} action triggered`, 'info');
+      }
+    }
   }
 
   isValidRegex(fieldname: string, pattern: string): boolean {

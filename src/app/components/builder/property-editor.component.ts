@@ -87,6 +87,61 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
 
         <div class="ui-sep"></div>
 
+        <!-- Action Buttons Section -->
+        <div class="space-y-4">
+          <div class="flex items-center gap-2">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-indigo-500"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            <h4 class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Action Header Buttons</h4>
+          </div>
+
+          @for (btnId of actionButtonIds; track btnId) {
+            @if (getActionConfig(btnId); as btn) {
+              <div class="p-3 bg-zinc-50 border border-zinc-100 rounded-lg space-y-3">
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] font-bold uppercase text-zinc-500 tracking-tighter">{{ btnId }}</span>
+                  <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" 
+                      class="w-3.5 h-3.5 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" 
+                      [ngModel]="btn.visible" 
+                      (ngModelChange)="state.updateAction(btnId, { visible: $event })">
+                    <span class="text-[10px] font-bold text-zinc-400 uppercase">Visible</span>
+                  </label>
+                </div>
+
+                @if (btn.visible) {
+                  <div class="space-y-2 animate-in slide-in-from-top-1 duration-200">
+                    <div class="space-y-1">
+                      <label class="text-[9px] font-bold text-zinc-400 uppercase">Label</label>
+                      <input class="ui-input !p-1.5 !text-[11px]" 
+                        [ngModel]="btn.label" 
+                        (ngModelChange)="state.updateAction(btnId, { label: $event })"
+                        placeholder="Button Label">
+                    </div>
+                    
+                    <div class="space-y-1">
+                      <label class="text-[9px] font-bold text-zinc-400 uppercase">Style / Type</label>
+                      <div class="grid grid-cols-4 gap-1">
+                        @for (t of ['primary', 'secondary', 'danger', 'ghost']; track t) {
+                          <button (click)="state.updateAction(btnId, { type: t })"
+                            class="py-1 text-[9px] font-bold rounded border transition-all capitalize"
+                            [class.bg-white]="btn.type === t"
+                            [class.border-indigo-500]="btn.type === t"
+                            [class.text-indigo-600]="btn.type === t"
+                            [class.text-zinc-400]="btn.type !== t"
+                            [class.border-transparent]="btn.type !== t"
+                          >{{ t }}</button>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          }
+        </div>
+
+        <div class="ui-sep"></div>
+
         <div class="p-3 rounded-lg bg-zinc-50 border border-zinc-100">
           <p class="text-[11px] text-zinc-500 font-medium leading-relaxed">
             <span class="font-bold text-zinc-700 uppercase tracking-tighter mr-1 text-[9px]">Designer Tip:</span> 
@@ -441,6 +496,11 @@ export class PropertyEditorComponent {
   section = this.state.selectedSection;
   fieldTypes = FIELD_TYPES;
   tableChildTypes = ['Data', 'Int', 'Float', 'Text', 'Select', 'Link', 'Check', 'Date', 'Password'];
+  actionButtonIds: Array<'save' | 'submit' | 'approve' | 'decline'> = ['save', 'submit', 'approve', 'decline'];
+
+  getActionConfig(id: string) {
+    return (this.state.document().actions as any)?.[id];
+  }
 
   toggles: Array<{ label: string; prop: keyof DocumentField }> = [
     { label: 'Mandatory / Required', prop: 'mandatory' },

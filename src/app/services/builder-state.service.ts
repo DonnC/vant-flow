@@ -13,7 +13,13 @@ export class BuilderStateService {
         sections: [],
         client_script: '',
         intro_text: '',
-        intro_color: 'gray'
+        intro_color: 'gray',
+        actions: {
+            save: { label: 'Save as Draft', visible: true, type: 'secondary' },
+            submit: { label: 'Submit', visible: true, type: 'primary' },
+            approve: { label: 'Approve', visible: false, type: 'primary' },
+            decline: { label: 'Decline', visible: false, type: 'danger' }
+        }
     });
 
     // Selected field or section for property editor
@@ -69,6 +75,14 @@ export class BuilderStateService {
 
     setModule(module: string) {
         this.document.update(doc => ({ ...doc, module }));
+    }
+
+    updateAction(id: 'save' | 'submit' | 'approve' | 'decline', patch: any) {
+        this.document.update(doc => {
+            const actions = { ...(doc.actions || {}) } as any;
+            actions[id] = { ...(actions[id] || {}), ...patch };
+            return { ...doc, actions };
+        });
     }
 
     importDocument(json: string) {

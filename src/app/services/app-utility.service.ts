@@ -14,11 +14,20 @@ let _toastId = 0;
 @Injectable({ providedIn: 'root' })
 export class AppUtilityService {
   readonly toasts = signal<Toast[]>([]);
+  readonly isFreezing = signal<string | null>(null);
 
   show_alert(msg: string, indicator: ToastIndicator = 'info') {
     const id = ++_toastId;
     this.toasts.update(t => [...t, { id, message: msg, indicator }]);
     setTimeout(() => this.dismiss(id), 3500);
+  }
+
+  freeze(msg: string = 'Loading...') {
+    this.isFreezing.set(msg);
+  }
+
+  unfreeze() {
+    this.isFreezing.set(null);
   }
 
   dismiss(id: number) {
@@ -33,7 +42,7 @@ export class AppUtilityService {
     return new Promise(resolve => {
       // Create modal container
       const overlay = document.createElement('div');
-      overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50';
+      overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[60]'; // High z-index
 
       const values: Record<string, any> = {};
       fields.forEach(f => { values[f.fieldname] = f.default ?? ''; });
@@ -63,7 +72,9 @@ export class AppUtilityService {
       document.body.appendChild(overlay);
 
       const close = (result: any) => {
-        document.body.removeChild(overlay);
+        if (document.body.contains(overlay)) {
+          document.body.removeChild(overlay);
+        }
         resolve(result);
       };
 
@@ -85,7 +96,7 @@ export class AppUtilityService {
 
   confirm(message: string, on_confirm?: () => void, on_cancel?: () => void) {
     const overlay = document.createElement('div');
-    overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200';
+    overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[60] animate-in fade-in duration-200';
     overlay.innerHTML = `
           <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden animate-in zoom-in-95 duration-200">
             <div class="px-6 py-8 text-center">
@@ -103,7 +114,11 @@ export class AppUtilityService {
         `;
     document.body.appendChild(overlay);
 
-    const close = () => document.body.removeChild(overlay);
+    const close = () => {
+      if (document.body.contains(overlay)) {
+        document.body.removeChild(overlay);
+      }
+    };
 
     overlay.querySelector('[data-cancel]')?.addEventListener('click', () => {
       close();
@@ -118,9 +133,13 @@ export class AppUtilityService {
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
   }
 
-  call({ method, args }: { method: string; args?: any }): Promise<any> {
+  call({ method, args, freeze, freeze_message }: { method: string; args?: any; freeze?: boolean; freeze_message?: string }): Promise<any> {
+    if (freeze) this.freeze(freeze_message);
+
     return new Promise((resolve, reject) => {
       setTimeout(() => {
+        if (freeze) this.unfreeze();
+
         console.log(`[app.call] → ${method}`, args);
         if (method === 'validate_clearance_code') {
           args?.code === '1234' ? resolve({ message: 'Approved' }) : reject({ message: 'Invalid clearance code' });
