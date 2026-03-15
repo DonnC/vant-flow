@@ -1,7 +1,8 @@
-import { Injectable, signal, inject } from '@angular/core';
+import { Injectable, signal, inject, ApplicationRef, EnvironmentInjector, createComponent } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { DocumentField } from '../models/document.model';
+import { PromptModalComponent } from '../components/prompt-modal.component';
 
 export type ToastIndicator = 'success' | 'error' | 'info' | 'warning';
 
@@ -50,102 +51,35 @@ export class AppUtilityService {
    * Show a custom dialog built from Document Fields.
    * Injects a dialog element directly into the DOM to avoid Material dependency.
    */
+  private appRef = inject(ApplicationRef);
+  private envInjector = inject(EnvironmentInjector);
+
+  /**
+   * Show a custom dialog built from Document Fields.
+   * Centralized via PromptModalComponent.
+   */
   prompt(fields: DocumentField[], title: string = 'Enter Data'): Promise<Record<string, any> | null> {
     return new Promise(resolve => {
-      // Create modal container
-      const overlay = document.createElement('div');
-      overlay.className = 'fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] fade-in'; // High z-index
+      const initialValues: Record<string, any> = {};
+      fields.forEach(f => { initialValues[f.fieldname] = f.default ?? ''; });
 
-      const values: Record<string, any> = {};
-      fields.forEach(f => { values[f.fieldname] = f.default ?? ''; });
-
-      overlay.innerHTML = `
-        <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden zoom-in duration-200">
-          <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
-            <h3 class="text-base font-semibold text-zinc-900">${title}</h3>
-            <button data-close class="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
-          </div>
-          <div class="px-6 py-5 space-y-4">
-            ${fields.map(f => `
-              <div>
-                <label class="ui-label">${f.label}${f.mandatory ? '<span class="text-red-500 ml-0.5">*</span>' : ''}</label>
-                ${f.fieldtype === 'Select'
-          ? `
-                    <select data-field="${f.fieldname}" class="ui-select ${f.read_only ? 'opacity-50 cursor-not-allowed' : ''}" ${f.read_only ? 'disabled' : ''}>
-                      <option value="">Select ${f.label}...</option>
-                      ${(f.options || '').split('\n').filter(o => o.trim()).map(o => `
-                        <option value="${o.trim()}" ${o.trim() === (values[f.fieldname] || '') ? 'selected' : ''}>${o.trim()}</option>
-                      `).join('')}
-                    </select>
-                  `
-          : `
-                    <input data-field="${f.fieldname}" type="${f.fieldtype === 'Password' ? 'password' : 'text'}"
-                           ${f.read_only ? 'disabled' : ''}
-                           class="ui-input ${f.read_only ? 'bg-zinc-50 border-zinc-100 text-zinc-400 cursor-not-allowed' : ''}" 
-                           placeholder="${f.placeholder || ''}" value="${values[f.fieldname] ?? ''}">
-                  `
-        }
-              </div>
-            `).join('')}
-          </div>
-          <div class="flex justify-end gap-2 px-6 py-4 bg-zinc-50 border-t border-zinc-100">
-            <button data-cancel class="ui-btn-secondary">Cancel</button>
-            <button data-submit class="ui-btn-primary">Submit</button>
-          </div>
-        </div>
-      `;
-
-      document.body.appendChild(overlay);
-
-      const close = (result: any) => {
-        overlay.classList.remove('fade-in');
-        overlay.classList.add('fade-out');
-        overlay.querySelector('div')?.classList.add('zoom-out');
-        setTimeout(() => {
-          if (document.body.contains(overlay)) {
-            document.body.removeChild(overlay);
-          }
-          resolve(result);
-        }, 210);
-      };
-
-      overlay.querySelector('[data-close]')?.addEventListener('click', (e) => { e.stopPropagation(); close(null); });
-      overlay.querySelector('[data-cancel]')?.addEventListener('click', (e) => { e.stopPropagation(); close(null); });
-      overlay.querySelector('[data-submit]')?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const result: Record<string, any> = {};
-        let isValid = true;
-        // ... rest of prompt method is already updated in previous successful steps or will be kept 
-
-        fields.forEach(f => {
-          const el = overlay.querySelector(`[data-field="${f.fieldname}"]`) as HTMLInputElement;
-          const val = el?.value ?? '';
-
-          // Validation
-          if (f.mandatory && !val.trim()) {
-            el.classList.add('border-red-500', 'bg-red-50');
-            isValid = false;
-          } else if (f.regex && val) {
-            try {
-              if (!new RegExp(f.regex).test(val)) {
-                el.classList.add('border-red-500', 'bg-red-50');
-                isValid = false;
-              } else {
-                el.classList.remove('border-red-500', 'bg-red-50');
-              }
-            } catch (e) { /* invalid regex pattern */ }
-          } else {
-            el.classList.remove('border-red-500', 'bg-red-50');
-          }
-
-          result[f.fieldname] = val;
-        });
-
-        if (isValid) close(result);
+      const componentRef = createComponent(PromptModalComponent, {
+        environmentInjector: this.envInjector
       });
 
-      // Click outside to dismiss
-      overlay.addEventListener('click', e => { if (e.target === overlay) close(null); });
+      componentRef.instance.fields = fields;
+      componentRef.instance.title = title;
+      componentRef.instance.values = initialValues;
+
+      componentRef.instance.result.subscribe(res => {
+        this.appRef.detachView(componentRef.hostView);
+        componentRef.destroy();
+        resolve(res);
+      });
+
+      this.appRef.attachView(componentRef.hostView);
+      const domElem = (componentRef.hostView as any).rootNodes[0] as HTMLElement;
+      document.body.appendChild(domElem);
     });
   }
 

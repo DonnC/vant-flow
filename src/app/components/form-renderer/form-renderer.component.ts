@@ -1,42 +1,45 @@
-import { Component, Input, OnInit, OnDestroy, signal, inject, Output, EventEmitter, effect, WritableSignal } from '@angular/core';
+import { Component, effect, EventEmitter, inject, Input, OnDestroy, OnInit, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { QuillModule, QuillEditorComponent } from 'ngx-quill';
-import { DocumentDefinition, DocumentField, DocumentSection, DocumentColumn } from '../../models/document.model';
+import { QuillModule } from 'ngx-quill';
+import { DocumentDefinition, DocumentField, DocumentSection } from '../../models/document.model';
 import { FormContext } from '../../services/form-context';
 import { AppUtilityService } from '../../services/app-utility.service';
 
-import Quill from 'quill';
-import QuillTableBetter from 'quill-table-better';
-Quill.register({ 'modules/table-better': QuillTableBetter }, true);
+import { FormFieldComponent } from '../form-field.component';
 
 @Component({
   selector: 'app-form-renderer',
   standalone: true,
-  imports: [CommonModule, FormsModule, QuillModule, QuillEditorComponent],
+  imports: [CommonModule, FormsModule, QuillModule, FormFieldComponent],
   providers: [FormContext],
   template: `
     <div class="w-full max-w-[1400px] mx-auto py-8 px-4">
       <div class="card bg-white shadow-2xl">
         <!-- Combined Sticky Header (Frappe style) -->
-        <div class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-zinc-100 px-8 py-5 flex items-center justify-between rounded-t-[1.5rem]">
+        <div
+          class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-zinc-100 px-8 py-5 flex items-center justify-between rounded-t-[1.5rem]">
           <div class="flex flex-col gap-0.5">
             <div class="flex items-center gap-3">
               <h2 class="text-xl font-bold text-zinc-900 tracking-tight">{{ document.name }}</h2>
               @if (ctx.isReadOnly()) {
-                <span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold border border-amber-100 uppercase tracking-tighter">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                <span
+                  class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-600 text-[10px] font-bold border border-amber-100 uppercase tracking-tighter">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><rect
+                    x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
                   Read Only
                 </span>
               }
-              <span class="px-2 py-0.5 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 font-mono text-[10px] tracking-widest uppercase">
+              <span
+                class="px-2 py-0.5 rounded border border-zinc-200 bg-zinc-50 text-zinc-500 font-mono text-[10px] tracking-widest uppercase">
                 {{ document.version || 'v1.0.0' }}
               </span>
             </div>
             @if (document.description || document.module) {
               <div class="flex items-center gap-1.5 opacity-60">
                 @if (document.module) {
-                  <span class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-r border-zinc-200 pr-2">{{ document.module }}</span>
+                  <span
+                    class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest border-r border-zinc-200 pr-2">{{ document.module }}</span>
                 }
                 @if (document.description) {
                   <span class="text-[11px] text-zinc-400 leading-tight max-w-2xl">{{ document.description }}</span>
@@ -45,61 +48,74 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
             }
           </div>
           <div class="flex items-center gap-2">
-             <!-- Custom Buttons -->
-             @for (btn of ctx.customButtons(); track btn.id) {
-               <button (click)="btn.action()" 
-                       [class]="'px-4 py-2 text-sm font-bold rounded-lg transition-all ' + getButtonClass(btn.type)">
-                 {{ btn.label }}
-               </button>
-             }
+            <!-- Custom Buttons -->
+            @for (btn of ctx.customButtons(); track btn.id) {
+              <button (click)="btn.action()"
+                      [class]="'px-4 py-2 text-sm font-bold rounded-lg transition-all ' + getButtonClass(btn.type)">
+                {{ btn.label }}
+              </button>
+            }
 
-             <!-- Default Actions -->
-             @if (ctx.actionsConfig()?.save?.visible !== false) {
-               <button (click)="onAction('save')" class="px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all">
-                 {{ ctx.actionsConfig()?.save?.label || 'Save as Draft' }}
-               </button>
-             }
-             @if (ctx.actionsConfig()?.submit?.visible !== false) {
-               <button (click)="onAction('submit')" class="ui-btn-primary px-6 py-2 text-sm shadow-indigo-100 shadow-lg active:scale-95">
-                 {{ ctx.actionsConfig()?.submit?.label || 'Submit' }}
-               </button>
-             }
+            <!-- Default Actions -->
+            @if (ctx.actionsConfig()?.save?.visible !== false) {
+              <button (click)="onAction('save')"
+                      class="px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all">
+                {{ ctx.actionsConfig()?.save?.label || 'Save as Draft' }}
+              </button>
+            }
+            @if (ctx.actionsConfig()?.submit?.visible !== false) {
+              <button (click)="onAction('submit')"
+                      class="ui-btn-primary px-6 py-2 text-sm shadow-indigo-100 shadow-lg active:scale-95">
+                {{ ctx.actionsConfig()?.submit?.label || 'Submit' }}
+              </button>
+            }
           </div>
         </div>
 
         <div class="p-8">
 
-        <!-- System Intro (Static) -->
-        @if (document.intro_text && !ctx.dynamicIntro()) {
-          <div class="mb-8 p-5 rounded-xl border animate-in fade-in slide-in-from-top-2 duration-500" [ngClass]="getIntroClass(document.intro_color || 'gray')">
-            <div class="flex gap-3">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
-              <div class="text-[13px] leading-relaxed" [innerHTML]="document.intro_text"></div>
+          <!-- System Intro (Static) -->
+          @if (document.intro_text && !ctx.dynamicIntro()) {
+            <div class="mb-8 p-5 rounded-xl border animate-in fade-in slide-in-from-top-2 duration-500"
+                 [ngClass]="getIntroClass(document.intro_color || 'gray')">
+              <div class="flex gap-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     class="shrink-0 mt-0.5">
+                  <circle cx="12" cy="12" r="10"/>
+                  <line x1="12" y1="16" x2="12" y2="12"/>
+                  <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                <div class="text-[13px] leading-relaxed" [innerHTML]="document.intro_text"></div>
+              </div>
             </div>
-          </div>
-        }
+          }
 
-        <!-- Dynamic Intro (Scripted) -->
-        @if (ctx.dynamicIntro()) {
-          <div class="mb-8 p-5 rounded-xl border shadow-sm animate-in zoom-in-95 duration-300" [ngClass]="getIntroClass(ctx.dynamicIntro()!.color)">
-             <div class="flex gap-3">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5"><path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <!-- Dynamic Intro (Scripted) -->
+          @if (ctx.dynamicIntro()) {
+            <div class="mb-8 p-5 rounded-xl border shadow-sm animate-in zoom-in-95 duration-300"
+                 [ngClass]="getIntroClass(ctx.dynamicIntro()!.color)">
+              <div class="flex gap-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                     class="shrink-0 mt-0.5">
+                  <path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
                 <div class="text-[13px] font-medium leading-relaxed" [innerHTML]="ctx.dynamicIntro()!.message"></div>
-             </div>
-          </div>
-        }
+              </div>
+            </div>
+          }
 
-        <!-- Sections -->
-        <div class="space-y-4">
-           @for (section of document.sections; track section.id) {
-             @if (!ctx.getSectionSignal(section.id, 'hidden')()) {
-               <div class="section-container group animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <!-- Sections -->
+          <div class="space-y-4">
+            @for (section of document.sections; track section.id) {
+              @if (!ctx.getSectionSignal(section.id, 'hidden')()) {
+                <div class="section-container group animate-in fade-in slide-in-from-bottom-2 duration-300">
                   @if (section.label) {
                     <div class="flex items-center gap-3 mb-4">
-                      <h3 class="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em]">{{ section.label }}</h3>
+                      <h3
+                        class="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em]">{{ section.label }}</h3>
                     </div>
                   }
-                  
+
                   @if (section.description) {
                     <p class="text-xs text-zinc-400 mb-4 -mt-2 italic">{{ section.description }}</p>
                   }
@@ -111,209 +127,130 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                           @for (field of col.fields; track field.id) {
                             @if (!ctx.getFieldSignal(field.fieldname, 'hidden')()) {
                               <div class="field-group transition-all duration-200">
-                                @if (field.fieldtype !== 'Button' && field.fieldtype !== 'Check') {
-                                  <label class="flex items-center justify-between mb-1.5">
-                                    <span class="text-[12.5px] text-zinc-600 tracking-tight flex items-center gap-1 font-medium">
-                                      {{ ctx.getFieldSignal(field.fieldname, 'label')() || field.label }}
-                                      @if (ctx.getFieldSignal(field.fieldname, 'mandatory')()) {
-                                        <span class="text-red-500 font-bold">*</span>
-                                      }
-                                    </span>
-                                  </label>
-                                }
-
-                                <!-- Field Input based on type -->
-                                <div class="relative group/input" [class.regex-error]="field.regex && formData[field.fieldname] && !isValidRegex(field.fieldname, field.regex)">
-                                  @switch (field.fieldtype) {
-                                    @case ('Check') {
-                                      <div class="flex items-center gap-3 py-2">
-                                        <input type="checkbox"
-                                          class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
-                                          [ngModel]="formData[field.fieldname] === 1"
-                                          (ngModelChange)="onFieldChange(field.fieldname, $event ? 1 : 0)"
-                                          [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()">
-                                        <span class="text-[13px] text-zinc-600 font-medium select-none">{{ ctx.getFieldSignal(field.fieldname, 'label')() || field.label }}</span>
-                                      </div>
-                                    }
-                                    @case ('Text') {
-                                      <textarea 
-                                        class="ui-textarea" 
-                                        rows="3"
-                                        [(ngModel)]="formData[field.fieldname]"
-                                        (ngModelChange)="onFieldChange(field.fieldname)"
-                                        [placeholder]="field.placeholder || ''"
-                                        [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()"></textarea>
-                                    }
-                                    @case ('Select') {
-                                      <select 
-                                        class="ui-select"
-                                        [(ngModel)]="formData[field.fieldname]"
-                                        (ngModelChange)="onFieldChange(field.fieldname)"
-                                        [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()">
-                                        <option value="">Select an option...</option>
-                                        @for (opt of getOptions(field.options); track opt) {
-                                          <option [value]="opt">{{ opt }}</option>
-                                        }
-                                      </select>
-                                    }
-                                    @case ('Button') {
-                                      <div class="py-1">
-                                        <button 
-                                          type="button"
-                                          (click)="onFieldChange(field.fieldname)"
-                                          [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()"
-                                          class="px-5 py-2 rounded-lg text-sm font-bold transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:active:scale-100"
-                                          [ngClass]="getButtonClass(field.options)">
-                                          {{ ctx.getFieldSignal(field.fieldname, 'label')() || field.label }}
-                                        </button>
-                                      </div>
-                                    }
-                                    @case ('Text Editor') {
-                                      <div class="rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-50/50 transition-all">
-                                        <quill-editor
-                                          class="ql-frappe-style"
-                                          [(ngModel)]="formData[field.fieldname]"
-                                          (onContentChanged)="onFieldChange(field.fieldname)"
-                                          [readOnly]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()"
-                                          [placeholder]="field.placeholder || 'Type here...'"
-                                          theme="snow"
-                                        ></quill-editor>
-                                      </div>
-                                    }
-                                    @case ('Table') {
-                                      <div class="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                                        <div class="overflow-x-auto">
-                                          <table class="w-full text-left border-collapse">
-                                            <thead>
-                                              <tr class="bg-zinc-50/80 border-b border-zinc-200">
-                                                <th class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest w-12 text-center">#</th>
+                                <!-- Centralized Field Rendering -->
+                                <div class="relative group/input"
+                                     [class.regex-error]="field.regex && formData[field.fieldname] && !isValidRegex(field.fieldname, field.regex)">
+                                  @if (field.fieldtype === 'Table') {
+                                    <div class="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                                      <div class="overflow-x-auto">
+                                        <table class="w-full text-left border-collapse">
+                                          <thead>
+                                          <tr class="bg-zinc-50/80 border-b border-zinc-200">
+                                            <th
+                                              class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest w-12 text-center">
+                                              #
+                                            </th>
+                                            @for (col of field.table_fields?.slice(0, 6); track col.id) {
+                                              <th
+                                                class="p-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                                                {{ col.label }}
+                                                @if (col.mandatory) {
+                                                  <span class="text-red-500">*</span>
+                                                }
+                                              </th>
+                                            }
+                                            @if ((field.table_fields?.length ?? 0) > 6) {
+                                              <th
+                                                class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">
+                                                +{{ field.table_fields!.length - 6 }} more
+                                              </th>
+                                            }
+                                            <th class="p-3 w-20"></th>
+                                          </tr>
+                                          </thead>
+                                          <tbody class="divide-y divide-zinc-100">
+                                            @for (row of formData[field.fieldname]; track $index) {
+                                              <tr class="hover:bg-zinc-50/50 transition-colors group/row">
+                                                <td
+                                                  class="p-3 text-center text-[11px] font-mono text-zinc-400">{{ $index + 1 }}
+                                                </td>
                                                 @for (col of field.table_fields?.slice(0, 6); track col.id) {
-                                                  <th class="p-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                                                    {{ col.label }}
-                                                    @if (col.mandatory) { <span class="text-red-500">*</span> }
-                                                  </th>
+                                                  <td class="p-2 relative group/cell" 
+                                                      [class.cursor-pointer]="col.fieldtype === 'Text'"
+                                                      (click)="col.fieldtype === 'Text' ? editTableRow(field, $index) : null">
+                                                    <app-form-field
+                                                      [field]="col"
+                                                      [(value)]="row[col.fieldname]"
+                                                      (valueChange)="onFieldChange(field.fieldname)"
+                                                      [compact]="true"
+                                                      [hideLabel]="true">
+                                                    </app-form-field>
+                                                    @if (col.fieldtype !== 'Text') {
+                                                      <button (click)="$event.stopPropagation(); editTableRow(field, $index)" 
+                                                              class="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100">
+                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                                                      </button>
+                                                    }
+                                                  </td>
                                                 }
                                                 @if ((field.table_fields?.length ?? 0) > 6) {
-                                                  <th class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">+{{ field.table_fields!.length - 6 }} more</th>
+                                                  <td class="p-2 text-zinc-300 text-[10px] italic">...</td>
                                                 }
-                                                <th class="p-3 w-20"></th>
+                                                <td class="p-2 text-right flex items-center justify-end gap-1">
+                                                  <button (click)="editTableRow(field, $index)"
+                                                          class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                         stroke="currentColor" stroke-width="2">
+                                                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                    </svg>
+                                                  </button>
+                                                  <button (click)="removeTableRow(field.fieldname, $index)"
+                                                          [disabled]="ctx.isReadOnly()"
+                                                          class="p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-0 opacity-0 group-hover/row:opacity-100 transition-all">
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                         stroke="currentColor" stroke-width="2.5">
+                                                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                    </svg>
+                                                  </button>
+                                                </td>
                                               </tr>
-                                            </thead>
-                                            <tbody class="divide-y divide-zinc-100">
-                                              @for (row of formData[field.fieldname]; track $index) {
-                                                <tr class="hover:bg-zinc-50/50 transition-colors group/row">
-                                                  <td class="p-3 text-center text-[11px] font-mono text-zinc-400">{{ $index + 1 }}</td>
-                                                  @for (col of field.table_fields?.slice(0, 6); track col.id) {
-                                                    <td class="p-2">
-                                                      @switch (col.fieldtype) {
-                                                        @case ('Check') {
-                                                          <div class="flex justify-center">
-                                                            <input type="checkbox" 
-                                                              [disabled]="ctx.isReadOnly()"
-                                                              [(ngModel)]="row[col.fieldname]" 
-                                                              (ngModelChange)="onFieldChange(field.fieldname)" 
-                                                              class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500">
-                                                          </div>
-                                                        }
-                                                        @case ('Select') {
-                                                          <select 
-                                                            [disabled]="ctx.isReadOnly()"
-                                                            [(ngModel)]="row[col.fieldname]" 
-                                                            (ngModelChange)="onFieldChange(field.fieldname)" 
-                                                            class="w-full p-1.5 text-xs bg-transparent border-0 focus:ring-0 focus:bg-white rounded hover:bg-zinc-100/50 transition-all">
-                                                            <option value="">-</option>
-                                                            @for (opt of getOptions(col.options); track opt) {
-                                                              <option [value]="opt">{{ opt }}</option>
-                                                            }
-                                                          </select>
-                                                        }
-                                                        @default {
-                                                          <input 
-                                                            [disabled]="ctx.isReadOnly()"
-                                                            [type]="col.fieldtype === 'Int' || col.fieldtype === 'Float' ? 'number' : 'text'"
-                                                            [(ngModel)]="row[col.fieldname]"
-                                                            (ngModelChange)="onFieldChange(field.fieldname)"
-                                                            class="w-full p-1.5 text-xs bg-transparent border-0 focus:ring-0 focus:bg-white rounded hover:bg-zinc-100/50 transition-all"
-                                                            [placeholder]="col.label">
-                                                        }
-                                                      }
-                                                    </td>
-                                                  }
-                                                  @if ((field.table_fields?.length ?? 0) > 6) {
-                                                    <td class="p-2 text-zinc-300 text-[10px] italic">...</td>
-                                                  }
-                                                  <td class="p-2 text-right flex items-center justify-end gap-1">
-                                                    <button (click)="editTableRow(field, $index)"
-                                                            class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
-                                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                                                    </button>
-                                                    <button (click)="removeTableRow(field.fieldname, $index)" 
-                                                            [disabled]="ctx.isReadOnly()"
-                                                            class="p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-0 opacity-0 group-hover/row:opacity-100 transition-all">
-                                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                                                    </button>
-                                                  </td>
-                                                </tr>
-                                              }
-                                              @if (!formData[field.fieldname]?.length) {
-                                                <tr>
-                                                  <td [attr.colspan]="Math.min(field.table_fields?.length ?? 0, 6) + ((field.table_fields?.length ?? 0) > 6 ? 3 : 2)" class="p-8 text-center">
-                                                    <div class="flex flex-col items-center gap-2">
-                                                      <div class="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-300">
-                                                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                                                      </div>
-                                                      <p class="text-[12px] text-zinc-400 font-medium">No rows added yet</p>
+                                            }
+                                            @if (!formData[field.fieldname]?.length) {
+                                              <tr>
+                                                <td
+                                                  [attr.colspan]="Math.min(field.table_fields?.length ?? 0, 6) + ((field.table_fields?.length ?? 0) > 6 ? 3 : 2)"
+                                                  class="p-8 text-center">
+                                                  <div class="flex flex-col items-center gap-2">
+                                                    <div
+                                                      class="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-300">
+                                                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                                           stroke="currentColor" stroke-width="2">
+                                                        <path d="M12 5v14M5 12h14"/>
+                                                      </svg>
                                                     </div>
-                                                  </td>
-                                                </tr>
-                                              }
-                                            </tbody>
-                                          </table>
-                                        </div>
-                                        @if (!ctx.isReadOnly()) {
-                                          <div class="p-3 bg-zinc-50/50 border-t border-zinc-200">
-                                            <button (click)="addTableRow(field.fieldname)" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold text-zinc-600 hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-sm">
-                                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                                              Add Row
-                                            </button>
-                                          </div>
-                                        }
+                                                    <p class="text-[12px] text-zinc-400 font-medium">No rows added
+                                                      yet</p>
+                                                  </div>
+                                                </td>
+                                              </tr>
+                                            }
+                                          </tbody>
+                                        </table>
                                       </div>
-                                    }
-                                    @case ('Date') {
-
-                                      <input type="date" 
-                                        class="ui-input"
-                                        [(ngModel)]="formData[field.fieldname]"
-                                        (ngModelChange)="onFieldChange(field.fieldname)"
-                                        [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()">
-                                    }
-                                    @case ('Password') {
-                                      <input type="password" 
-                                        class="ui-input"
-                                        [(ngModel)]="formData[field.fieldname]"
-                                        (ngModelChange)="onFieldChange(field.fieldname)"
-                                        [placeholder]="field.placeholder || ''"
-                                        [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()">
-                                    }
-                                    @default {
-                                      <input 
-                                        [type]="field.fieldtype === 'Int' || field.fieldtype === 'Float' ? 'number' : 'text'"
-                                        class="ui-input"
-                                        [(ngModel)]="formData[field.fieldname]"
-                                        (ngModelChange)="onFieldChange(field.fieldname)"
-                                        [placeholder]="field.placeholder || ''"
-                                        [disabled]="ctx.isReadOnly() || ctx.getFieldSignal(field.fieldname, 'read_only')()">
-                                    }
-                                  }
-                                  
-                                  <!-- Field Description at bottom -->
-                                  @if (field.description) {
-                                    <div class="mt-1.5 px-0.5">
-                                      <span class="text-[10.5px] text-zinc-400 font-normal leading-relaxed italic block tracking-tight">{{ field.description }}</span>
+                                      @if (!ctx.isReadOnly()) {
+                                        <div class="p-3 bg-zinc-50/50 border-t border-zinc-200">
+                                          <button (click)="addTableRow(field.fieldname)"
+                                                  class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold text-zinc-600 hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-sm">
+                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                 stroke="currentColor" stroke-width="3">
+                                              <line x1="12" y1="5" x2="12" y2="19"></line>
+                                              <line x1="5" y1="12" x2="19" y2="12"></line>
+                                            </svg>
+                                            Add Row
+                                          </button>
+                                        </div>
+                                      }
                                     </div>
+                                  } @else {
+                                    <app-form-field
+                                      [field]="field"
+                                      [(value)]="formData[field.fieldname]"
+                                      (valueChange)="onFieldChange(field.fieldname)">
+                                    </app-form-field>
                                   }
-                                  
+
                                   <!-- Read Only Overlay if needed -->
                                   @if (ctx.getFieldSignal(field.fieldname, 'read_only')()) {
                                     <div class="absolute inset-0 bg-zinc-50/10 cursor-not-allowed"></div>
@@ -326,41 +263,49 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                       </div>
                     }
                   </div>
-               </div>
-             }
-           }
-        </div>
+                </div>
+              }
+            }
+          </div>
 
         </div>
 
         <!-- Submit placeholder (Bottom) -->
         <div class="px-8 pb-10 flex items-center justify-center">
-           <p class="text-[10px] text-zinc-300 font-medium uppercase tracking-[0.3em]">End of Form</p>
+          <p class="text-[10px] text-zinc-300 font-medium uppercase tracking-[0.3em]">End of Form</p>
         </div>
       </div>
     </div>
   `,
   styles: [`
-    :host { display: block; }
+    :host {
+      display: block;
+    }
+
     .card {
       border-radius: 1.5rem;
-      box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05), 0 0 1px rgba(0,0,0,0.1);
+      box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.05), 0 0 1px rgba(0, 0, 0, 0.1);
     }
+
     .ui-input, .ui-textarea, .ui-select {
       @apply bg-zinc-50/50 border-zinc-200 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 transition-all duration-300;
       border-radius: 0.75rem;
     }
+
     .regex-error .ui-input, .regex-error .ui-textarea, .regex-error .ui-select, .regex-error .ql-container {
       @apply border-red-500 bg-red-50/30 focus:ring-red-500/10 !important;
     }
+
     .ql-frappe-style .ql-toolbar {
       @apply bg-zinc-50 border-0 border-b border-zinc-200 py-3 px-4 !important;
       border-top-left-radius: 0.5rem;
       border-top-right-radius: 0.5rem;
     }
+
     .ql-frappe-style.ql-snow {
       @apply border-0 !important;
     }
+
     .ql-frappe-style .ql-container {
       @apply border-0 text-zinc-700 font-sans !important;
       font-size: 14px;
@@ -372,12 +317,14 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
       border-bottom-left-radius: 0.5rem;
       border-bottom-right-radius: 0.5rem;
     }
+
     .ql-frappe-style .ql-editor {
       @apply px-6 py-5 leading-relaxed;
       min-height: 200px;
       height: auto !important;
       overflow-y: visible;
     }
+
     /* Simple CSS resize handle styling */
     .ql-frappe-style .ql-container::-webkit-resizer {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23d1d5db' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 19l4-4M10 19l9-9'/%3E%3C/svg%3E");
@@ -386,26 +333,32 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
       background-position: bottom right;
       cursor: ns-resize;
     }
+
     .ql-frappe-style .ql-editor.ql-blank::before {
       @apply left-6 text-zinc-300 italic;
     }
+
     .ql-frappe-style .ql-picker-label {
       @apply text-zinc-600 !important;
     }
+
     .ql-frappe-style .ql-stroke {
       @apply stroke-zinc-500 !important;
     }
+
     .ql-frappe-style .ql-fill {
       @apply fill-zinc-500 !important;
     }
-    
+
     /* Layout cleanups for readonly */
     .form-readonly .canvas-field {
       @apply pointer-events-none opacity-90;
     }
+
     .form-readonly .ql-toolbar {
       @apply hidden !important;
     }
+
     .form-readonly .ql-container {
       @apply border-zinc-100 bg-zinc-50/50 !important;
       resize: none;
