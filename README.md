@@ -1,25 +1,46 @@
-# Vant Flow
-
-A production-grade, metadata-driven Visual Form Builder and Renderer for Angular 17+.
+# 🌊 Vant Flow
+Form builder designed to bridge the gap between static JSON schemas and complex business logic. It allows developers to render fully functional, reactive forms from a database and execute sandboxed JavaScript "Client Scripts" to handle dynamic behavior—all without needing to redeploy the frontend
 
 ![admin](data/screenshots/admin.png)
+
+## 🖋️ A Note on Inspiration
+
+**Vant Flow** is a specialized, lightweight subset of the immensely powerful and mature [Frappe Framework](https://frappeframework.com/). We are huge fans of the open-source revolution Frappe started—proving that metadata-driven applications are the future of rapid development. While Frappe is an all-encompassing Python/JS monolith, **Vant Flow** brings its core philosophy of "Logic-in-Data" to the modern Angular ecosystem.
+
+---
+
+## 💡 Core Philosophy: "Logic in Motion"
+
+In traditional enterprise apps, a simple change (like hiding a field based on a new regulation) requires a full CI/CD cycle. **Vant Flow** changes the game:
+
+1. **Metadata is King**: Define fields, validations, and layouts in JSON.
+2. **Logic is Dynamic**: Write "Client Scripts" stored in your database.
+3. **Security is Absolute**: Scripts run in a **Hardened Sandbox** using JS Proxies. They can manipulate the form, but they cannot "escape" the enclave to access dangerous browser globals.
+
+### Why "Vant Flow"?
+
+* **Vant**: Derived from *Vantage* and *Avant*. It represents a superior architectural position—giving you a vantage point over your application's logic—and an "avant-garde," modern approach to development.
+* **Flow**: Represents the seamless movement of logic. Logic isn't hardcoded; it *flows* from your backend to the UI, allowing the form to react and evolve in real-time.
+
+---
+
 ## 🌟 Features
--   **Visual IDE**: Drag-and-drop builder for complex form layouts.
--   **High-Performance Renderer**: JSON-driven rendering with sub-second initialization.
--   **Client Scripting**: Powerful JavaScript API (`frm`) with Monaco Editor intellisense.
--   **Modern Stack**: Built with Angular Signals, Standalone Components, and Tailwind CSS.
--   **Rich Components**: Signature pads, file attachments, recursive tables, and more.
+
+* **Visual IDE**: Drag-and-drop builder for complex form layouts.
+* **High-Performance Renderer**: JSON-driven rendering with sub-second initialization.
+* **Client Scripting**: Powerful JavaScript API (`frm`) with Monaco Editor intellisense, executed in a secure Proxy-based sandbox.
+* **Modern Stack**: Built with Angular Signals, Standalone Components, and Tailwind CSS.
+* **Rich Components**: Signature pads, file attachments, recursive tables, and more.
 
 ---
 
 ## 🚀 Getting Started
 
-Vant Flow is designed to be highly encapsulated. We provide a centralized configuration utility to set up the necessary underlying editors (Monaco and Quill) with sensible defaults.
-
 ### 1. Installation
 
 ```bash
 npm install vant-flow
+
 ```
 
 ### 2. Configure the Library
@@ -86,10 +107,10 @@ provideVfFlow({
 
 ## 📜 Client Scripting Example (`frm`)
 
-Vant Flow exposes a powerful scripting API inspired by modern ERP systems.
+Vant Flow exposes a powerful scripting API inspired by Frappe, but optimized for the Angular lifecycle.
 
 ```javascript
-frm.on('refresh', (val, frm) => {
+frm.on('refresh', (frm) => {
     frm.set_intro('Welcome to the premium form', 'blue');
     
     // Toggle field visibility dynamically
@@ -103,7 +124,17 @@ frm.on('quality_score', (val, frm) => {
         frm.msgprint('Warning: Score is below threshold', 'warning');
     }
 });
+
 ```
+
+---
+
+## 🛡️ Security: The Sandbox
+
+Vant Flow shadows dangerous globals to prevent data exfiltration. Inside a client script, the following are `undefined`:
+
+* `window`, `document`, `localStorage`, `sessionStorage`, `cookie`.
+* `fetch`, `XMLHttpRequest` (Use `frm.call` for secure backend communication).
 
 ---
 
