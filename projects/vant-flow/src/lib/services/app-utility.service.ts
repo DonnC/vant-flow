@@ -2,7 +2,7 @@ import { Injectable, signal, inject, ApplicationRef, EnvironmentInjector, create
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { DocumentField } from '../models/document.model';
-import { PromptModalComponent } from '../components/prompt-modal.component';
+import { VfPromptModal } from '../components/prompt-modal.component';
 
 export type ToastIndicator = 'success' | 'error' | 'info' | 'warning';
 
@@ -23,7 +23,7 @@ export interface CallResponse<T = any> {
 let _toastId = 0;
 
 @Injectable({ providedIn: 'root' })
-export class AppUtilityService {
+export class VfUtilityService {
   readonly toasts = signal<Toast[]>([]);
   readonly isFreezing = signal<string | null>(null);
 
@@ -63,7 +63,7 @@ export class AppUtilityService {
       const initialValues: Record<string, any> = {};
       fields.forEach(f => { initialValues[f.fieldname] = f.default ?? ''; });
 
-      const componentRef = createComponent(PromptModalComponent, {
+      const componentRef = createComponent(VfPromptModal, {
         environmentInjector: this.envInjector
       });
 

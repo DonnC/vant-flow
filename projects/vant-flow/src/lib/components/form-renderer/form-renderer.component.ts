@@ -1,18 +1,18 @@
-import { Component, effect, EventEmitter, inject, Input, OnDestroy, OnInit, Output } from '@angular/core';
+import { Component, effect, EventEmitter, inject, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuillModule } from 'ngx-quill';
 import { DocumentDefinition, DocumentField, DocumentSection } from '../../models/document.model';
-import { FormContext } from '../../services/form-context';
-import { AppUtilityService } from '../../services/app-utility.service';
+import { VfFormContext } from '../../services/form-context';
+import { VfUtilityService } from '../../services/app-utility.service';
 
-import { FormFieldComponent } from '../form-field.component';
+import { VfField } from '../form-field.component';
 
 @Component({
-  selector: 'app-form-renderer',
+  selector: 'vf-renderer',
   standalone: true,
-  imports: [CommonModule, FormsModule, QuillModule, FormFieldComponent],
-  providers: [FormContext],
+  imports: [CommonModule, FormsModule, QuillModule, VfField],
+  providers: [VfFormContext],
   template: `
     <div class="w-full max-w-[1400px] mx-auto py-8 px-4">
       <div class="card bg-white shadow-2xl">
@@ -51,23 +51,28 @@ import { FormFieldComponent } from '../form-field.component';
             <!-- Custom Buttons -->
             @for (btn of ctx.customButtons(); track btn.id) {
               <button (click)="btn.action()"
-                      [class]="'px-4 py-2 text-sm font-bold rounded-lg transition-all ' + getButtonClass(btn.type)">
+                      [disabled]="disabled"
+                      [class]="'px-4 py-2 text-sm font-bold rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ' + getButtonClass(btn.type)">
                 {{ btn.label }}
               </button>
             }
 
-            <!-- Default Actions -->
-            @if (ctx.actionsConfig()?.save?.visible !== false) {
-              <button (click)="onAction('save')"
-                      class="px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all">
-                {{ ctx.actionsConfig()?.save?.label || 'Save as Draft' }}
-              </button>
-            }
-            @if (ctx.actionsConfig()?.submit?.visible !== false) {
-              <button (click)="onAction('submit')"
-                      class="ui-btn-primary px-6 py-2 text-sm shadow-indigo-100 shadow-lg active:scale-95">
-                {{ ctx.actionsConfig()?.submit?.label || 'Submit' }}
-              </button>
+            <!-- Default Actions (shown unless showActions=false) -->
+            @if (showActions) {
+              @if (ctx.actionsConfig()?.save?.visible !== false) {
+                <button (click)="onAction('save')"
+                        [disabled]="disabled"
+                        class="px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed">
+                  {{ draftLabel || ctx.actionsConfig()?.save?.label || 'Save as Draft' }}
+                </button>
+              }
+              @if (ctx.actionsConfig()?.submit?.visible !== false) {
+                <button (click)="onAction('submit')"
+                        [disabled]="disabled"
+                        class="ui-btn-primary px-6 py-2 text-sm shadow-indigo-100 shadow-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100">
+                  {{ submitLabel || ctx.actionsConfig()?.submit?.label || 'Submit' }}
+                </button>
+              }
             }
           </div>
         </div>
@@ -193,13 +198,13 @@ import { FormFieldComponent } from '../form-field.component';
                                                         <td class="p-2 relative group/cell" 
                                                             [class.cursor-pointer]="col.fieldtype === 'Text'"
                                                             (click)="col.fieldtype === 'Text' ? editTableRow(field, $index) : null">
-                                                          <app-form-field
+                                                          <vf-field
                                                             [field]="col"
                                                             [(value)]="row[col.fieldname]"
                                                             (valueChange)="onFieldChange(field.fieldname)"
                                                             [compact]="true"
                                                             [hideLabel]="true">
-                                                          </app-form-field>
+                                                          </vf-field>
                                                           @if (col.fieldtype !== 'Text') {
                                                             <button (click)="$event.stopPropagation(); editTableRow(field, $index)" 
                                                                     class="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100">
@@ -269,11 +274,11 @@ import { FormFieldComponent } from '../form-field.component';
                                             }
                                           </div>
                                         } @else {
-                                          <app-form-field
+                                          <vf-field
                                             [field]="field"
                                             [(value)]="formData[field.fieldname]"
                                             (valueChange)="onFieldChange(field.fieldname)">
-                                          </app-form-field>
+                                          </vf-field>
                                         }
 
                                         <!-- Read Only Overlay if needed -->
@@ -398,13 +403,55 @@ import { FormFieldComponent } from '../form-field.component';
     }
   `]
 })
-export class FormRendererComponent implements OnInit, OnDestroy {
+export class VfRenderer implements OnInit, OnChanges, OnDestroy {
+  /** The form schema to render. Required. */
   @Input() document!: DocumentDefinition;
+
+  /** Pre-fill the form with existing data (edit / view mode). */
+  @Input() initialData?: Record<string, any>;
+
+  /** Put the entire form into read-only mode. */
+  @Input() readonly?: boolean;
+
+  /** Show or hide the action buttons bar. Default: true */
+  @Input() showActions: boolean = true;
+
+  /** Override the label for the submit button. */
+  @Input() submitLabel?: string;
+
+  /** Override the label for the draft/save button. */
+  @Input() draftLabel?: string;
+
+  /** Disable all inputs without going fully readonly (e.g. while loading). */
+  @Input() disabled: boolean = false;
+
+  /** Emitted when the form is submitted with valid data. */
   @Output() formSubmit = new EventEmitter<any>();
 
+  /** Emitted when "Save as Draft" is clicked with the current packed data. */
+  @Output() formDraft = new EventEmitter<any>();
+
+  /**
+   * Emitted on every field value change.
+   * Payload: { fieldname, value, data } — `data` is the full flat form data snapshot.
+   */
+  @Output() formChange = new EventEmitter<{ fieldname: string; value: any; data: Record<string, any> }>();
+
+  /**
+   * Emitted when form submit validation fails.
+   * Payload: string[] — list of fieldnames that are invalid.
+   */
+  @Output() formError = new EventEmitter<string[]>();
+
+  /**
+   * Emitted once after the form is fully initialized.
+   * Payload: FormContext — gives the host full access to the frm.xxx scripting API.
+   */
+  @Output() formReady = new EventEmitter<VfFormContext>();
+
   formData: any = {};
-  ctx = inject(FormContext);
-  utils = inject(AppUtilityService);
+  ctx = inject(VfFormContext);
+  utils = inject(VfUtilityService);
 
   constructor() {
     // Re-evaluate depends_on when form data changes
@@ -416,10 +463,28 @@ export class FormRendererComponent implements OnInit, OnDestroy {
   ngOnInit() {
     this.initForm();
     this.ctx.initialize(this.document, this.formData);
+    // Apply readonly mode (from @Input) into FormContext
+    if (this.readonly) {
+      this.ctx.set_readonly(true);
+    }
     // Execute script ONCE to register listeners
     this.ctx.execute(this.document.client_script || '', 'refresh');
     // Explicitly trigger the refresh event so handlers run
     this.ctx.trigger('refresh');
+    // Notify host that FormContext is ready for programmatic access
+    this.formReady.emit(this.ctx);
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    // Reactively update readonly state when @Input changes after init
+    if (changes['readonly'] && !changes['readonly'].firstChange) {
+      this.ctx.set_readonly(!!this.readonly);
+    }
+    // Reload form data if initialData is updated externally
+    if (changes['initialData'] && !changes['initialData'].firstChange && this.initialData) {
+      Object.assign(this.formData, this.initialData);
+      this.initForm();
+    }
   }
 
   ngOnDestroy() {
@@ -427,8 +492,8 @@ export class FormRendererComponent implements OnInit, OnDestroy {
   }
 
   private initForm() {
-    // Save a copy of the original raw data (to preserve non-form keys)
-    const rawData = { ...this.formData };
+    // Merge initialData from @Input into formData before unpacking
+    const rawData = { ...(this.initialData || {}), ...this.formData };
     this.formData = {};
 
     this.document.sections.forEach(s => {
@@ -465,10 +530,16 @@ export class FormRendererComponent implements OnInit, OnDestroy {
     this.evaluateDependsOn();
     // triggerChange internally calls trigger(), which executes listeners registered in OnInit
     this.ctx.triggerChange(fieldname, this.formData[fieldname]);
+    // Emit to host for external reactivity
+    this.formChange.emit({
+      fieldname,
+      value: this.formData[fieldname],
+      data: { ...this.formData }
+    });
   }
 
   validateForm(): boolean {
-    let isValid = true;
+    const invalidFields: string[] = [];
 
     // 1. Check Mandatory Fields
     this.document.sections.forEach(s => {
@@ -480,25 +551,25 @@ export class FormRendererComponent implements OnInit, OnDestroy {
           const val = this.formData[f.fieldname];
 
           if (isMandatory && (val === undefined || val === null || val === '')) {
-            isValid = false;
+            invalidFields.push(f.fieldname);
           }
 
           // 2. Check Regex
           if (f.regex && val && !this.isValidRegex(f.fieldname, f.regex)) {
-            isValid = false;
+            invalidFields.push(f.fieldname);
           }
 
           // 2.1 Check Table Validation
           if (f.fieldtype === 'Table' && this.formData[f.fieldname]) {
             const rows = this.formData[f.fieldname] as any[];
-            rows.forEach((row, idx) => {
+            rows.forEach(row => {
               f.table_fields?.forEach(tf => {
                 const cellVal = row[tf.fieldname];
                 if (tf.mandatory && (cellVal === undefined || cellVal === null || cellVal === '')) {
-                  isValid = false;
+                  invalidFields.push(`${f.fieldname}.${tf.fieldname}`);
                 }
                 if (tf.regex && cellVal && !this.isValidRegex(tf.fieldname, tf.regex, cellVal)) {
-                  isValid = false;
+                  invalidFields.push(`${f.fieldname}.${tf.fieldname}`);
                 }
               });
             });
@@ -507,13 +578,14 @@ export class FormRendererComponent implements OnInit, OnDestroy {
       });
     });
 
-    if (!isValid) {
+    if (invalidFields.length > 0) {
       this.utils.show_alert('Please fill in all mandatory fields correctly before submitting.', 'error');
+      // Emit invalid field names to host so it can handle them
+      this.formError.emit(invalidFields);
       return false;
     }
 
     // 3. Script Hook: validate
-    // Since we ran execute() in ngOnInit, the 'validate' listener is already registered.
     const result = this.ctx.trigger('validate');
     if (result === false) {
       return false;
@@ -523,11 +595,10 @@ export class FormRendererComponent implements OnInit, OnDestroy {
   }
 
   saveDraft() {
-    if (this.validateForm()) {
-      const packed = this.packData();
-      console.log('Form Saved as Draft (Packed):', packed);
-      this.utils.show_alert('Draft saved successfully', 'success');
-    }
+    const packed = this.packData();
+    // Draft doesn't require validation — emit always and let host decide
+    this.formDraft.emit(packed);
+    this.utils.show_alert('Draft saved successfully', 'success');
   }
 
   submit() {

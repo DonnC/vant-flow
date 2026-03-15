@@ -7,6 +7,7 @@ export interface TableColumnDef {
   label: string;
   fieldtype: 'Data' | 'Int' | 'Float' | 'Text' | 'Select' | 'Link' | 'Check' | 'Date' | 'Password';
   mandatory?: boolean;
+  default?: any;
   options?: string;
   regex?: string;
 }

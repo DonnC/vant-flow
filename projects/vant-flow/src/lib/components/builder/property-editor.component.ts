@@ -1,13 +1,13 @@
 import { Component, computed, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { BuilderStateService } from '../../services/builder-state.service';
+import { VfBuilderState } from '../../services/builder-state.service';
 import { DocumentField, FieldType } from '../../models/document.model';
 
 const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Text', 'Text Editor', 'Table', 'Date', 'Datetime', 'Time', 'Float', 'Password', 'Button', 'Signature', 'Attach'];
 
 @Component({
-  selector: 'app-property-editor',
+  selector: 'vf-property-editor',
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
@@ -559,8 +559,8 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
   </div>
   `
 })
-export class PropertyEditorComponent {
-  state = inject(BuilderStateService);
+export class VfPropertyEditor {
+  state = inject(VfBuilderState);
   field = this.state.selectedField;
   section = this.state.selectedSection;
   fieldTypes = FIELD_TYPES;
