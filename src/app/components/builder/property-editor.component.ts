@@ -234,6 +234,24 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
           <input class="ui-input font-mono" [ngModel]="field()!.fieldname" (ngModelChange)="update('fieldname', $event)">
         </div>
 
+        <!-- Data Group -->
+        @if (field()!.fieldtype !== 'Button') {
+          <div>
+            <label class="ui-label">Data Group <span class="text-zinc-400 font-normal">(e.g. user.profile)</span></label>
+            <input class="ui-input font-mono" 
+              [ngModel]="field()!.data_group" 
+              (ngModelChange)="update('data_group', $event)"
+              list="dataGroupOptions"
+              placeholder="Flattened JSON path">
+            <datalist id="dataGroupOptions">
+              @for (group of state.dataGroupSuggestions(); track group) {
+                <option [value]="group">{{ group }}</option>
+              }
+            </datalist>
+            <p class="text-[9px] text-zinc-400 mt-1 italic">Groups fields into nested objects in final JSON</p>
+          </div>
+        }
+
         <!-- Field Type -->
         <div>
           <label class="ui-label">Field Type</label>

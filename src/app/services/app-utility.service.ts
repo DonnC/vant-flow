@@ -169,4 +169,34 @@ export class AppUtilityService {
   generateId(): string {
     return Math.random().toString(36).substring(2, 12);
   }
+
+  /** Sets a value at a nested path (e.g. "a.b.c") in an object */
+  setDeepValue(obj: any, path: string, value: any) {
+    const keys = path.split('.');
+    let current = obj;
+    for (let i = 0; i < keys.length - 1; i++) {
+      const key = keys[i];
+      if (!current[key]) current[key] = {};
+      current = current[key];
+    }
+    current[keys[keys.length - 1]] = value;
+  }
+
+  /** Gets a value from a nested path */
+  getDeepValue(obj: any, path: string): any {
+    return path.split('.').reduce((prev, curr) => prev && prev[curr], obj);
+  }
+
+  /** Flattens a nested object into a flat map based on paths */
+  flattenObject(obj: any, parentPath = '', result: any = {}) {
+    for (const key in obj) {
+      const path = parentPath ? `${parentPath}.${key}` : key;
+      if (obj[key] && typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
+        this.flattenObject(obj[key], path, result);
+      } else {
+        result[path] = obj[key];
+      }
+    }
+    return result;
+  }
 }

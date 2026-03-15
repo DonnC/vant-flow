@@ -28,6 +28,7 @@ export interface DocumentField {
   placeholder?: string;
   regex?: string; // Regex validator superpower
   table_fields?: TableColumnDef[]; // Only used by Table fieldtype
+  data_group?: string; // Optional: nested object path (e.g. "user.profile")
 }
 
 export interface DocumentColumn {
