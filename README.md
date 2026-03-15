@@ -3,8 +3,8 @@
 Kai-NG-Flow is a high-performance, open-source form builder and renderer for Angular v17+, deeply inspired by the Frappe Framework's client-side architecture. It enables developers to build complex, reactive forms using simple JSON metadata and customize behavior with a powerful, Frappe-like Scripting API.
 
 
-![img](data/editor.png)
-![img2](data/preview.png)
+![img](data/screenshots/editor.png)
+![img2](data/screenshots/preview.png)
 
 ---
 
@@ -164,6 +164,30 @@ The engine automatically runs validation on **Submission** or when `validate` ho
 
 ---
 
+### 💎 Specialized Field Types
+
+#### 1. Datetime & Time
+Standardized input types for temporal data. Uses native browser pickers styled to match the UI.
+
+#### 2. Signature Pad
+A standalone signing area.
+- **Data Format**: Stores signature as a high-quality base64 PNG data URL.
+- **Features**: Dedicated "Clear" action and "Captured" status indicator.
+
+#### 3. Attach Field
+A robust file management component with drag-and-drop support.
+- **Configuration**: Use the `options` property to define constraints.
+  - **Syntax**: `[extensions] | [max_size] | [max_files]`
+  - **Example**: `.pdf,.jpg,.png | 10MB | 3`
+  - **JSON Support**: You can also pass a JSON string: `{"accept": ".pdf", "maxSize": 1048576, "maxFiles": 5}`
+- **Features**: 
+  - Image previews for supported formats.
+  - One-click downloads.
+  - Automatic file size calculation and display.
+  - Multi-file support (if configured).
+
+---
+
 #### 7. Modern Script Editor
 The builder includes a professional Monaco-based editor with:
 - **Intellisense**: Full type definitions for the `frm` context.
@@ -184,6 +208,40 @@ To use this engine in your own project:
    ```
 
 ---
+
+---
+
+### 🚀 Advanced: Using Attach in Scripts
+
+Developers can listen to the `Attach` field to trigger custom logic like uploading to Firebase, AWS S3, or their own CDN.
+
+```javascript
+frm.on('inspection_photos', (val, frm) => {
+    if (!val) return; // File removed
+
+    // For multi-upload, val is an array. For single, it's an object.
+    const files = Array.isArray(val) ? val : [val];
+
+    files.forEach(file => {
+        // file object contains: { name, type, size, url (Base64) }
+        console.log('New file attached:', file.name);
+
+        // Example: Sending to an API
+        /*
+        frm.call({
+            method: 'upload_to_cdn',
+            args: { 
+                file_name: file.name,
+                file_data: file.url, // Base64 string
+                mime_type: file.type
+            },
+            freeze: true,
+            callback: (r) => frm.msgprint('Securely uploaded to CDN!')
+        });
+        */
+    });
+});
+```
 
 ## 🛠️ Technical Stack
 - **Engine**: Angular 17+ (Signals, Standalone Components, Control Flow)

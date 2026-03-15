@@ -1,4 +1,4 @@
-export type FieldType = 'Data' | 'Select' | 'Link' | 'Check' | 'Int' | 'Text' | 'Date' | 'Float' | 'Password' | 'Button' | 'Text Editor' | 'Table';
+export type FieldType = 'Data' | 'Select' | 'Link' | 'Check' | 'Int' | 'Text' | 'Date' | 'Float' | 'Password' | 'Button' | 'Text Editor' | 'Table' | 'Datetime' | 'Time' | 'Signature' | 'Attach';
 
 /** Column definition for Table field child columns (no nested Table/Button/Text Editor) */
 export interface TableColumnDef {
@@ -28,6 +28,7 @@ export interface DocumentField {
   placeholder?: string;
   regex?: string; // Regex validator superpower
   table_fields?: TableColumnDef[]; // Only used by Table fieldtype
+  data_group?: string; // Optional: nested object path (e.g. "user.profile")
 }
 
 export interface DocumentColumn {
@@ -92,4 +93,8 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   { fieldtype: 'Button', label: 'Button', icon: '⬛' },
   { fieldtype: 'Text Editor', label: 'Text Editor', icon: '✎' },
   { fieldtype: 'Table', label: 'Table', icon: '⊞' },
+  { fieldtype: 'Datetime', label: 'Datetime', icon: '📅' },
+  { fieldtype: 'Time', label: 'Time', icon: '🕒' },
+  { fieldtype: 'Signature', label: 'Signature', icon: '✍️' },
+  { fieldtype: 'Attach', label: 'Attach', icon: '📎' },
 ];

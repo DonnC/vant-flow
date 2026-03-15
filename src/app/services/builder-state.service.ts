@@ -50,6 +50,18 @@ export class BuilderStateService {
         return this.document().sections.find((s: DocumentSection) => s.id === id) || null;
     });
 
+    readonly dataGroupSuggestions = computed(() => {
+        const groups = new Set<string>();
+        this.document().sections.forEach(s => {
+            s.columns.forEach(c => {
+                c.fields.forEach(f => {
+                    if (f.data_group) groups.add(f.data_group);
+                });
+            });
+        });
+        return Array.from(groups).sort();
+    });
+
     // ── Document metadata ──────────────────────────────────────
     setDocumentName(name: string) {
         this.document.update(doc => ({ ...doc, name }));

@@ -1,0 +1,173 @@
+{
+    "name": "Quality Inspection Report (Expanded)",
+    "module": "Quality Management",
+    "version": "1.3.0",
+    "description": "Comprehensive quality control report with Signature and Attachment support.",
+    "intro_text": "<b>Quality Assurance Protocol:</b> Ensure all batches are inspected against the <i>ISO-9001</i> standard. Document any deviations and capture the inspector signature.",
+    "intro_color": "blue",
+    "sections": [
+        {
+            "id": "sec_gen",
+            "label": "General Information",
+            "columns_count": 2,
+            "columns": [
+                {
+                    "id": "c1",
+                    "fields": [
+                        {
+                            "id": "f_inspector",
+                            "fieldname": "inspector_name",
+                            "fieldtype": "Data",
+                            "label": "Lead Inspector",
+                            "mandatory": 1,
+                            "placeholder": "Enter full name"
+                        },
+                        {
+                            "id": "f_batch",
+                            "fieldname": "batch_id",
+                            "fieldtype": "Data",
+                            "label": "Batch ID",
+                            "mandatory": 1,
+                            "regex": "^QC-[A-Z]{2}-[0-9]{4}$",
+                            "description": "Format: QC-XX-0000"
+                        }
+                    ]
+                },
+                {
+                    "id": "c2",
+                    "fields": [
+                        {
+                            "id": "f_datetime",
+                            "fieldname": "inspection_datetime",
+                            "fieldtype": "Datetime",
+                            "label": "Inspection Datetime",
+                            "mandatory": 1
+                        },
+                        {
+                            "id": "f_shift",
+                            "fieldname": "shift",
+                            "fieldtype": "Select",
+                            "label": "Work Shift",
+                            "options": "Morning\nAfternoon\nNight",
+                            "default": "Morning"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "sec_evidence",
+            "label": "Evidence & Documentation",
+            "columns_count": 2,
+            "columns": [
+                {
+                    "id": "c_ev1",
+                    "fields": [
+                        {
+                            "id": "f_attach_docs",
+                            "fieldname": "supporting_docs",
+                            "fieldtype": "Attach",
+                            "label": "Supporting Documents",
+                            "options": ".pdf,.doc,.docx | 10MB | 3",
+                            "description": "Upload up to 3 technical documents."
+                        }
+                    ]
+                },
+                {
+                    "id": "c_ev2",
+                    "fields": [
+                        {
+                            "id": "f_attach_img",
+                            "fieldname": "inspection_photos",
+                            "fieldtype": "Attach",
+                            "label": "Inspection Photos",
+                            "options": "image/* | 5MB | 5",
+                            "description": "Upload up to 5 photos showing batch condition."
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "sec_defects",
+            "label": "Defect Log",
+            "columns_count": 1,
+            "columns": [
+                {
+                    "id": "c41",
+                    "fields": [
+                        {
+                            "id": "f_defect_table",
+                            "fieldname": "defect_log",
+                            "fieldtype": "Table",
+                            "label": "Detected Defects",
+                            "table_fields": [
+                                {
+                                    "id": "tc1",
+                                    "fieldname": "defect_type",
+                                    "label": "Type",
+                                    "fieldtype": "Select",
+                                    "options": "Surface Scratch\nColor Mismatch\nStructural Crack\nFunctional Failure",
+                                    "mandatory": true
+                                },
+                                {
+                                    "id": "tc2",
+                                    "fieldname": "severity",
+                                    "label": "Severity",
+                                    "fieldtype": "Select",
+                                    "options": "Low\nMedium\nHigh\nCritical",
+                                    "default": "Low"
+                                },
+                                {
+                                    "id": "tc3",
+                                    "fieldname": "resolved",
+                                    "label": "Auto-Fix Attempted",
+                                    "fieldtype": "Check"
+                                },
+                                {
+                                    "id": "id_6_9mh5t",
+                                    "fieldname": "detected_time",
+                                    "label": "Time Detected",
+                                    "fieldtype": "Time",
+                                    "mandatory": true
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "sec_signoff",
+            "label": "Sign-off",
+            "columns_count": 1,
+            "columns": [
+                {
+                    "id": "c_sig",
+                    "fields": [
+                        {
+                            "id": "f_signature",
+                            "fieldname": "inspector_signature",
+                            "fieldtype": "Signature",
+                            "label": "Inspector Signature",
+                            "mandatory": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "actions": {
+        "save": {
+            "label": "Save Draft",
+            "visible": true,
+            "type": "secondary"
+        },
+        "submit": {
+            "label": "Approve Batch",
+            "visible": true,
+            "type": "primary"
+        }
+    },
+    "client_script": "frm.on('refresh', (val, frm) => {\n    frm.msgprint('Quality Inspection System initialized with Signature and Attachment support.', 'info');\n});\n"
+}

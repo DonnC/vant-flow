@@ -394,20 +394,30 @@ export class FormRendererComponent implements OnInit, OnDestroy {
   }
 
   private initForm() {
+    // Save a copy of the original raw data (to preserve non-form keys)
+    const rawData = { ...this.formData };
     this.formData = {};
+
     this.document.sections.forEach(s => {
       s.columns.forEach(c => {
         c.fields.forEach(f => {
+          // Determine the path to read from
+          const path = f.data_group ? `${f.data_group}.${f.fieldname}` : f.fieldname;
+          let val = this.utils.getDeepValue(rawData, path);
+
+          // If no value found at path, try flat fieldname (fallback for partial legacy data)
+          if (val === undefined) val = rawData[f.fieldname];
+
           if (f.fieldtype === 'Table') {
-            const defaultRows = f.default || [];
+            const defaultRows = val || f.default || [];
             this.formData[f.fieldname] = defaultRows.map((r: any, i: number) => ({
               ...r,
               idx: i
             }));
           } else if (f.fieldtype === 'Check') {
-            this.formData[f.fieldname] = f.default ? 1 : 0;
+            this.formData[f.fieldname] = val !== undefined ? (val ? 1 : 0) : (f.default ? 1 : 0);
           } else {
-            this.formData[f.fieldname] = f.default !== undefined ? f.default : '';
+            this.formData[f.fieldname] = val !== undefined ? val : (f.default !== undefined ? f.default : '');
           }
         });
       });
@@ -481,16 +491,33 @@ export class FormRendererComponent implements OnInit, OnDestroy {
 
   saveDraft() {
     if (this.validateForm()) {
-      console.log('Form Saved as Draft:', this.formData);
+      const packed = this.packData();
+      console.log('Form Saved as Draft (Packed):', packed);
       this.utils.show_alert('Draft saved successfully', 'success');
     }
   }
 
   submit() {
     if (this.validateForm()) {
-      this.formSubmit.emit(this.formData);
+      const packed = this.packData();
+      this.formSubmit.emit(packed);
       this.utils.show_alert('Form submitted successfully', 'success');
     }
+  }
+
+  private packData(): any {
+    const packedData: any = {};
+    this.document.sections.forEach(s => {
+      s.columns.forEach(c => {
+        c.fields.forEach(f => {
+          if (f.fieldtype === 'Button') return;
+          const val = this.formData[f.fieldname];
+          const path = f.data_group ? `${f.data_group}.${f.fieldname}` : f.fieldname;
+          this.utils.setDeepValue(packedData, path, val);
+        });
+      });
+    });
+    return packedData;
   }
 
   private evaluateDependsOn() {
