@@ -164,6 +164,30 @@ The engine automatically runs validation on **Submission** or when `validate` ho
 
 ---
 
+### 💎 Specialized Field Types
+
+#### 1. Datetime & Time
+Standardized input types for temporal data. Uses native browser pickers styled to match the UI.
+
+#### 2. Signature Pad
+A standalone signing area.
+- **Data Format**: Stores signature as a high-quality base64 PNG data URL.
+- **Features**: Dedicated "Clear" action and "Captured" status indicator.
+
+#### 3. Attach Field
+A robust file management component with drag-and-drop support.
+- **Configuration**: Use the `options` property to define constraints.
+  - **Syntax**: `[extensions] | [max_size] | [max_files]`
+  - **Example**: `.pdf,.jpg,.png | 10MB | 3`
+  - **JSON Support**: You can also pass a JSON string: `{"accept": ".pdf", "maxSize": 1048576, "maxFiles": 5}`
+- **Features**: 
+  - Image previews for supported formats.
+  - One-click downloads.
+  - Automatic file size calculation and display.
+  - Multi-file support (if configured).
+
+---
+
 #### 7. Modern Script Editor
 The builder includes a professional Monaco-based editor with:
 - **Intellisense**: Full type definitions for the `frm` context.
