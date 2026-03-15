@@ -16,9 +16,7 @@ export class BuilderStateService {
         intro_color: 'gray',
         actions: {
             save: { label: 'Save as Draft', visible: true, type: 'secondary' },
-            submit: { label: 'Submit', visible: true, type: 'primary' },
-            approve: { label: 'Approve', visible: false, type: 'primary' },
-            decline: { label: 'Decline', visible: false, type: 'danger' }
+            submit: { label: 'Submit', visible: true, type: 'primary' }
         }
     });
 
@@ -77,7 +75,7 @@ export class BuilderStateService {
         this.document.update(doc => ({ ...doc, module }));
     }
 
-    updateAction(id: 'save' | 'submit' | 'approve' | 'decline', patch: any) {
+    updateAction(id: 'save' | 'submit', patch: any) {
         this.document.update(doc => {
             const actions = { ...(doc.actions || {}) } as any;
             actions[id] = { ...(actions[id] || {}), ...patch };

@@ -515,7 +515,7 @@ export class PropertyEditorComponent {
   section = this.state.selectedSection;
   fieldTypes = FIELD_TYPES;
   tableChildTypes = ['Data', 'Int', 'Float', 'Text', 'Select', 'Link', 'Check', 'Date', 'Password'];
-  actionButtonIds: Array<'save' | 'submit' | 'approve' | 'decline'> = ['save', 'submit', 'approve', 'decline'];
+  actionButtonIds: Array<'save' | 'submit'> = ['save', 'submit'];
 
   getActionConfig(id: string) {
     return (this.state.document().actions as any)?.[id];

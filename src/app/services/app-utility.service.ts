@@ -1,4 +1,6 @@
 import { Injectable, signal, inject } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { DocumentField } from '../models/document.model';
 
 export type ToastIndicator = 'success' | 'error' | 'info' | 'warning';
@@ -9,12 +11,22 @@ interface Toast {
   indicator: ToastIndicator;
 }
 
+export interface CallResponse<T = any> {
+  message: T;
+  success: boolean;
+  error?: string;
+  exception?: string;
+  details?: any;
+}
+
 let _toastId = 0;
 
 @Injectable({ providedIn: 'root' })
 export class AppUtilityService {
   readonly toasts = signal<Toast[]>([]);
   readonly isFreezing = signal<string | null>(null);
+
+  private http = inject(HttpClient);
 
   show_alert(msg: string, indicator: ToastIndicator = 'info') {
     const id = ++_toastId;
@@ -183,20 +195,40 @@ export class AppUtilityService {
     overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
   }
 
-  call({ method, args, freeze, freeze_message }: { method: string; args?: any; freeze?: boolean; freeze_message?: string }): Promise<any> {
+  /**
+   * General purpose API caller.
+   * Calls a remote method (endpoint) with provided arguments.
+   * Standardizes response to avoid throwing in client scripts.
+   */
+  async call({ method, args, freeze, freeze_message }: { method: string; args?: any; freeze?: boolean; freeze_message?: string }): Promise<CallResponse> {
     if (freeze) this.freeze(freeze_message);
 
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (freeze) this.unfreeze();
+    try {
+      const url = method.startsWith('http') ? method : `/api/method/${method}`;
 
-        console.log(`[app.call] → ${method}`, args);
-        if (method === 'validate_clearance_code') {
-          args?.code === '1234' ? resolve({ message: 'Approved' }) : reject({ message: 'Invalid clearance code' });
-        } else {
-          resolve({ message: `OK: ${method}` });
-        }
-      }, 700);
-    });
+      const response = await firstValueFrom(
+        this.http.post<any>(url, args || {})
+      );
+
+      return {
+        message: response,
+        success: true
+      };
+    } catch (error: any) {
+      console.error(`[AppUtilityService.call] Error calling ${method}:`, error);
+
+      const errorMessage = error.error?.message || error.message || 'Network request failed';
+      this.show_alert(errorMessage, 'error');
+
+      return {
+        message: null,
+        success: false,
+        error: errorMessage,
+        exception: error.name || 'Error',
+        details: error.error || error
+      };
+    } finally {
+      if (freeze) this.unfreeze();
+    }
   }
 }

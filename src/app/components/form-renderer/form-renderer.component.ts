@@ -6,6 +6,10 @@ import { DocumentDefinition, DocumentField, DocumentSection, DocumentColumn } fr
 import { FormContext } from '../../services/form-context';
 import { AppUtilityService } from '../../services/app-utility.service';
 
+import Quill from 'quill';
+import QuillTableBetter from 'quill-table-better';
+Quill.register({ 'modules/table-better': QuillTableBetter }, true);
+
 @Component({
   selector: 'app-form-renderer',
   standalone: true,
@@ -50,18 +54,6 @@ import { AppUtilityService } from '../../services/app-utility.service';
              }
 
              <!-- Default Actions -->
-             @if (ctx.actionsConfig()?.decline?.visible !== false) {
-               <button (click)="onAction('decline')" 
-                       [class]="'px-4 py-2 text-sm font-bold rounded-lg transition-all ' + getButtonClass(ctx.actionsConfig()?.decline?.type || 'danger')">
-                 {{ ctx.actionsConfig()?.decline?.label || 'Decline' }}
-               </button>
-             }
-             @if (ctx.actionsConfig()?.approve?.visible !== false) {
-               <button (click)="onAction('approve')" 
-                       [class]="'px-4 py-2 text-sm font-bold rounded-lg transition-all ' + getButtonClass(ctx.actionsConfig()?.approve?.type || 'primary')">
-                 {{ ctx.actionsConfig()?.approve?.label || 'Approve' }}
-               </button>
-             }
              @if (ctx.actionsConfig()?.save?.visible !== false) {
                <button (click)="onAction('save')" class="px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all">
                  {{ ctx.actionsConfig()?.save?.label || 'Save as Draft' }}
@@ -195,20 +187,23 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                             <thead>
                                               <tr class="bg-zinc-50/80 border-b border-zinc-200">
                                                 <th class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest w-12 text-center">#</th>
-                                                @for (col of field.table_fields; track col.id) {
+                                                @for (col of field.table_fields?.slice(0, 6); track col.id) {
                                                   <th class="p-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
                                                     {{ col.label }}
                                                     @if (col.mandatory) { <span class="text-red-500">*</span> }
                                                   </th>
                                                 }
-                                                <th class="p-3 w-10"></th>
+                                                @if ((field.table_fields?.length ?? 0) > 6) {
+                                                  <th class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">+{{ field.table_fields!.length - 6 }} more</th>
+                                                }
+                                                <th class="p-3 w-20"></th>
                                               </tr>
                                             </thead>
                                             <tbody class="divide-y divide-zinc-100">
                                               @for (row of formData[field.fieldname]; track $index) {
                                                 <tr class="hover:bg-zinc-50/50 transition-colors group/row">
                                                   <td class="p-3 text-center text-[11px] font-mono text-zinc-400">{{ $index + 1 }}</td>
-                                                  @for (col of field.table_fields; track col.id) {
+                                                  @for (col of field.table_fields?.slice(0, 6); track col.id) {
                                                     <td class="p-2">
                                                       @switch (col.fieldtype) {
                                                         @case ('Check') {
@@ -244,7 +239,14 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                                       }
                                                     </td>
                                                   }
-                                                  <td class="p-2 text-center">
+                                                  @if ((field.table_fields?.length ?? 0) > 6) {
+                                                    <td class="p-2 text-zinc-300 text-[10px] italic">...</td>
+                                                  }
+                                                  <td class="p-2 text-right flex items-center justify-end gap-1">
+                                                    <button (click)="editTableRow(field, $index)"
+                                                            class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+                                                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                                    </button>
                                                     <button (click)="removeTableRow(field.fieldname, $index)" 
                                                             [disabled]="ctx.isReadOnly()"
                                                             class="p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-0 opacity-0 group-hover/row:opacity-100 transition-all">
@@ -255,7 +257,7 @@ import { AppUtilityService } from '../../services/app-utility.service';
                                               }
                                               @if (!formData[field.fieldname]?.length) {
                                                 <tr>
-                                                  <td [attr.colspan]="(field.table_fields?.length ?? 0) + 2" class="p-8 text-center">
+                                                  <td [attr.colspan]="Math.min(field.table_fields?.length ?? 0, 6) + ((field.table_fields?.length ?? 0) > 6 ? 3 : 2)" class="p-8 text-center">
                                                     <div class="flex flex-col items-center gap-2">
                                                       <div class="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-300">
                                                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
@@ -645,6 +647,31 @@ export class FormRendererComponent implements OnInit, OnDestroy {
     } catch (e) {
       return false;
     }
+  }
+
+  protected readonly Math = Math;
+
+  editTableRow(field: DocumentField, index: number) {
+    const row = this.formData[field.fieldname][index];
+    const tableFields = field.table_fields || [];
+
+    // Map TableColumnDef to DocumentField for the prompt
+    const promptFields: DocumentField[] = tableFields.map(tf => ({
+      id: tf.id,
+      fieldname: tf.fieldname,
+      label: tf.label,
+      fieldtype: tf.fieldtype as any,
+      mandatory: tf.mandatory,
+      options: tf.options,
+      regex: tf.regex,
+      default: row[tf.fieldname]
+    }));
+
+    this.ctx.prompt(promptFields, (values) => {
+      // Update row with new values
+      Object.assign(row, values);
+      this.onFieldChange(field.fieldname);
+    }, `Edit Row #${index + 1}`);
   }
 
   addTableRow(fieldname: string) {
