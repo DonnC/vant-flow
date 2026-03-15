@@ -1,11 +1,11 @@
 import { FormGroup, Validators } from '@angular/forms';
 import { WritableSignal, signal, Injectable } from '@angular/core';
 import { DocumentField, DocumentSection, DocumentDefinition, FormActionsConfig } from '../models/document.model';
-import { AppUtilityService } from './app-utility.service';
-import { BuilderStateService } from './builder-state.service';
+import { VfUtilityService } from './app-utility.service';
+import { VfBuilderState } from './builder-state.service';
 
 @Injectable()
-export class FormContext {
+export class VfFormContext {
     public fieldSignals = new Map<string, WritableSignal<DocumentField>>();
     public sectionSignals = new Map<string, WritableSignal<DocumentSection>>();
     public dynamicIntro = signal<{ message: string; color: string } | null>(null);
@@ -20,8 +20,8 @@ export class FormContext {
     public actionsConfig = signal<FormActionsConfig | undefined>(undefined);
 
     constructor(
-        private appUtility: AppUtilityService,
-        private state: BuilderStateService
+        private appUtility: VfUtilityService,
+        private state: VfBuilderState
     ) { }
 
     initialize(document: DocumentDefinition, formData: any) {
@@ -56,6 +56,7 @@ export class FormContext {
     set_intro(message: string, color: string = 'blue') {
         this.dynamicIntro.set({ message, color });
     }
+
 
     msgprint(message: string, indicator: any = 'info') {
         this.appUtility.show_alert(message, indicator);

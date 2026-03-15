@@ -7,6 +7,7 @@ export interface TableColumnDef {
   label: string;
   fieldtype: 'Data' | 'Int' | 'Float' | 'Text' | 'Select' | 'Link' | 'Check' | 'Date' | 'Password';
   mandatory?: boolean;
+  default?: any;
   options?: string;
   regex?: string;
 }
@@ -43,6 +44,7 @@ export interface DocumentSection {
   depends_on?: string; // Evaluate expression to show/hide section
   hidden?: boolean; // New: for scripting API control
   collapsible?: boolean;
+  collapsed?: boolean;
   columns_count?: number;
   columns: DocumentColumn[];
 }
