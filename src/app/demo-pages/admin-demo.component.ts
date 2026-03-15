@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { VfBuilder, VfRenderer, VfToastOutlet, DocumentDefinition } from 'vant-flow';
+import { VfBuilder, VfRenderer, VfToastOutlet, DocumentDefinition } from '../../../projects/vant-flow/src/public-api';
 import { EXAMPLE_DOCUMENT } from './example-data';
 
 @Component({
@@ -65,23 +65,42 @@ import { EXAMPLE_DOCUMENT } from './example-data';
           </div>
         } @else if (activeTab === 'renderer') {
           <div class="h-full overflow-y-auto bg-zinc-50 p-10 animate-in fade-in duration-500">
-             <div class="max-w-4xl mx-auto py-10">
+             <div class="max-w-6xl mx-auto py-10">
                 <vf-renderer [document]="schema()"></vf-renderer>
              </div>
           </div>
         } @else {
           <!-- SPLIT VIEW -->
           <div class="h-full flex divide-x divide-zinc-200 animate-in zoom-in-95 duration-500">
-             <div class="flex-1 overflow-hidden">
+             <div class="flex-1 overflow-hidden relative">
                 <vf-builder [initialSchema]="schema()" (schemaChange)="onSchemaChange($event)"></vf-builder>
+                
+                @if (!showLivePreview()) {
+                  <button (click)="showLivePreview.set(true)"
+                    class="absolute right-4 top-1/2 -translate-y-1/2 w-8 h-12 bg-white border border-zinc-200 rounded-l-xl border-r-0 flex items-center justify-center hover:bg-zinc-50 transition-all shadow-xl z-50 animate-in slide-in-from-right-4">
+                    <div class="flex flex-col items-center gap-1 opacity-40 group-hover:opacity-100">
+                       <div class="w-1 h-1 rounded-full bg-emerald-500"></div>
+                       <div class="w-1 h-3 rounded-full bg-zinc-300"></div>
+                    </div>
+                  </button>
+                }
              </div>
-             <div class="w-[500px] xl:w-[600px] overflow-y-auto bg-zinc-50/50 backdrop-blur-sm p-6 shrink-0 shadow-2xl">
-                <div class="mb-4 flex items-center justify-between">
-                   <h4 class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Live Dynamic Preview</h4>
-                   <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                </div>
-                <vf-renderer [document]="schema()"></vf-renderer>
-             </div>
+             
+             @if (showLivePreview()) {
+               <div class="w-[500px] xl:w-[600px] overflow-y-auto bg-zinc-50/50 backdrop-blur-sm p-6 shrink-0 shadow-2xl relative animate-in slide-in-from-right-8 duration-500">
+                  <div class="mb-4 flex items-center justify-between">
+                     <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <h4 class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Live Dynamic Preview</h4>
+                     </div>
+                     <button (click)="showLivePreview.set(false)" 
+                        class="p-1 px-2 rounded-md hover:bg-zinc-200 text-[10px] font-bold text-zinc-400 uppercase transition-all">
+                        Hide Preview
+                     </button>
+                  </div>
+                  <vf-renderer [document]="schema()"></vf-renderer>
+               </div>
+             }
           </div>
         }
       </div>
@@ -93,6 +112,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
 export class AdminDemoComponent {
   activeTab: 'builder' | 'renderer' | 'split' = 'split';
   schema = signal<DocumentDefinition>(EXAMPLE_DOCUMENT);
+  showLivePreview = signal(true);
 
   onSchemaChange(newSchema: DocumentDefinition) {
     this.schema.set(newSchema);

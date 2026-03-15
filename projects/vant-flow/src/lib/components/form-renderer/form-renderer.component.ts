@@ -162,7 +162,7 @@ import { VfField } from '../form-field.component';
                                         @if (field.fieldtype === 'Table') {
                                           <div class="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
                                             <div class="overflow-x-auto">
-                                              <!-- ... existing table code ... -->
+                                              <!-- Table -->
                                               <table class="w-full text-left border-collapse">
                                                 <thead>
                                                 <tr class="bg-zinc-50/80 border-b border-zinc-200">
@@ -358,7 +358,6 @@ import { VfField } from '../form-field.component';
       overflow-y: visible;
     }
 
-    /* Simple CSS resize handle styling */
     .ql-frappe-style .ql-container::-webkit-resizer {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23d1d5db' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 19l4-4M10 19l9-9'/%3E%3C/svg%3E");
       background-size: 10px 10px;
@@ -383,7 +382,6 @@ import { VfField } from '../form-field.component';
       @apply fill-zinc-500 !important;
     }
 
-    /* Layout cleanups for readonly */
     .form-readonly .canvas-field {
       @apply pointer-events-none opacity-90;
     }
@@ -397,56 +395,24 @@ import { VfField } from '../form-field.component';
       resize: none;
     }
 
-    /* Explicit transition for grid height animation */
     .grid {
       transition: grid-template-rows 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
     }
   `]
 })
 export class VfRenderer implements OnInit, OnChanges, OnDestroy {
-  /** The form schema to render. Required. */
   @Input() document!: DocumentDefinition;
-
-  /** Pre-fill the form with existing data (edit / view mode). */
   @Input() initialData?: Record<string, any>;
-
-  /** Put the entire form into read-only mode. */
   @Input() readonly?: boolean;
-
-  /** Show or hide the action buttons bar. Default: true */
   @Input() showActions: boolean = true;
-
-  /** Override the label for the submit button. */
   @Input() submitLabel?: string;
-
-  /** Override the label for the draft/save button. */
   @Input() draftLabel?: string;
-
-  /** Disable all inputs without going fully readonly (e.g. while loading). */
   @Input() disabled: boolean = false;
 
-  /** Emitted when the form is submitted with valid data. */
   @Output() formSubmit = new EventEmitter<any>();
-
-  /** Emitted when "Save as Draft" is clicked with the current packed data. */
   @Output() formDraft = new EventEmitter<any>();
-
-  /**
-   * Emitted on every field value change.
-   * Payload: { fieldname, value, data } — `data` is the full flat form data snapshot.
-   */
   @Output() formChange = new EventEmitter<{ fieldname: string; value: any; data: Record<string, any> }>();
-
-  /**
-   * Emitted when form submit validation fails.
-   * Payload: string[] — list of fieldnames that are invalid.
-   */
   @Output() formError = new EventEmitter<string[]>();
-
-  /**
-   * Emitted once after the form is fully initialized.
-   * Payload: FormContext — gives the host full access to the frm.xxx scripting API.
-   */
   @Output() formReady = new EventEmitter<VfFormContext>();
 
   formData: any = {};
@@ -454,7 +420,6 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   utils = inject(VfUtilityService);
 
   constructor() {
-    // Re-evaluate depends_on when form data changes
     effect(() => {
       this.evaluateDependsOn();
     }, { allowSignalWrites: true });
@@ -463,24 +428,18 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   ngOnInit() {
     this.initForm();
     this.ctx.initialize(this.document, this.formData);
-    // Apply readonly mode (from @Input) into FormContext
     if (this.readonly) {
       this.ctx.set_readonly(true);
     }
-    // Execute script ONCE to register listeners
     this.ctx.execute(this.document.client_script || '', 'refresh');
-    // Explicitly trigger the refresh event so handlers run
     this.ctx.trigger('refresh');
-    // Notify host that FormContext is ready for programmatic access
     this.formReady.emit(this.ctx);
   }
 
   ngOnChanges(changes: SimpleChanges) {
-    // Reactively update readonly state when @Input changes after init
     if (changes['readonly'] && !changes['readonly'].firstChange) {
       this.ctx.set_readonly(!!this.readonly);
     }
-    // Reload form data if initialData is updated externally
     if (changes['initialData'] && !changes['initialData'].firstChange && this.initialData) {
       Object.assign(this.formData, this.initialData);
       this.initForm();
@@ -492,18 +451,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   }
 
   private initForm() {
-    // Merge initialData from @Input into formData before unpacking
     const rawData = { ...(this.initialData || {}), ...this.formData };
     this.formData = {};
 
-    this.document.sections.forEach(s => {
-      s.columns.forEach(c => {
-        c.fields.forEach(f => {
-          // Determine the path to read from
+    this.document.sections.forEach((s: DocumentSection) => {
+      s.columns.forEach((c) => {
+        c.fields.forEach((f: DocumentField) => {
           const path = f.data_group ? `${f.data_group}.${f.fieldname}` : f.fieldname;
           let val = this.utils.getDeepValue(rawData, path);
-
-          // If no value found at path, try flat fieldname (fallback for partial legacy data)
           if (val === undefined) val = rawData[f.fieldname];
 
           if (f.fieldtype === 'Table') {
@@ -522,15 +477,12 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     });
   }
 
-
   onFieldChange(fieldname: string, val?: any) {
     if (val !== undefined) {
       this.formData[fieldname] = val;
     }
     this.evaluateDependsOn();
-    // triggerChange internally calls trigger(), which executes listeners registered in OnInit
     this.ctx.triggerChange(fieldname, this.formData[fieldname]);
-    // Emit to host for external reactivity
     this.formChange.emit({
       fieldname,
       value: this.formData[fieldname],
@@ -541,11 +493,10 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   validateForm(): boolean {
     const invalidFields: string[] = [];
 
-    // 1. Check Mandatory Fields
-    this.document.sections.forEach(s => {
+    this.document.sections.forEach((s: DocumentSection) => {
       if (this.ctx.getSectionSignal(s.id, 'hidden')()) return;
-      s.columns.forEach(c => {
-        c.fields.forEach(f => {
+      s.columns.forEach((c) => {
+        c.fields.forEach((f: DocumentField) => {
           if (this.ctx.getFieldSignal(f.fieldname, 'hidden')()) return;
           const isMandatory = this.ctx.getFieldSignal(f.fieldname, 'mandatory')();
           const val = this.formData[f.fieldname];
@@ -554,16 +505,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
             invalidFields.push(f.fieldname);
           }
 
-          // 2. Check Regex
           if (f.regex && val && !this.isValidRegex(f.fieldname, f.regex)) {
             invalidFields.push(f.fieldname);
           }
 
-          // 2.1 Check Table Validation
           if (f.fieldtype === 'Table' && this.formData[f.fieldname]) {
             const rows = this.formData[f.fieldname] as any[];
             rows.forEach(row => {
-              f.table_fields?.forEach(tf => {
+              f.table_fields?.forEach((tf: any) => {
                 const cellVal = row[tf.fieldname];
                 if (tf.mandatory && (cellVal === undefined || cellVal === null || cellVal === '')) {
                   invalidFields.push(`${f.fieldname}.${tf.fieldname}`);
@@ -580,12 +529,10 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
 
     if (invalidFields.length > 0) {
       this.utils.show_alert('Please fill in all mandatory fields correctly before submitting.', 'error');
-      // Emit invalid field names to host so it can handle them
       this.formError.emit(invalidFields);
       return false;
     }
 
-    // 3. Script Hook: validate
     const result = this.ctx.trigger('validate');
     if (result === false) {
       return false;
@@ -596,7 +543,6 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
 
   saveDraft() {
     const packed = this.packData();
-    // Draft doesn't require validation — emit always and let host decide
     this.formDraft.emit(packed);
     this.utils.show_alert('Draft saved successfully', 'success');
   }
@@ -611,9 +557,9 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
 
   private packData(): any {
     const packedData: any = {};
-    this.document.sections.forEach(s => {
-      s.columns.forEach(c => {
-        c.fields.forEach(f => {
+    this.document.sections.forEach((s: DocumentSection) => {
+      s.columns.forEach((c) => {
+        c.fields.forEach((f: DocumentField) => {
           if (f.fieldtype === 'Button') return;
           const val = this.formData[f.fieldname];
           const path = f.data_group ? `${f.data_group}.${f.fieldname}` : f.fieldname;
@@ -625,10 +571,9 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   }
 
   private evaluateDependsOn() {
-    // Evaluate field visibility / mandatory
-    this.document.sections.forEach(s => {
-      s.columns.forEach(c => {
-        c.fields.forEach(f => {
+    this.document.sections.forEach((s: DocumentSection) => {
+      s.columns.forEach((c) => {
+        c.fields.forEach((f: DocumentField) => {
           if (f.depends_on) {
             const visible = this.evalExpression(f.depends_on);
             this.ctx.set_df_property(f.fieldname, 'hidden', visible ? 0 : 1);
@@ -641,8 +586,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       });
     });
 
-    // Evaluate section visibility
-    this.document.sections.forEach(s => {
+    this.document.sections.forEach((s: DocumentSection) => {
       if (s.depends_on) {
         const visible = this.evalExpression(s.depends_on);
         this.ctx.set_section_property(s.id, 'hidden', visible ? 0 : 1);
@@ -673,7 +617,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
 
   getColumnClass(section: DocumentSection) {
     if (this.isSingleFieldSection(section)) return 'w-full';
-    const count = section.columns.length || section.columns_count || 1;
+    const count = section.columns.length || 1;
 
     const classes: Record<number, string> = {
       1: 'w-full',
@@ -742,13 +686,12 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     }
   }
 
-  protected readonly Math = Math;
+  public readonly Math = Math;
 
   editTableRow(field: DocumentField, index: number) {
     const row = this.formData[field.fieldname][index];
     const tableFields = field.table_fields || [];
 
-    // Map TableColumnDef to DocumentField for the prompt
     const promptFields: DocumentField[] = tableFields.map(tf => ({
       id: tf.id,
       fieldname: tf.fieldname,
@@ -761,7 +704,6 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     }));
 
     this.ctx.prompt(promptFields, (values) => {
-      // Update row with new values
       Object.assign(row, values);
       this.onFieldChange(field.fieldname);
     }, `Edit Row #${index + 1}`);

@@ -3,10 +3,10 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 @Component({
-    selector: 'app-landing',
-    standalone: true,
-    imports: [CommonModule, RouterLink],
-    template: `
+  selector: 'app-landing',
+  standalone: true,
+  imports: [CommonModule, RouterLink],
+  template: `
     <div class="min-h-screen bg-zinc-50 flex flex-col items-center justify-center p-6 bg-grid-zinc-200">
       <div class="max-w-4xl w-full">
         <!-- Hero Header -->
@@ -67,13 +67,22 @@ import { RouterLink } from '@angular/router';
         </div>
 
         <!-- Footer -->
-        <footer class="mt-20 text-center text-zinc-400 text-xs">
-          Built with Angular &bull; Tailwind CSS &bull; Vant Flow Core
+        <footer class="mt-20 text-center flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-1000 delay-500">
+          <div class="text-zinc-400 text-xs">
+            Built with Angular &bull; Tailwind CSS &bull; Vant Flow Core
+          </div>
+          <div class="max-w-md bg-white border border-zinc-200 rounded-2xl p-4 shadow-sm">
+            <p class="text-[11px] text-zinc-500 italic leading-relaxed">
+              "If you think this is cool, wait until you see far greater work that exceeds this from my inspiration from 
+              <a href="https://frappe.io" target="_blank" class="text-indigo-600 font-bold hover:underline">Frappe</a>" 
+              — <span class="text-zinc-800 font-bold">DonnC</span>
+            </p>
+          </div>
         </footer>
       </div>
     </div>
   `,
-    styles: [`
+  styles: [`
     .bg-grid-zinc-200 {
       background-image: radial-gradient(circle, #e4e4e7 1px, transparent 1px);
       background-size: 32px 32px;
