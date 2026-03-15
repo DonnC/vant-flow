@@ -69,7 +69,8 @@
                             "fieldtype": "Attach",
                             "label": "Supporting Documents",
                             "options": ".pdf,.doc,.docx | 10MB | 3",
-                            "description": "Upload up to 3 technical documents."
+                            "description": "Upload up to 3 technical documents.",
+                            "data_group": "files"
                         }
                     ]
                 },
@@ -82,7 +83,8 @@
                             "fieldtype": "Attach",
                             "label": "Inspection Photos",
                             "options": "image/* | 5MB | 5",
-                            "description": "Upload up to 5 photos showing batch condition."
+                            "description": "Upload up to 5 photos showing batch condition.",
+                            "data_group": "files"
                         }
                     ]
                 }
@@ -150,7 +152,8 @@
                             "fieldname": "inspector_signature",
                             "fieldtype": "Signature",
                             "label": "Inspector Signature",
-                            "mandatory": 1
+                            "mandatory": 1,
+                            "data_group": "files"
                         }
                     ]
                 }

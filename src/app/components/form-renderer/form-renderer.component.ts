@@ -105,163 +105,191 @@ import { FormFieldComponent } from '../form-field.component';
           }
 
           <!-- Sections -->
-          <div class="space-y-4">
+          <div class="space-y-6">
             @for (section of document.sections; track section.id) {
               @if (!ctx.getSectionSignal(section.id, 'hidden')()) {
-                <div class="section-container group animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  @if (section.label) {
-                    <div class="flex items-center gap-3 mb-4">
-                      <h3
-                        class="text-[11px] font-black text-zinc-400 uppercase tracking-[0.2em]">{{ section.label }}</h3>
+                <div class="section-card bg-white border border-zinc-200 shadow-sm rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+                  
+                  <!-- Section Header (Clickable if collapsible) -->
+                  <div class="px-6 py-5 flex items-center justify-between gap-4 transition-all bg-zinc-50/30 border-b border-transparent"
+                       [class.border-zinc-100]="!ctx.getSectionSignal(section.id, 'collapsed')()"
+                       [class.cursor-pointer]="section.collapsible"
+                       (click)="section.collapsible ? toggleSection(section.id) : null">
+                    
+                    <div class="space-y-1">
+                      @if (section.label) {
+                        <h3 class="text-xs font-bold text-zinc-900 uppercase tracking-wider transition-colors"
+                            [class.text-indigo-600]="section.collapsible && !ctx.getSectionSignal(section.id, 'collapsed')()">
+                          {{ section.label }}
+                        </h3>
+                      }
+                      @if (section.description) {
+                        <p class="text-[11px] text-zinc-400 italic leading-snug">{{ section.description }}</p>
+                      }
                     </div>
-                  }
 
-                  @if (section.description) {
-                    <p class="text-xs text-zinc-400 mb-4 -mt-2 italic">{{ section.description }}</p>
-                  }
+                    @if (ctx.getSectionSignal(section.id, 'collapsible')()) {
+                      <div class="w-7 h-7 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-zinc-400 transition-all shadow-xs"
+                           [class.rotate-180]="ctx.getSectionSignal(section.id, 'collapsed')()">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                          <polyline points="18 15 12 9 6 15" />
+                        </svg>
+                      </div>
+                    }
+                  </div>
 
-                  <div class="flex flex-wrap -mx-3">
-                    @for (col of section.columns; track col.id) {
-                      <div class="px-3" [ngClass]="getColumnClass(section)">
-                        <div class="space-y-4">
-                          @for (field of col.fields; track field.id) {
-                            @if (!ctx.getFieldSignal(field.fieldname, 'hidden')()) {
-                              <div class="field-group transition-all duration-200">
-                                <!-- Centralized Field Rendering -->
-                                <div class="relative group/input"
-                                     [class.regex-error]="field.regex && formData[field.fieldname] && !isValidRegex(field.fieldname, field.regex)">
-                                  @if (field.fieldtype === 'Table') {
-                                    <div class="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm">
-                                      <div class="overflow-x-auto">
-                                        <table class="w-full text-left border-collapse">
-                                          <thead>
-                                          <tr class="bg-zinc-50/80 border-b border-zinc-200">
-                                            <th
-                                              class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest w-12 text-center">
-                                              #
-                                            </th>
-                                            @for (col of field.table_fields?.slice(0, 6); track col.id) {
-                                              <th
-                                                class="p-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                                                {{ col.label }}
-                                                @if (col.mandatory) {
-                                                  <span class="text-red-500">*</span>
-                                                }
-                                              </th>
+                  <!-- Collapsible Content Area -->
+                  <div class="grid transition-all duration-500 ease-in-out"
+                       [style.grid-template-rows]="ctx.getSectionSignal(section.id, 'collapsed')() ? '0fr' : '1fr'"
+                       [class.opacity-0]="ctx.getSectionSignal(section.id, 'collapsed')()"
+                       [class.pointer-events-none]="ctx.getSectionSignal(section.id, 'collapsed')()">
+                    <div class="overflow-hidden">
+                      <div class="p-6">
+                        <div class="flex flex-wrap -mx-3">
+                          @for (col of section.columns; track col.id) {
+                            <div class="px-3" [ngClass]="getColumnClass(section)">
+                              <div class="space-y-6">
+                                @for (field of col.fields; track field.id) {
+                                  @if (!ctx.getFieldSignal(field.fieldname, 'hidden')()) {
+                                    <div class="field-group transition-all duration-200">
+                                      <div class="relative group/input"
+                                           [class.regex-error]="field.regex && formData[field.fieldname] && !isValidRegex(field.fieldname, field.regex)">
+                                        @if (field.fieldtype === 'Table') {
+                                          <div class="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
+                                            <div class="overflow-x-auto">
+                                              <!-- ... existing table code ... -->
+                                              <table class="w-full text-left border-collapse">
+                                                <thead>
+                                                <tr class="bg-zinc-50/80 border-b border-zinc-200">
+                                                  <th
+                                                    class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest w-12 text-center">
+                                                    #
+                                                  </th>
+                                                  @for (col of field.table_fields?.slice(0, 6); track col.id) {
+                                                    <th
+                                                      class="p-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                                                      {{ col.label }}
+                                                      @if (col.mandatory) {
+                                                        <span class="text-red-500">*</span>
+                                                      }
+                                                    </th>
+                                                  }
+                                                  @if ((field.table_fields?.length ?? 0) > 6) {
+                                                    <th
+                                                      class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">
+                                                      +{{ field.table_fields!.length - 6 }} more
+                                                    </th>
+                                                  }
+                                                  <th class="p-3 w-20"></th>
+                                                </tr>
+                                                </thead>
+                                                <tbody class="divide-y divide-zinc-100">
+                                                  @for (row of formData[field.fieldname]; track $index) {
+                                                    <tr class="hover:bg-zinc-50/50 transition-colors group/row">
+                                                      <td
+                                                        class="p-3 text-center text-[11px] font-mono text-zinc-400">{{ $index + 1 }}
+                                                      </td>
+                                                      @for (col of field.table_fields?.slice(0, 6); track col.id) {
+                                                        <td class="p-2 relative group/cell" 
+                                                            [class.cursor-pointer]="col.fieldtype === 'Text'"
+                                                            (click)="col.fieldtype === 'Text' ? editTableRow(field, $index) : null">
+                                                          <app-form-field
+                                                            [field]="col"
+                                                            [(value)]="row[col.fieldname]"
+                                                            (valueChange)="onFieldChange(field.fieldname)"
+                                                            [compact]="true"
+                                                            [hideLabel]="true">
+                                                          </app-form-field>
+                                                          @if (col.fieldtype !== 'Text') {
+                                                            <button (click)="$event.stopPropagation(); editTableRow(field, $index)" 
+                                                                    class="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100">
+                                                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                                                            </button>
+                                                          }
+                                                        </td>
+                                                      }
+                                                      @if ((field.table_fields?.length ?? 0) > 6) {
+                                                        <td class="p-2 text-zinc-300 text-[10px] italic">...</td>
+                                                      }
+                                                      <td class="p-2 text-right flex items-center justify-end gap-1">
+                                                        <button (click)="editTableRow(field, $index)"
+                                                                class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+                                                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                               stroke="currentColor" stroke-width="2">
+                                                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                          </svg>
+                                                        </button>
+                                                        <button (click)="removeTableRow(field.fieldname, $index)"
+                                                                [disabled]="ctx.isReadOnly()"
+                                                                class="p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-0 opacity-0 group-hover/row:opacity-100 transition-all">
+                                                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                               stroke="currentColor" stroke-width="2.5">
+                                                            <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                            <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                          </svg>
+                                                        </button>
+                                                      </td>
+                                                    </tr>
+                                                  }
+                                                  @if (!formData[field.fieldname]?.length) {
+                                                    <tr>
+                                                      <td
+                                                        [attr.colspan]="Math.min(field.table_fields?.length ?? 0, 6) + ((field.table_fields?.length ?? 0) > 6 ? 3 : 2)"
+                                                        class="p-8 text-center">
+                                                        <div class="flex flex-col items-center gap-2">
+                                                          <div
+                                                            class="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-300">
+                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                                                 stroke="currentColor" stroke-width="2">
+                                                              <path d="M12 5v14M5 12h14"/>
+                                                            </svg>
+                                                          </div>
+                                                          <p class="text-[12px] text-zinc-400 font-medium">No rows added
+                                                            yet</p>
+                                                        </div>
+                                                      </td>
+                                                    </tr>
+                                                  }
+                                                </tbody>
+                                              </table>
+                                            </div>
+                                            @if (!ctx.isReadOnly()) {
+                                              <div class="p-3 bg-zinc-50/50 border-t border-zinc-200">
+                                                <button (click)="addTableRow(field.fieldname)"
+                                                        class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold text-zinc-600 hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-sm">
+                                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+                                                       stroke="currentColor" stroke-width="3">
+                                                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                                                  </svg>
+                                                  Add Row
+                                                </button>
+                                              </div>
                                             }
-                                            @if ((field.table_fields?.length ?? 0) > 6) {
-                                              <th
-                                                class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">
-                                                +{{ field.table_fields!.length - 6 }} more
-                                              </th>
-                                            }
-                                            <th class="p-3 w-20"></th>
-                                          </tr>
-                                          </thead>
-                                          <tbody class="divide-y divide-zinc-100">
-                                            @for (row of formData[field.fieldname]; track $index) {
-                                              <tr class="hover:bg-zinc-50/50 transition-colors group/row">
-                                                <td
-                                                  class="p-3 text-center text-[11px] font-mono text-zinc-400">{{ $index + 1 }}
-                                                </td>
-                                                @for (col of field.table_fields?.slice(0, 6); track col.id) {
-                                                  <td class="p-2 relative group/cell" 
-                                                      [class.cursor-pointer]="col.fieldtype === 'Text'"
-                                                      (click)="col.fieldtype === 'Text' ? editTableRow(field, $index) : null">
-                                                    <app-form-field
-                                                      [field]="col"
-                                                      [(value)]="row[col.fieldname]"
-                                                      (valueChange)="onFieldChange(field.fieldname)"
-                                                      [compact]="true"
-                                                      [hideLabel]="true">
-                                                    </app-form-field>
-                                                    @if (col.fieldtype !== 'Text') {
-                                                      <button (click)="$event.stopPropagation(); editTableRow(field, $index)" 
-                                                              class="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100">
-                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-                                                      </button>
-                                                    }
-                                                  </td>
-                                                }
-                                                @if ((field.table_fields?.length ?? 0) > 6) {
-                                                  <td class="p-2 text-zinc-300 text-[10px] italic">...</td>
-                                                }
-                                                <td class="p-2 text-right flex items-center justify-end gap-1">
-                                                  <button (click)="editTableRow(field, $index)"
-                                                          class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                                         stroke="currentColor" stroke-width="2">
-                                                      <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                                                      <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                                    </svg>
-                                                  </button>
-                                                  <button (click)="removeTableRow(field.fieldname, $index)"
-                                                          [disabled]="ctx.isReadOnly()"
-                                                          class="p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-0 opacity-0 group-hover/row:opacity-100 transition-all">
-                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                                         stroke="currentColor" stroke-width="2.5">
-                                                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                      <line x1="6" y1="6" x2="18" y2="18"></line>
-                                                    </svg>
-                                                  </button>
-                                                </td>
-                                              </tr>
-                                            }
-                                            @if (!formData[field.fieldname]?.length) {
-                                              <tr>
-                                                <td
-                                                  [attr.colspan]="Math.min(field.table_fields?.length ?? 0, 6) + ((field.table_fields?.length ?? 0) > 6 ? 3 : 2)"
-                                                  class="p-8 text-center">
-                                                  <div class="flex flex-col items-center gap-2">
-                                                    <div
-                                                      class="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-300">
-                                                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-                                                           stroke="currentColor" stroke-width="2">
-                                                        <path d="M12 5v14M5 12h14"/>
-                                                      </svg>
-                                                    </div>
-                                                    <p class="text-[12px] text-zinc-400 font-medium">No rows added
-                                                      yet</p>
-                                                  </div>
-                                                </td>
-                                              </tr>
-                                            }
-                                          </tbody>
-                                        </table>
+                                          </div>
+                                        } @else {
+                                          <app-form-field
+                                            [field]="field"
+                                            [(value)]="formData[field.fieldname]"
+                                            (valueChange)="onFieldChange(field.fieldname)">
+                                          </app-form-field>
+                                        }
+
+                                        <!-- Read Only Overlay if needed -->
+                                        @if (ctx.getFieldSignal(field.fieldname, 'read_only')()) {
+                                          <div class="absolute inset-0 bg-zinc-50/10 cursor-not-allowed"></div>
+                                        }
                                       </div>
-                                      @if (!ctx.isReadOnly()) {
-                                        <div class="p-3 bg-zinc-50/50 border-t border-zinc-200">
-                                          <button (click)="addTableRow(field.fieldname)"
-                                                  class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold text-zinc-600 hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-sm">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                                                 stroke="currentColor" stroke-width="3">
-                                              <line x1="12" y1="5" x2="12" y2="19"></line>
-                                              <line x1="5" y1="12" x2="19" y2="12"></line>
-                                            </svg>
-                                            Add Row
-                                          </button>
-                                        </div>
-                                      }
                                     </div>
-                                  } @else {
-                                    <app-form-field
-                                      [field]="field"
-                                      [(value)]="formData[field.fieldname]"
-                                      (valueChange)="onFieldChange(field.fieldname)">
-                                    </app-form-field>
                                   }
-
-                                  <!-- Read Only Overlay if needed -->
-                                  @if (ctx.getFieldSignal(field.fieldname, 'read_only')()) {
-                                    <div class="absolute inset-0 bg-zinc-50/10 cursor-not-allowed"></div>
-                                  }
-                                </div>
+                                }
                               </div>
-                            }
+                            </div>
                           }
                         </div>
                       </div>
-                    }
+                    </div>
                   </div>
                 </div>
               }
@@ -362,6 +390,11 @@ import { FormFieldComponent } from '../form-field.component';
     .form-readonly .ql-container {
       @apply border-zinc-100 bg-zinc-50/50 !important;
       resize: none;
+    }
+
+    /* Explicit transition for grid height animation */
+    .grid {
+      transition: grid-template-rows 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
     }
   `]
 })
@@ -554,6 +587,11 @@ export class FormRendererComponent implements OnInit, OnDestroy {
       console.warn(`[depends_on] Failed to evaluate: ${expr}`, e);
       return false;
     }
+  }
+
+  toggleSection(sectionId: string) {
+    const current = this.ctx.getSectionSignal(sectionId, 'collapsed')();
+    this.ctx.set_section_property(sectionId, 'collapsed', !current);
   }
 
   isSingleFieldSection(section: DocumentSection): boolean {

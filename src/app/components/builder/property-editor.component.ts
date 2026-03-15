@@ -205,6 +205,33 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
           </div>
         </div>
 
+        <!-- Section Toggles -->
+        <div class="space-y-3 pt-2">
+          <label class="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 cursor-pointer hover:bg-zinc-50 transition-all select-none">
+            <div class="flex-1">
+              <p class="text-[11px] font-bold text-zinc-700 uppercase tracking-tight">Collapsible</p>
+              <p class="text-[10px] text-zinc-400">Allow users to toggle section visibility</p>
+            </div>
+            <input type="checkbox" 
+              class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" 
+              [ngModel]="section()!.collapsible" 
+              (ngModelChange)="state.updateSectionProperty(section()!.id, 'collapsible', $event)">
+          </label>
+
+          @if (section()!.collapsible) {
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 cursor-pointer hover:bg-zinc-50 transition-all select-none animate-in slide-in-from-top-1 duration-200">
+              <div class="flex-1">
+                <p class="text-[11px] font-bold text-zinc-700 uppercase tracking-tight">Default Collapsed</p>
+                <p class="text-[10px] text-zinc-400">Start with section minimized</p>
+              </div>
+              <input type="checkbox" 
+                class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" 
+                [ngModel]="section()!.collapsed" 
+                (ngModelChange)="state.updateSectionProperty(section()!.id, 'collapsed', $event)">
+            </label>
+          }
+        </div>
+
         <div class="ui-sep"></div>
 
         <!-- Delete -->
