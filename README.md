@@ -209,6 +209,40 @@ To use this engine in your own project:
 
 ---
 
+---
+
+### 🚀 Advanced: Using Attach in Scripts
+
+Developers can listen to the `Attach` field to trigger custom logic like uploading to Firebase, AWS S3, or their own CDN.
+
+```javascript
+frm.on('inspection_photos', (val, frm) => {
+    if (!val) return; // File removed
+
+    // For multi-upload, val is an array. For single, it's an object.
+    const files = Array.isArray(val) ? val : [val];
+
+    files.forEach(file => {
+        // file object contains: { name, type, size, url (Base64) }
+        console.log('New file attached:', file.name);
+
+        // Example: Sending to an API
+        /*
+        frm.call({
+            method: 'upload_to_cdn',
+            args: { 
+                file_name: file.name,
+                file_data: file.url, // Base64 string
+                mime_type: file.type
+            },
+            freeze: true,
+            callback: (r) => frm.msgprint('Securely uploaded to CDN!')
+        });
+        */
+    });
+});
+```
+
 ## 🛠️ Technical Stack
 - **Engine**: Angular 17+ (Signals, Standalone Components, Control Flow)
 - **Styling**: Tailwind CSS (Utilizing `animate-in`, `glassmorphism`, `modern shadows`)

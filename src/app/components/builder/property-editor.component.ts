@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { BuilderStateService } from '../../services/builder-state.service';
 import { DocumentField, FieldType } from '../../models/document.model';
 
-const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Text', 'Text Editor', 'Table', 'Date', 'Float', 'Password', 'Button'];
+const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Text', 'Text Editor', 'Table', 'Date', 'Datetime', 'Time', 'Float', 'Password', 'Button', 'Signature', 'Attach'];
 
 @Component({
   selector: 'app-property-editor',
@@ -244,20 +244,25 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
           </select>
         </div>
 
-        <!-- Options (for Select / Link) -->
-        @if (field()!.fieldtype === 'Select' || field()!.fieldtype === 'Link') {
+        <!-- Options (for Select / Link / Attach) -->
+        @if (field()!.fieldtype === 'Select' || field()!.fieldtype === 'Link' || field()!.fieldtype === 'Attach') {
           <div>
             <label class="ui-label">
-              {{ field()!.fieldtype === 'Select' ? 'Options (one per line)' : 'Linked Document' }}
+              @if (field()!.fieldtype === 'Select') { Options (one per line) }
+              @else if (field()!.fieldtype === 'Link') { Linked Document }
+              @else { Attach Config (extensions | maxSize | maxFiles) }
             </label>
             @if (field()!.fieldtype === 'Select') {
               <textarea class="ui-textarea font-mono" rows="4" 
                 [ngModel]="field()!.options" (ngModelChange)="update('options', $event)"
                 placeholder="Option 1&#10;Option 2&#10;Option 3">
               </textarea>
-            } @else {
+            } @else if (field()!.fieldtype === 'Link') {
               <input class="ui-input" [ngModel]="field()!.options" (ngModelChange)="update('options', $event)" 
                 placeholder="e.g. Customer">
+            } @else {
+              <input class="ui-input" [ngModel]="field()!.options" (ngModelChange)="update('options', $event)" 
+                placeholder=".pdf,.jpg | 5MB | 1">
             }
           </div>
         }

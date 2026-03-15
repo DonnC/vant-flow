@@ -198,7 +198,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                           <p class="text-[10px] text-zinc-400 font-medium tracking-tight uppercase">{{ getFileSize(file.size) }}</p>
                         </div>
                       </div>
-                      <div class="flex items-center gap-1 opacity-0 group-file:opacity-100 transition-opacity">
+                      <div class="flex items-center gap-1 opacity-0 group-hover/file:opacity-100 transition-opacity">
                         <button type="button" (click)="downloadFile(file)" class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                         </button>
@@ -324,14 +324,19 @@ export class FormFieldComponent implements AfterViewInit {
   }
 
   get options() {
-    if (!this.field.options) return [];
-    if (this.field.fieldtype === 'Attach') return [this.field.options];
-    return this.field.options.split('\n').map(o => o.trim()).filter(Boolean);
+    const opt = this.ctx?.getFieldSignal(this.field.fieldname, 'options')() ?? this.field.options;
+    if (!opt) return [];
+    if (this.field.fieldtype === 'Attach') return [opt];
+    return String(opt).split('\n').map(o => o.trim()).filter(Boolean);
+  }
+
+  get regex() {
+    return this.ctx?.getFieldSignal(this.field.fieldname, 'regex')() ?? this.field.regex;
   }
 
   get attachConfig() {
     // Expected format in options: ".pdf,.jpg | 5MB | 1" or a JSON string
-    const opt = this.field.options || '';
+    const opt = (this.options[0] as string) || '';
     if (opt.startsWith('{')) {
       try { return JSON.parse(opt); } catch { }
     }
@@ -373,9 +378,9 @@ export class FormFieldComponent implements AfterViewInit {
   }
 
   isInvalidByRegex() {
-    if (!this.field.regex || !this.value) return false;
+    if (!this.regex || !this.value) return false;
     try {
-      return !new RegExp(this.field.regex).test(String(this.value));
+      return !new RegExp(this.regex).test(String(this.value));
     } catch {
       return false;
     }
