@@ -140,8 +140,10 @@ export class FormContext {
 
     add_row(fieldname: string, row: any = {}) {
         if (!this.formData[fieldname]) this.formData[fieldname] = [];
-        this.formData[fieldname].push(row);
-        const index = this.formData[fieldname].length - 1;
+        const table = this.formData[fieldname];
+        row.idx = table.length;
+        table.push(row);
+        const index = table.length - 1;
         this.trigger(`${fieldname}_add`, { row, index });
         this.trigger(fieldname, this.formData[fieldname]);
     }

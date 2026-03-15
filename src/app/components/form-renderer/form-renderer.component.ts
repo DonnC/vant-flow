@@ -399,7 +399,11 @@ export class FormRendererComponent implements OnInit, OnDestroy {
       s.columns.forEach(c => {
         c.fields.forEach(f => {
           if (f.fieldtype === 'Table') {
-            this.formData[f.fieldname] = f.default || [];
+            const defaultRows = f.default || [];
+            this.formData[f.fieldname] = defaultRows.map((r: any, i: number) => ({
+              ...r,
+              idx: i
+            }));
           } else if (f.fieldtype === 'Check') {
             this.formData[f.fieldname] = f.default ? 1 : 0;
           } else {
