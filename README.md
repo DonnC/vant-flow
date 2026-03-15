@@ -3,8 +3,8 @@
 Kai-NG-Flow is a high-performance, open-source form builder and renderer for Angular v17+, deeply inspired by the Frappe Framework's client-side architecture. It enables developers to build complex, reactive forms using simple JSON metadata and customize behavior with a powerful, Frappe-like Scripting API.
 
 
-![img](data/editor.png)
-![img2](data/preview.png)
+![img](data/screenshots/editor.png)
+![img2](data/screenshots/preview.png)
 
 ---
 
