@@ -3,13 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { DocumentSection } from '../../models/document.model';
-import { BuilderStateService } from '../../services/builder-state.service';
-import { CanvasColumnComponent } from './canvas-column.component';
+import { VfBuilderState } from '../../services/builder-state.service';
+import { VfCanvasColumn } from './canvas-column.component';
 
 @Component({
-  selector: 'app-canvas-section',
+  selector: 'vf-canvas-section',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, CanvasColumnComponent],
+  imports: [CommonModule, FormsModule, DragDropModule, VfCanvasColumn],
   template: `
     <div 
       (click)="selectSection($event)"
@@ -55,24 +55,24 @@ import { CanvasColumnComponent } from './canvas-column.component';
       <!-- Columns -->
       <div class="flex divide-x divide-zinc-100">
         @for (col of section.columns; track col.id; let last = $last) {
-          <app-canvas-column
+          <vf-canvas-column
             class="flex-1"
             [section]="section"
             [column]="col"
             [dropListId]="col.id"
             [connectedLists]="getConnectedLists()"
             [isLast]="last"
-          ></app-canvas-column>
+          ></vf-canvas-column>
         }
       </div>
     </div>
   `
 })
-export class CanvasSectionComponent {
+export class VfCanvasSection {
   @Input() section!: DocumentSection;
-  @Input() allColumnIds!: () => string[];
+  @Input() allColumnIds: string[] = [];
 
-  private state = inject(BuilderStateService);
+  private state = inject(VfBuilderState);
   editing = signal(false);
   editValue = '';
 
@@ -98,6 +98,6 @@ export class CanvasSectionComponent {
   removeSection() { this.state.removeSection(this.section.id); }
 
   getConnectedLists() {
-    return ['palette-list', ...this.allColumnIds()];
+    return ['palette-list', ...this.allColumnIds];
   }
 }

@@ -2,10 +2,10 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
-import { BuilderStateService } from '../../services/builder-state.service';
+import { VfBuilderState } from '../../services/builder-state.service';
 
 @Component({
-  selector: 'app-script-editor',
+  selector: 'vf-script-editor',
   standalone: true,
   imports: [CommonModule, FormsModule, MonacoEditorModule],
   template: `
@@ -74,8 +74,8 @@ import { BuilderStateService } from '../../services/builder-state.service';
     select option { @apply bg-zinc-800 text-zinc-300 py-2; }
   `]
 })
-export class ScriptEditorComponent {
-  state = inject(BuilderStateService);
+export class VfScriptEditor {
+  state = inject(VfBuilderState);
   editorInstance: any;
 
   insertOnRefresh() {
@@ -164,7 +164,7 @@ export class ScriptEditorComponent {
     }
 
     const dts = `
-      /** FormFlow Client Script Context */
+      /** Vant Flow Client Script Context */
       declare interface DocumentField {
         label?: string;
         fieldname: string;
@@ -179,7 +179,7 @@ export class ScriptEditorComponent {
         regex?: string;
       }
 
-      declare interface FormContext {
+      declare interface VfFormContext {
         /** Set value of a field */
         set_value(fieldname: string, value: any): void;
         /** Set multiple values at once */
@@ -201,7 +201,7 @@ export class ScriptEditorComponent {
         /** Show error and stop execution */
         throw(message: string): void;
         /** Listen to field or form events */
-        on(event: 'refresh' | 'validate' | string, callback: (val: any, frm: FormContext) => void): void;
+        on(event: 'refresh' | 'validate' | string, callback: (val: any, frm: VfFormContext) => void): void;
         
         /** Control global readonly state */
         set_readonly(readonly: boolean): void;
@@ -212,7 +212,7 @@ export class ScriptEditorComponent {
         /** Dynamically change a default button label */
         set_button_label(id: 'save' | 'submit' | 'approve' | 'decline', label: string): void;
         /** Override a default button action */
-        set_button_action(id: 'save' | 'submit' | 'approve' | 'decline', action: (frm: FormContext) => void): void;
+        set_button_action(id: 'save' | 'submit' | 'approve' | 'decline', action: (frm: VfFormContext) => void): void;
         
         /** Remote procedure call */
         call(opts: { 
@@ -236,7 +236,7 @@ export class ScriptEditorComponent {
       }
 
       /** The main Form Context object */
-      declare const frm: FormContext;
+      declare const frm: VfFormContext;
     `;
 
     // Register the lib

@@ -1,27 +1,29 @@
-import { Component, computed, inject, HostListener, OnInit, signal, effect } from '@angular/core';
+import { Component, computed, inject, HostListener, OnInit, signal, effect, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CdkDrag, CdkDropList, DragDropModule } from '@angular/cdk/drag-drop';
-import { BuilderStateService } from '../../services/builder-state.service';
-import { FieldPaletteComponent } from './field-palette.component';
-import { CanvasSectionComponent } from './canvas-section.component';
-import { PropertyEditorComponent } from './property-editor.component';
-import { ScriptEditorComponent } from './script-editor.component';
-import { FormRendererComponent } from '../form-renderer/form-renderer.component';
+import { VfBuilderState } from '../../services/builder-state.service';
+import { VfUtilityService } from '../../services/app-utility.service';
+import { VfPalette } from './field-palette.component';
+import { VfCanvasSection } from './canvas-section.component';
+import { VfPropertyEditor } from './property-editor.component';
+import { VfScriptEditor } from './script-editor.component';
+import { VfRenderer } from '../form-renderer/form-renderer.component';
 import { DocumentDefinition } from '../../models/document.model';
 
 type RightTab = 'properties' | 'script';
 
 @Component({
-  selector: 'app-builder-container',
+  selector: 'vf-builder',
   standalone: true,
+  providers: [VfBuilderState],
   imports: [
     CommonModule, FormsModule, DragDropModule,
-    FieldPaletteComponent, CanvasSectionComponent, PropertyEditorComponent,
-    ScriptEditorComponent, FormRendererComponent
+    VfPalette, VfCanvasSection, VfPropertyEditor,
+    VfScriptEditor, VfRenderer
   ],
   template: `
-  <div class="flex flex-col h-screen bg-zinc-100 overflow-hidden">
+  <div class="flex flex-col h-full bg-zinc-100 overflow-hidden">
     <!-- ── Top Toolbar ─────────────────────────────────────── -->
     <header class="z-30 h-12 bg-white border-b border-zinc-200 flex items-center px-4 gap-3 shrink-0 shadow-sm">
       <!-- Logo / Title -->
@@ -163,7 +165,7 @@ type RightTab = 'properties' | 'script';
             </button>
           </div>
 
-          <app-field-palette class="flex-1 overflow-hidden" [connectedLists]="allColumnIds()"></app-field-palette>
+          <vf-palette class="flex-1 overflow-hidden" [connectedLists]="allColumnIds()"></vf-palette>
           
           <!-- Collapse Toggle Left -->
           <button 
@@ -204,10 +206,10 @@ type RightTab = 'properties' | 'script';
             </div>
           } @else {
             @for (section of state.document().sections; track section.id) {
-              <app-canvas-section
+              <vf-canvas-section
                 [section]="section"
-                [allColumnIds]="allColumnIds"
-              ></app-canvas-section>
+                [allColumnIds]="allColumnIds()"
+              ></vf-canvas-section>
             }
             <button (click)="addSection()" class="flex items-center gap-2 text-sm text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors rounded-lg px-4 py-2.5 w-full border border-dashed border-zinc-200 hover:border-indigo-300 mt-2">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -277,9 +279,9 @@ type RightTab = 'properties' | 'script';
           <!-- Tab content -->
           <div class="flex-1 overflow-hidden">
             @if (rightTab === 'properties') {
-              <app-property-editor></app-property-editor>
+              <vf-property-editor></vf-property-editor>
             } @else {
-              <app-script-editor></app-script-editor>
+              <vf-script-editor></vf-script-editor>
             }
           </div>
         </aside>
@@ -292,7 +294,7 @@ type RightTab = 'properties' | 'script';
           <span class="text-xs font-medium text-amber-700">Preview Mode — Client scripts are active. Changes made here won't affect the builder.</span>
         </div>
         
-        <app-form-renderer class="w-full" [document]="state.document()" (formSubmit)="onFormSubmit($event)"></app-form-renderer>
+        <vf-renderer class="w-full" [document]="state.document()" (formSubmit)="onFormSubmit($event)"></vf-renderer>
 
         @if (lastSubmittedData) {
           <div class="w-full max-w-3xl px-4 py-8 border-t border-zinc-200 mt-auto bg-white shadow-inner animate-in slide-in-from-bottom-4 duration-300">
@@ -311,8 +313,15 @@ type RightTab = 'properties' | 'script';
   </div>
   `
 })
-export class BuilderContainerComponent implements OnInit {
-  state = inject(BuilderStateService);
+export class VfBuilder implements OnInit {
+  /** Initial form schema to load into the builder. */
+  @Input() initialSchema?: DocumentDefinition;
+
+  /** Emitted whenever the form schema is modified in the builder. */
+  @Output() schemaChange = new EventEmitter<DocumentDefinition>();
+
+  state = inject(VfBuilderState);
+  utils = inject(VfUtilityService);
   rightTab: RightTab = 'properties';
   showImport = false;
   showExport = false;
@@ -332,6 +341,12 @@ export class BuilderContainerComponent implements OnInit {
         this.rightSidebarVisible.set(true);
       }
     }, { allowSignalWrites: true });
+
+    // Emit schema changes to parent
+    effect(() => {
+      const doc = this.state.document();
+      this.schemaChange.emit(doc);
+    });
   }
 
   allColumnIds = computed(() =>
@@ -346,6 +361,9 @@ export class BuilderContainerComponent implements OnInit {
   sectionCount = computed(() => this.state.document().sections.length);
 
   ngOnInit() {
+    if (this.initialSchema) {
+      this.state.document.set({ ...this.initialSchema });
+    }
     // listen for palette's section add shortcut
     document.addEventListener('add-section', () => this.addSection());
   }

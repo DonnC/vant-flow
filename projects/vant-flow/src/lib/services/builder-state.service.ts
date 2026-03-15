@@ -5,7 +5,7 @@ let _uid = 0;
 function uid() { return `id_${++_uid}_${Math.random().toString(36).slice(2, 7)}`; }
 
 @Injectable({ providedIn: 'root' })
-export class BuilderStateService {
+export class VfBuilderState {
     // Main Document state
     readonly document: WritableSignal<DocumentDefinition> = signal({
         name: 'New Document',

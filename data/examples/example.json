@@ -207,7 +207,9 @@
             }
           ]
         }
-      ]
+      ],
+      "collapsible": true,
+      "collapsed": true
     }
   ],
   "actions": {

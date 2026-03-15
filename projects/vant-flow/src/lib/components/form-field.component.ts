@@ -3,14 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuillModule } from 'ngx-quill';
 import { DocumentField } from '../models/document.model';
-import { FormContext } from '../services/form-context';
+import { VfFormContext } from '../services/form-context';
 
 import QuillTableBetter from 'quill-table-better';
 import Quill from "quill";
 Quill.register({ 'modules/table-better': QuillTableBetter }, true);
 
 @Component({
-  selector: 'app-form-field',
+  selector: 'vf-field',
   standalone: true,
   imports: [CommonModule, FormsModule, QuillModule],
   template: `
@@ -28,6 +28,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
 
       <div class="relative group/input">
         @switch (field.fieldtype) {
+          <!-- ... switches ... -->
           @case ('Check') {
             <div class="flex items-center gap-3 py-2 px-1">
               <input type="checkbox"
@@ -284,7 +285,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
     }
   `]
 })
-export class FormFieldComponent implements AfterViewInit {
+export class VfField implements AfterViewInit {
   @ViewChild('signatureCanvas') canvasRef?: ElementRef<HTMLCanvasElement>;
   @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
 
@@ -297,7 +298,7 @@ export class FormFieldComponent implements AfterViewInit {
 
   public submitted: boolean = false;
 
-  ctx = inject(FormContext, { optional: true });
+  ctx = inject(VfFormContext, { optional: true });
 
   get shouldShowLabel() {
     return !this.hideLabel && !this.compact && this.field.fieldtype !== 'Button' && this.field.fieldtype !== 'Check';

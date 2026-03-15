@@ -2,12 +2,12 @@ import { Component, Input, Output, EventEmitter, ViewChildren, QueryList } from 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DocumentField } from '../models/document.model';
-import { FormFieldComponent } from './form-field.component';
+import { VfField } from './form-field.component';
 
 @Component({
-  selector: 'app-prompt-modal',
+  selector: 'vf-prompt-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, FormFieldComponent],
+  imports: [CommonModule, FormsModule, VfField],
   template: `
     <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] fade-in" (click)="onCancel()">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden zoom-in duration-200" (click)="$event.stopPropagation()">
@@ -17,11 +17,11 @@ import { FormFieldComponent } from './form-field.component';
         </div>
         <div class="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
           @for (field of fields; track field.fieldname) {
-            <app-form-field 
+            <vf-field 
               [field]="field" 
               [value]="values[field.fieldname]" 
               (valueChange)="updateValue(field.fieldname, $event)">
-            </app-form-field>
+            </vf-field>
           }
         </div>
         <div class="flex justify-end gap-2 px-6 py-4 bg-zinc-50 border-t border-zinc-100">
@@ -42,13 +42,13 @@ import { FormFieldComponent } from './form-field.component';
     @keyframes zoomIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
   `]
 })
-export class PromptModalComponent {
+export class VfPromptModal {
   @Input() fields: DocumentField[] = [];
   @Input() title: string = 'Enter Data';
   @Input() values: Record<string, any> = {};
   @Output() result = new EventEmitter<Record<string, any> | null>();
 
-  @ViewChildren(FormFieldComponent) fieldComponents!: QueryList<FormFieldComponent>;
+  @ViewChildren(VfField) fieldComponents!: QueryList<VfField>;
 
   updateValue(fieldname: string, val: any) {
     this.values[fieldname] = val;

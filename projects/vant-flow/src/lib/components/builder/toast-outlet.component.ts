@@ -1,12 +1,12 @@
 import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AppUtilityService } from '../../services/app-utility.service';
+import { VfUtilityService } from '../../services/app-utility.service';
 
 @Component({
-    selector: 'app-toast-outlet',
-    standalone: true,
-    imports: [CommonModule],
-    template: `
+  selector: 'vf-toast-outlet',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
     <div class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 items-end">
       @for (toast of app.toasts(); track toast.id) {
         <div
@@ -54,6 +54,6 @@ import { AppUtilityService } from '../../services/app-utility.service';
     </div>
   `
 })
-export class ToastOutletComponent {
-    app = inject(AppUtilityService);
+export class VfToastOutlet {
+  app = inject(VfUtilityService);
 }
