@@ -2,7 +2,7 @@ import { Component, Input, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
-import { LayoutSection } from '../../models/doctype.model';
+import { DocumentSection } from '../../models/document.model';
 import { BuilderStateService } from '../../services/builder-state.service';
 import { CanvasColumnComponent } from './canvas-column.component';
 
@@ -14,10 +14,7 @@ import { CanvasColumnComponent } from './canvas-column.component';
     <div 
       (click)="selectSection($event)"
       class="border rounded-xl bg-white shadow-sm overflow-hidden mb-4 transition-all duration-200"
-      [class.border-indigo-500]="isSelected()"
-      [class.ring-2]="isSelected()"
-      [class.ring-indigo-500/10]="isSelected()"
-      [class.border-zinc-200]="!isSelected()"
+      [ngClass]="isSelected() ? 'border-indigo-500 ring-2 ring-indigo-500/10' : 'border-zinc-200'"
     >
       <!-- Section Header -->
       <div class="flex items-center gap-2 px-4 py-2.5 bg-zinc-50 border-b border-zinc-200">
@@ -29,7 +26,7 @@ import { CanvasColumnComponent } from './canvas-column.component';
             [(ngModel)]="editValue"
             (blur)="saveLabel()"
             (keydown.enter)="saveLabel()"
-          >
+          />
         } @else {
           <span
             class="flex-1 text-sm font-semibold text-zinc-700 cursor-text"
@@ -72,7 +69,7 @@ import { CanvasColumnComponent } from './canvas-column.component';
   `
 })
 export class CanvasSectionComponent {
-  @Input() section!: LayoutSection;
+  @Input() section!: DocumentSection;
   @Input() allColumnIds!: () => string[];
 
   private state = inject(BuilderStateService);

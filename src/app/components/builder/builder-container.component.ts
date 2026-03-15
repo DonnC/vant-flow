@@ -8,8 +8,9 @@ import { CanvasSectionComponent } from './canvas-section.component';
 import { PropertyEditorComponent } from './property-editor.component';
 import { ScriptEditorComponent } from './script-editor.component';
 import { FormRendererComponent } from '../form-renderer/form-renderer.component';
+import { DocumentDefinition } from '../../models/document.model';
 
-type RightTab = 'properties' | 'script' | 'json';
+type RightTab = 'properties' | 'script';
 
 @Component({
   selector: 'app-builder-container',
@@ -34,13 +35,13 @@ type RightTab = 'properties' | 'script' | 'json';
         <span class="text-sm font-semibold text-zinc-800">FormFlow</span>
       </div>
 
-      <!-- DocType name edit -->
+      <!-- Document Name edit -->
       <input
         class="text-sm font-medium bg-transparent border-none outline-none text-zinc-700 w-48
                hover:bg-zinc-50 focus:bg-white focus:border focus:border-zinc-200 focus:px-2 focus:rounded-md px-1 py-1 transition-all"
-        [ngModel]="state.docType().name"
-        (ngModelChange)="state.setDocTypeName($event)"
-        placeholder="DocType Name"
+        [ngModel]="state.document().name"
+        (ngModelChange)="state.setDocumentName($event)"
+        placeholder="Document Name"
       >
 
       <div class="flex-1"></div>
@@ -80,12 +81,59 @@ type RightTab = 'properties' | 'script' | 'json';
         </button>
       </div>
 
-      <!-- Export JSON -->
-      <button (click)="exportJson()" class="ui-btn-secondary ui-btn-sm gap-1.5">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Export
-      </button>
+      <!-- Import / Export -->
+      <div class="flex items-center gap-2">
+        <button (click)="showImport = !showImport" class="ui-btn-ghost ui-btn-sm gap-1.5" [class.bg-zinc-100]="showImport">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 10 12 15 7 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Import
+        </button>
+        <button (click)="showExport = !showExport" class="ui-btn-secondary ui-btn-sm gap-1.5" [class.bg-zinc-100]="showExport">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+      </div>
     </header>
+
+    <!-- Global Import Overlay -->
+    @if (showImport) {
+      <div class="absolute inset-x-0 top-12 z-50 bg-white border-b border-zinc-200 shadow-xl animate-in slide-in-from-top-4 duration-300">
+        <div class="max-w-4xl mx-auto p-6 flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-zinc-800">Import Document Schema</h3>
+            <button (click)="showImport = false" class="text-zinc-400 hover:text-zinc-600">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <p class="text-xs text-zinc-500">Paste your previously exported <code>Document</code> JSON schema to load the builder state.</p>
+          <textarea #importArea class="w-full h-64 bg-zinc-50 border border-zinc-200 rounded-lg p-4 font-mono text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
+            placeholder='{ "name": "Form Name", "sections": [...] }'></textarea>
+          <div class="flex justify-end gap-3">
+            <button (click)="showImport = false" class="ui-btn-secondary">Cancel</button>
+            <button (click)="handleImport(importArea.value)" class="ui-btn-primary px-8">Load Schema</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Global Export Overlay -->
+    @if (showExport) {
+      <div class="absolute inset-x-0 top-12 z-50 bg-white border-b border-zinc-200 shadow-xl animate-in slide-in-from-top-4 duration-300">
+        <div class="max-w-4xl mx-auto p-6 flex flex-col gap-4">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-zinc-800">Export Document Schema</h3>
+            <button (click)="showExport = false" class="text-zinc-400 hover:text-zinc-600">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
+          <p class="text-xs text-zinc-500">Preview and copy your form schema, or download it as a JSON file.</p>
+          <pre class="w-full h-64 overflow-auto bg-zinc-900 text-indigo-300 rounded-lg p-4 font-mono text-[11px] select-all leading-relaxed">{{ state.document() | json }}</pre>
+          <div class="flex justify-end gap-3">
+            <button (click)="showExport = false" class="ui-btn-secondary">Close</button>
+            <button (click)="downloadJson()" class="ui-btn-primary px-8">Download JSON File</button>
+          </div>
+        </div>
+      </div>
+    }
 
     <!-- ── Main Layout ───────────────────────────────────── -->
     @if (state.mode() === 'builder') {
@@ -95,7 +143,27 @@ type RightTab = 'properties' | 'script' | 'json';
           class="shrink-0 bg-white border-r border-zinc-200 flex flex-col overflow-hidden transition-all duration-300 ease-in-out relative group"
           [style.width.px]="leftSidebarVisible() ? 208 : 0"
         >
-          <app-field-palette [connectedLists]="allColumnIds()"></app-field-palette>
+          <!-- Form Settings Trigger -->
+          <div class="px-3 py-4 border-b border-zinc-100 shrink-0">
+            <button 
+              (click)="state.selectFormSettings()"
+              class="w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all group/btn"
+              [class.bg-indigo-50]="state.showFormSettings()"
+              [class.text-indigo-600]="state.showFormSettings()"
+              [class.text-zinc-500]="!state.showFormSettings()"
+              [class.hover:bg-zinc-50]="!state.showFormSettings()"
+            >
+              <div class="flex items-center gap-2.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="group-hover/btn:rotate-45 transition-transform duration-500">
+                  <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                <span class="text-xs font-bold uppercase tracking-wider">Form Settings</span>
+              </div>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="opacity-40"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+
+          <app-field-palette class="flex-1 overflow-hidden" [connectedLists]="allColumnIds()"></app-field-palette>
           
           <!-- Collapse Toggle Left -->
           <button 
@@ -119,7 +187,7 @@ type RightTab = 'properties' | 'script' | 'json';
 
         <!-- CENTER: Canvas -->
         <main class="flex-1 overflow-y-auto p-5">
-          @if (state.docType().sections.length === 0) {
+          @if (state.document().sections.length === 0) {
             <!-- Empty state -->
             <div class="h-full flex flex-col items-center justify-center text-center">
               <div class="w-20 h-20 rounded-2xl bg-white border-2 border-dashed border-zinc-200 flex items-center justify-center mb-4 shadow-sm">
@@ -135,7 +203,7 @@ type RightTab = 'properties' | 'script' | 'json';
               </button>
             </div>
           } @else {
-            @for (section of state.docType().sections; track section.id) {
+            @for (section of state.document().sections; track section.id) {
               <app-canvas-section
                 [section]="section"
                 [allColumnIds]="allColumnIds"
@@ -154,6 +222,15 @@ type RightTab = 'properties' | 'script' | 'json';
           (mousedown)="startResize($event)"
           [class.bg-indigo-500]="isResizing()"
         ></div>
+
+        @if (!rightSidebarVisible()) {
+          <button 
+            (click)="rightSidebarVisible.set(true)"
+            class="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-12 bg-white border border-r-0 border-zinc-200 rounded-l-md flex items-center justify-center hover:bg-zinc-50 transition-all shadow-sm z-20 group"
+          >
+            <div class="w-1 h-3 bg-zinc-300 rounded-full group-hover:bg-indigo-400"></div>
+          </button>
+        }
 
         <aside 
           class="shrink-0 bg-white border-l border-zinc-200 flex flex-col overflow-hidden transition-all duration-300 ease-in-out relative group"
@@ -178,57 +255,31 @@ type RightTab = 'properties' | 'script' | 'json';
               [class.border-indigo-500]="rightTab === 'properties'"
               [class.text-zinc-400]="rightTab !== 'properties'"
             >Properties</button>
-            <button
-              (click)="rightTab = 'script'"
-              class="flex-1 py-2.5 text-xs font-medium transition-colors"
-              [class.text-indigo-600]="rightTab === 'script'"
-              [class.border-b-2]="rightTab === 'script'"
-              [class.border-indigo-500]="rightTab === 'script'"
-              [class.text-zinc-400]="rightTab !== 'script'"
-            >
-              <span class="flex items-center justify-center gap-1">
-                Script
-                @if (state.docType().client_script?.trim()) {
-                  <span class="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
-                }
-              </span>
-            </button>
-            <button
-              (click)="rightTab = 'json'"
-              class="flex-1 py-2.5 text-xs font-medium transition-colors"
-              [class.text-indigo-600]="rightTab === 'json'"
-              [class.border-b-2]="rightTab === 'json'"
-              [class.border-indigo-500]="rightTab === 'json'"
-              [class.text-zinc-400]="rightTab !== 'json'"
-            >JSON</button>
+            @if (state.showFormSettings()) {
+              <button
+                (click)="rightTab = 'script'"
+                class="flex-1 py-2.5 text-xs font-medium transition-colors border-l border-zinc-100"
+                [class.text-indigo-600]="rightTab === 'script'"
+                [class.border-b-2]="rightTab === 'script'"
+                [class.border-indigo-500]="rightTab === 'script'"
+                [class.text-zinc-400]="rightTab !== 'script'"
+              >
+                <span class="flex items-center justify-center gap-1">
+                  Script
+                  @if (state.document().client_script?.trim()) {
+                    <span class="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
+                  }
+                </span>
+              </button>
+            }
           </div>
 
           <!-- Tab content -->
           <div class="flex-1 overflow-hidden">
             @if (rightTab === 'properties') {
               <app-property-editor></app-property-editor>
-            } @else if (rightTab === 'script') {
-              <app-script-editor></app-script-editor>
             } @else {
-              <div class="h-full flex flex-col">
-                <div class="px-4 py-3 border-b border-zinc-100 shrink-0 flex items-center justify-between bg-zinc-50/50">
-                  <p class="text-[10px] font-semibold uppercase tracking-widest text-zinc-400">Schema Preview</p>
-                  <button (click)="showImport = !showImport" class="text-[10px] px-2 py-1 bg-white border border-zinc-200 rounded shadow-sm hover:bg-zinc-50 transition-colors">
-                    {{ showImport ? 'Cancel' : 'Import JSON' }}
-                  </button>
-                </div>
-                <div class="flex-1 min-h-0 bg-zinc-950 p-4 relative">
-                  @if (showImport) {
-                    <div class="absolute inset-0 z-10 p-4 bg-zinc-900/95 flex flex-col gap-3 backdrop-blur-sm animate-in fade-in duration-200">
-                      <p class="text-[10px] text-zinc-400 font-medium">Paste your <code>DocType</code> JSON here:</p>
-                      <textarea #importArea class="flex-1 w-full bg-zinc-800 text-green-400 font-mono text-xs p-3 rounded border border-zinc-700 focus:outline-none focus:border-indigo-500 placeholder:text-zinc-600"
-                        placeholder='&#123; "name": "...", "sections": [...] &#125;'></textarea>
-                      <button (click)="handleImport(importArea.value)" class="ui-btn-primary justify-center py-2 text-xs">Load Schema</button>
-                    </div>
-                  }
-                  <pre class="w-full h-full text-[11px] text-green-400 font-mono overflow-auto scrollbar-thin select-all" [class.opacity-50]="showImport">{{ state.docType() | json }}</pre>
-                </div>
-              </div>
+              <app-script-editor></app-script-editor>
             }
           </div>
         </aside>
@@ -241,7 +292,7 @@ type RightTab = 'properties' | 'script' | 'json';
           <span class="text-xs font-medium text-amber-700">Preview Mode — Client scripts are active. Changes made here won't affect the builder.</span>
         </div>
         
-        <app-form-renderer [docType]="state.docType()" (formSubmit)="onFormSubmit($event)"></app-form-renderer>
+        <app-form-renderer class="w-full" [document]="state.document()" (formSubmit)="onFormSubmit($event)"></app-form-renderer>
 
         @if (lastSubmittedData) {
           <div class="w-full max-w-3xl px-4 py-8 border-t border-zinc-200 mt-auto bg-white shadow-inner animate-in slide-in-from-bottom-4 duration-300">
@@ -264,6 +315,7 @@ export class BuilderContainerComponent implements OnInit {
   state = inject(BuilderStateService);
   rightTab: RightTab = 'properties';
   showImport = false;
+  showExport = false;
   lastSubmittedData: any = null;
 
   // Sidebar controls
@@ -273,9 +325,9 @@ export class BuilderContainerComponent implements OnInit {
   isResizing = signal(false);
 
   constructor() {
-    // Auto-focus properties tab when a field is selected
+    // Auto-focus properties tab when a field or section is selected
     effect(() => {
-      if (this.state.selectedFieldId()) {
+      if (this.state.selectedFieldId() || this.state.selectedSectionId()) {
         this.rightTab = 'properties';
         this.rightSidebarVisible.set(true);
       }
@@ -283,15 +335,15 @@ export class BuilderContainerComponent implements OnInit {
   }
 
   allColumnIds = computed(() =>
-    this.state.docType().sections.flatMap(s => s.columns.map(c => c.id))
+    this.state.document().sections.flatMap(s => s.columns.map(c => c.id))
   );
 
   fieldCount = computed(() =>
-    this.state.docType().sections.reduce((total, s) =>
+    this.state.document().sections.reduce((total, s) =>
       total + s.columns.reduce((ct, c) => ct + c.fields.length, 0), 0)
   );
 
-  sectionCount = computed(() => this.state.docType().sections.length);
+  sectionCount = computed(() => this.state.document().sections.length);
 
   ngOnInit() {
     // listen for palette's section add shortcut
@@ -306,7 +358,7 @@ export class BuilderContainerComponent implements OnInit {
   addSection() { this.state.addSection(); }
 
   handleImport(json: string) {
-    if (this.state.importDocType(json)) {
+    if (this.state.importDocument(json)) {
       this.showImport = false;
     } else {
       alert('Invalid JSON schema. Please check the format.');
@@ -338,12 +390,13 @@ export class BuilderContainerComponent implements OnInit {
     this.isResizing.set(false);
   }
 
-  exportJson() {
-    const json = JSON.stringify(this.state.docType(), null, 2);
+  downloadJson() {
+    const json = JSON.stringify(this.state.document(), null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `${this.state.docType().name.replace(/\s+/g, '_')}.json`;
+    a.download = `${this.state.document().name.replace(/\s+/g, '_')}.json`;
     a.click();
+    this.showExport = false;
   }
 }

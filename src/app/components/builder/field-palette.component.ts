@@ -1,7 +1,7 @@
 import { Component, Input, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DragDropModule } from '@angular/cdk/drag-drop';
-import { PALETTE_ITEMS, FieldType } from '../../models/doctype.model';
+import { PALETTE_ITEMS, FieldType } from '../../models/document.model';
 
 @Component({
   selector: 'app-field-palette',
