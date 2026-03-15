@@ -2,6 +2,7 @@
 
 A production-grade, metadata-driven Visual Form Builder and Renderer for Angular 17+.
 
+![admin](data/screenshots/admin.png)
 ## 🌟 Features
 -   **Visual IDE**: Drag-and-drop builder for complex form layouts.
 -   **High-Performance Renderer**: JSON-driven rendering with sub-second initialization.
@@ -110,7 +111,7 @@ frm.on('quality_score', (val, frm) => {
 
 1.  **Clone & Install**:
     ```bash
-    git clone https://github.com/developer/vant-flow.git
+    git clone https://github.com/DonnC/vant-flow.git
     npm install
     ```
 2.  **Build Library**: `ng build vant-flow`

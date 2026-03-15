@@ -1,13 +1,13 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { VfRenderer } from 'vant-flow';
+import { VfRenderer, VfToastOutlet } from '../../../projects/vant-flow/src/public-api';
 import { EXAMPLE_DOCUMENT } from './example-data';
 
 @Component({
   selector: 'app-renderer-demo',
   standalone: true,
-  imports: [CommonModule, RouterLink, VfRenderer],
+  imports: [CommonModule, RouterLink, VfRenderer, VfToastOutlet],
   template: `
     <div class="min-h-screen bg-zinc-50 flex flex-col">
       <header class="bg-white border-b border-zinc-200 px-4 py-2 flex items-center justify-between z-40 sticky top-0 shadow-sm">
@@ -29,7 +29,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
       </header>
 
       <main class="flex-1 py-10 px-4">
-        <div class="max-w-4xl mx-auto">
+        <div class="max-w-6xl mx-auto">
           <div class="mb-8 p-4 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-700 text-xs leading-relaxed flex items-start gap-3">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             <div>
@@ -55,6 +55,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
           }
         </div>
       </main>
+      <vf-toast-outlet></vf-toast-outlet>
     </div>
   `
 })

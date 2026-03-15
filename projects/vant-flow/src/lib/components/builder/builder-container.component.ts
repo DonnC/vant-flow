@@ -23,7 +23,7 @@ type RightTab = 'properties' | 'script';
     VfScriptEditor, VfRenderer
   ],
   template: `
-  <div class="flex flex-col h-screen bg-zinc-100 overflow-hidden">
+  <div class="flex flex-col h-full bg-zinc-100 overflow-hidden">
     <!-- ── Top Toolbar ─────────────────────────────────────── -->
     <header class="z-30 h-12 bg-white border-b border-zinc-200 flex items-center px-4 gap-3 shrink-0 shadow-sm">
       <!-- Logo / Title -->
