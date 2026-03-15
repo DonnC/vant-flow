@@ -2,16 +2,20 @@ import { Component, Input, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
-import { LayoutSection } from '../../models/doctype.model';
+import { DocumentSection } from '../../models/document.model';
 import { BuilderStateService } from '../../services/builder-state.service';
 import { CanvasColumnComponent } from './canvas-column.component';
 
 @Component({
-    selector: 'app-canvas-section',
-    standalone: true,
-    imports: [CommonModule, FormsModule, DragDropModule, CanvasColumnComponent],
-    template: `
-    <div class="border border-zinc-200 rounded-xl bg-white shadow-sm overflow-hidden mb-4">
+  selector: 'app-canvas-section',
+  standalone: true,
+  imports: [CommonModule, FormsModule, DragDropModule, CanvasColumnComponent],
+  template: `
+    <div 
+      (click)="selectSection($event)"
+      class="border rounded-xl bg-white shadow-sm overflow-hidden mb-4 transition-all duration-200"
+      [ngClass]="isSelected() ? 'border-indigo-500 ring-2 ring-indigo-500/10' : 'border-zinc-200'"
+    >
       <!-- Section Header -->
       <div class="flex items-center gap-2 px-4 py-2.5 bg-zinc-50 border-b border-zinc-200">
         <div class="w-2 h-2 rounded-full bg-indigo-400 shrink-0"></div>
@@ -22,7 +26,7 @@ import { CanvasColumnComponent } from './canvas-column.component';
             [(ngModel)]="editValue"
             (blur)="saveLabel()"
             (keydown.enter)="saveLabel()"
-          >
+          />
         } @else {
           <span
             class="flex-1 text-sm font-semibold text-zinc-700 cursor-text"
@@ -56,7 +60,7 @@ import { CanvasColumnComponent } from './canvas-column.component';
             [section]="section"
             [column]="col"
             [dropListId]="col.id"
-            [connectedLists]="allColumnIds()"
+            [connectedLists]="getConnectedLists()"
             [isLast]="last"
           ></app-canvas-column>
         }
@@ -65,24 +69,35 @@ import { CanvasColumnComponent } from './canvas-column.component';
   `
 })
 export class CanvasSectionComponent {
-    @Input() section!: LayoutSection;
-    @Input() allColumnIds!: () => string[];
+  @Input() section!: DocumentSection;
+  @Input() allColumnIds!: () => string[];
 
-    private state = inject(BuilderStateService);
-    editing = signal(false);
-    editValue = '';
+  private state = inject(BuilderStateService);
+  editing = signal(false);
+  editValue = '';
 
-    startEdit() {
-        this.editValue = this.section.label ?? '';
-        this.editing.set(true);
-        setTimeout(() => (document.querySelector('input') as HTMLInputElement)?.focus(), 0);
-    }
+  isSelected = computed(() => this.state.selectedSectionId() === this.section.id);
 
-    saveLabel() {
-        this.state.updateSectionLabel(this.section.id, this.editValue);
-        this.editing.set(false);
-    }
+  selectSection(e: Event) {
+    e.stopPropagation();
+    this.state.selectSection(this.section.id);
+  }
 
-    addColumn() { this.state.addColumn(this.section.id); }
-    removeSection() { this.state.removeSection(this.section.id); }
+  startEdit() {
+    this.editValue = this.section.label ?? '';
+    this.editing.set(true);
+    setTimeout(() => (document.querySelector('input') as HTMLInputElement)?.focus(), 0);
+  }
+
+  saveLabel() {
+    this.state.updateSectionLabel(this.section.id, this.editValue);
+    this.editing.set(false);
+  }
+
+  addColumn() { this.state.addColumn(this.section.id); }
+  removeSection() { this.state.removeSection(this.section.id); }
+
+  getConnectedLists() {
+    return ['palette-list', ...this.allColumnIds()];
+  }
 }

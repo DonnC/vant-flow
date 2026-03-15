@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import "quill/dist/quill.snow.css";
+@import "quill-table-better/dist/quill-table-better.css";
 
 @tailwind base;
 @tailwind components;
@@ -148,6 +149,11 @@
   .ui-sep {
     @apply border-t border-zinc-100 my-3;
   }
+}
+
+
+.ql-editor table {
+  width: unset;
 }
 
 /* ── Builder specific ──────────────────────────────────────*/

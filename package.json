@@ -1,6 +1,6 @@
 {
   "name": "kai-ng-flow",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -19,6 +19,11 @@
     "@angular/platform-browser": "^17.3.0",
     "@angular/platform-browser-dynamic": "^17.3.0",
     "@angular/router": "^17.3.0",
+    "monaco-editor": "^0.55.1",
+    "ngx-monaco-editor-v2": "^21.1.4",
+    "ngx-quill": "^25.3.3",
+    "quill": "^2.0.3",
+    "quill-table-better": "^1.2.3",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
     "zone.js": "~0.14.3"

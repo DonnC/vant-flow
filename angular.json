@@ -22,10 +22,16 @@
             "tsConfig": "tsconfig.app.json",
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              {
+                "glob": "**/*",
+                "input": "node_modules/monaco-editor/min",
+                "output": "assets/monaco-editor"
+              }
             ],
             "styles": [
-              "src/styles.css"
+              "src/styles.css",
+              "node_modules/quill/dist/quill.snow.css"
             ],
             "scripts": []
           },
@@ -81,7 +87,12 @@
             "tsConfig": "tsconfig.spec.json",
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              {
+                "glob": "**/*",
+                "input": "node_modules/monaco-editor",
+                "output": "assets/monaco-editor"
+              }
             ],
             "styles": [
               "src/styles.css"
