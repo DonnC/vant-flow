@@ -49,6 +49,19 @@ Methods:
 server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
         tools: [
+            // --- AI Magic Tools ---
+            {
+                name: "create_form_from_prompt",
+                description: "[MAGIC] Generate a Vant Flow form from a natural language prompt. In the Inspector, this uses 'Smart Templates'. For actual AI Agents, this is the primary design entry point.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        prompt: { type: "string", description: "Describe the form (e.g. '3-step onboarding')" }
+                    },
+                    required: ["prompt"],
+                },
+            },
+
             // --- Context & Discovery ---
             {
                 name: "get_models",
@@ -57,7 +70,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             },
             {
                 name: "analyze_schema",
-                description: "Provide a natural language summary of a Vant schema's purpose, fields, and logic.",
+                description: "AI-powered summary of a Vant schema's purpose, fields, and logic.",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -67,10 +80,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                 },
             },
 
-            // --- Structural Design ---
+            // --- Structural Design (Granular) ---
             {
-                name: "scaffold_form",
-                description: "Scaffold a complete Vant Flow form using a 'Blueprint'.",
+                name: "scaffold_from_blueprint",
+                description: "Scaffold a complete Vant Flow form using a structured 'Blueprint'. Best for complex, high-fidelity AI generations.",
                 inputSchema: {
                     type: "object",
                     properties: {
@@ -209,6 +222,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             case "get_models":
                 return { content: [{ type: "text", text: `Models & API:\n${FRM_API_DOCS}` }] };
 
+            case "create_form_from_prompt": {
+                const schema = builder.buildFromPrompt((args as any).prompt);
+                return { content: [{ type: "text", text: JSON.stringify(schema, null, 2) }] };
+            }
+
             case "analyze_schema": {
                 const s = (args as any).schema;
                 const steps = s.steps?.length || 0;
@@ -226,7 +244,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 };
             }
 
-            case "scaffold_form": {
+            case "scaffold_from_blueprint": {
                 const schema = builder.buildFromBlueprint((args as any).blueprint);
                 return { content: [{ type: "text", text: JSON.stringify(schema, null, 2) }] };
             }

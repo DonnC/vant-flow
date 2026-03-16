@@ -15,13 +15,16 @@ This package provides the "Hands" for an AI agent. Instead of an AI just giving 
 
 The MCP server provides a comprehensive toolkit categorized for a professional "Build-Verify-Refine" workflow:
 
-### 1. Context & Discovery
+### 0. 🪄 AI Magic (Prompt-to-Form)
+- `create_form_from_prompt`: Generate a Vant form from a string (e.g., "employee onboarding"). In the Inspector, this uses "Smart Templates" to show immediate magic. For AI agents, this is the primary design request entry.
+
+### 1. 🔍 Context & Discovery
 - `get_models`: Teaches the AI the Vant Type System and `frm` API hooks.
 - `analyze_schema`: Provides a natural language summary of any existing Vant schema.
 - `verify_schema`: Structural integrity check to ensure JSON validity.
 
-### 2. Structural Design
-- `scaffold_form`: Uses **Blueprints** to generate high-fidelity initial designs.
+### 2. 🏛️ Structural Design (Granular)
+- `scaffold_from_blueprint`: Uses structured **Blueprints** to generate high-fidelity initial designs. Best for high-precision AI generations.
 - `add_step`: Adds a new step to a multi-step form.
 - `add_section`: Injects sections into specific steps or forms.
 - `add_field`: Surgical field injection into any section.
@@ -60,20 +63,48 @@ This will open a browser window where you can:
 
 ---
 
-## 💡 Top 10 High-Impact Prompts
+## 💡 Playbooks: The "Build-Verify-Refine" Workflow
 
-Try these prompts in the MCP Inspector or an MCP-enabled Agent to see the magic:
+Use these playbooks in the MCP Inspector to see how the 13 tools work together in a professional lifecycle.
 
-1. **The Modern Onboarding**: *"Create a 3-step employee onboarding form. Step 1: Personal info. Step 2: Bank details with a 'Bank Name' and 'Account Number' (must be 10 digits). Step 3: Document uploads (ID and Tax clearance)."*
-2. **The Forex Request**: *"Design a foreign exchange purchase form for a Zimbabwe bank. Include a currency selector, an amount field, and an 'Exchange Rate' field that is read-only. Add a script that calculates the Total Zee-G (ZiG) equivalent instantly."*
-3. **The Microfinance Loan**: *"Scaffold a Microfinance loan application. Include a table for 'Current Assets' with columns for Asset Name, Value, and a Signature field for the field officer's verification on each row."*
-4. **The ESG Audit**: *"Build an Environmental & Social Governance audit form. Use a Stepper. Add a section that only appears if the 'Risk Level' is set to 'High'. Include a Rich Text Editor for the auditor's summary."*
-5. **The Conditional Lease**: *"Create a Vehicle Leasing form. If the 'Lease Term' is more than 36 months, make the 'Guarantor Details' section mandatory and visible. Add custom 'Approve' and 'Reject' buttons."*
-6. **The Branch Register**: *"Design a Daily Vault Opening register. It needs two Signature fields (Dual Control) and a table to log cash counts per denomination."*
-7. **The Supplier Invoice**: *"Build a procurement portal form. Include an 'Attach' field for the invoice PDF and a Table for line items that auto-calculates the 15% VAT."*
-8. **The Insurance Claim**: *"Create a Motor Accident claim form. Step 1: Policy Info. Step 2: Accident Details with multi-photo attachment. Step 3: Damage assessment table."*
-9. **The Board Minutes**: *"Design a corporate meeting minutes form. Use a Text Editor for 'Key Decisions' and a table for attendees with a Check field for 'Apologies Received'."*
-10. **The KYC Refresh**: *"Generate a quick KYC refresh form. Pre-fill it with mock data using the 'generate_mock_data' tool to show the user their 'Existing Address' before they edit it."*
+### Playbook A: The "Safe-Save" Forex Portal
+1. **Magic Scaffold**: Use `create_form_from_prompt` with:
+   *"Forex purchase request with Currency selector, Amount, and specific Bank selection."*
+2. **Precision Refinement**: Use `update_field` on the `Amount` field:
+   - `props`: `{ "mandatory": true, "fieldtype": "Float" }`
+3. **Inject Logic**: Use `update_client_script` to ensure the user doesn't buy more than 5000 USD:
+   ```javascript
+   frm.on('before_save', (val, frm) => {
+     if (frm.get_value('amount') > 5000) {
+       frm.msgprint('Transaction exceeds regulatory limit of 5000 USD', 'danger');
+       return false;
+     }
+   });
+   ```
+4. **Simulate**: Use `generate_mock_data` to get a payload, then manually change `amount` to 6000 and run a mock "save" event.
+
+### Playbook B: The "High-Risk" Multi-Step Audit
+1. **Magic Scaffold**: Use `create_form_from_prompt` with:
+   *"3-step ESG environmental audit form."*
+2. **Add Complexity**: Use `add_section` to Step 2:
+   - `label`: *"High Risk Mitigation"*
+   - `props`: `{ "depends_on": "eval:frm.get_value('risk_level') === 'High'" }`
+3. **Inject Field**: Use `add_field` to that new section:
+   - `label`: *"Auditor Signature"*
+   - `fieldtype`: *"Signature"*
+4. **Verify**: Use `analyze_schema` to see the new structure and `verify_schema` to ensure the logic injection is valid.
+
+### Playbook C: The Dynamic Calculations
+1. **Magic Scaffold**: Use `create_form_from_prompt` with *"Loan Application"*.
+2. **Inject Calculation**: Use `update_client_script` to auto-calculate interest:
+   ```javascript
+   frm.on('principal_amount', (val, frm) => {
+     const interest = val * 0.15;
+     frm.set_value('interest_charge', interest);
+     frm.msgprint('Interest recalculated at 15% rate', 'info');
+   });
+   ```
+3. **Verify**: Use `generate_mock_data` to ensure the `interest_charge` field name is correctly identified in the payload.
 
 ---
 

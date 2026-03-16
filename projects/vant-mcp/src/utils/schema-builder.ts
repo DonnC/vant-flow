@@ -103,6 +103,87 @@ export class VantSchemaBuilder {
         return schema;
     }
 
+    buildFromPrompt(prompt: string): DocumentDefinition {
+        const p = prompt.toLowerCase();
+        let blueprint: FormBlueprint = {
+            title: "New Vant Form",
+            description: `Generated from: "${prompt}"`,
+            is_stepper: p.includes("step") || p.includes("onboarding") || p.includes("stepper"),
+            sections: []
+        };
+
+        // Smart Template Logic
+        if (p.includes("employee") || p.includes("onboarding") || p.includes("hire")) {
+            blueprint.title = "Employee Onboarding";
+            blueprint.is_stepper = true;
+            blueprint.steps = [
+                {
+                    title: "Personal info",
+                    sections: [{
+                        label: "Basic Details",
+                        fields: [
+                            { label: "Full Name", fieldtype: "Data", mandatory: true },
+                            { label: "Date of Birth", fieldtype: "Date" },
+                            { label: "Personal Email", fieldtype: "Data" }
+                        ]
+                    }]
+                },
+                {
+                    title: "Bank details",
+                    sections: [{
+                        label: "Payment Info",
+                        fields: [
+                            { label: "Bank Name", fieldtype: "Select", options: "Standard Chartered\nFBC Bank\nCABS" },
+                            { label: "Account Number", fieldtype: "Data", regex: "^\\d{10}$" }
+                        ]
+                    }]
+                },
+                {
+                    title: "Documents",
+                    sections: [{
+                        label: "Uploads",
+                        fields: [
+                            { label: "ID Photo", fieldtype: "Attach" },
+                            { label: "Tax Clearance", fieldtype: "Attach" }
+                        ]
+                    }]
+                }
+            ];
+        } else if (p.includes("loan") || p.includes("finance") || p.includes("credit")) {
+            blueprint.title = "Loan Application";
+            blueprint.sections = [
+                {
+                    label: "Applicant Info",
+                    fields: [
+                        { label: "Primary Income", fieldtype: "Float", mandatory: true },
+                        { label: "Employment Status", fieldtype: "Select", options: "Employed\nSelf-Employed\nContractor" }
+                    ]
+                },
+                {
+                    label: "Current Assets",
+                    fields: [
+                        {
+                            label: "Assets Table",
+                            fieldtype: "Table",
+                            table_fields: [
+                                { label: "Asset Name", fieldtype: "Data" },
+                                { label: "Est. Value", fieldtype: "Float" }
+                            ]
+                        }
+                    ]
+                }
+            ];
+        } else {
+            // Generic fallback
+            blueprint.sections = [{
+                label: "General Information",
+                fields: [{ label: "Description", fieldtype: "Text Editor" }]
+            }];
+        }
+
+        return this.buildFromBlueprint(blueprint);
+    }
+
     // --- Granular Operations ---
 
     addStep(schema: DocumentDefinition, title: string, description?: string): DocumentDefinition {
