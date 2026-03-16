@@ -25,43 +25,30 @@ import { RouterLink } from '@angular/router';
         </div>
 
         <!-- Navigation Cards -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
-          <!-- Builder Card -->
-          <a routerLink="/builder" class="group bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-            <div class="w-12 h-12 rounded-2xl bg-indigo-50 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-indigo-600"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-300">
+          <!-- Admin Card -->
+          <a routerLink="/admin" class="group bg-zinc-900 p-10 rounded-[2.5rem] border border-zinc-800 shadow-xl hover:shadow-2xl hover:-translate-y-2 transition-all duration-500">
+            <div class="w-16 h-16 rounded-2xl bg-zinc-800 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500 ring-1 ring-zinc-700">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             </div>
-            <h3 class="text-lg font-bold text-zinc-800 mb-2">Visual Builder</h3>
-            <p class="text-sm text-zinc-500 leading-relaxed mb-6">Design complex layouts with drag-and-drop, configure field properties, and write client scripts.</p>
-            <div class="flex items-center gap-2 text-xs font-bold text-indigo-600 uppercase tracking-widest group-hover:gap-3 transition-all">
-              Launch IDE
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-            </div>
-          </a>
-
-          <!-- Renderer Card -->
-          <a routerLink="/renderer" class="group bg-white p-8 rounded-3xl border border-zinc-200 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
-            <div class="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-emerald-600"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            </div>
-            <h3 class="text-lg font-bold text-zinc-800 mb-2">Live Renderer</h3>
-            <p class="text-sm text-zinc-500 leading-relaxed mb-6">See the high-performance renderer in action with pre-loaded example schemas and full validation.</p>
-            <div class="flex items-center gap-2 text-xs font-bold text-emerald-600 uppercase tracking-widest group-hover:gap-3 transition-all">
-              Preview Mode
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <h3 class="text-2xl font-black text-white mb-3">Admin Infrastructure</h3>
+            <p class="text-zinc-400 leading-relaxed mb-8 text-sm">Design document templates, configure field logic, and manage your form library with the advanced IDE.</p>
+            <div class="flex items-center gap-2 text-[11px] font-black text-zinc-100 uppercase tracking-[0.2em] group-hover:gap-4 transition-all">
+              Manage Designs
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </div>
           </a>
 
-          <!-- Admin Side Card -->
-          <a routerLink="/admin" class="group bg-zinc-900 p-8 rounded-3xl shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
-            <div class="w-12 h-12 rounded-2xl bg-zinc-800 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-zinc-100"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <!-- Client Portal Card -->
+          <a routerLink="/user" class="group bg-white p-10 rounded-[2.5rem] border border-zinc-200 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500">
+            <div class="w-16 h-16 rounded-2xl bg-violet-50 flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500 ring-4 ring-violet-50/50">
+               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-violet-600"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
-            <h3 class="text-lg font-bold text-zinc-100 mb-2">Admin Dashboard</h3>
-            <p class="text-sm text-zinc-400 leading-relaxed mb-6">The integrated "Full Experience" where you can design a form and see it live side-by-side.</p>
-            <div class="flex items-center gap-2 text-xs font-bold text-zinc-100 uppercase tracking-widest group-hover:gap-3 transition-all">
-              Full Suite
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <h3 class="text-2xl font-black text-zinc-900 mb-3">Client Portal</h3>
+            <p class="text-zinc-500 leading-relaxed mb-8 text-sm">The end-user experience. Access shared forms, fill out documents, and track submission history in real-time.</p>
+            <div class="flex items-center gap-2 text-[11px] font-black text-violet-600 uppercase tracking-[0.2em] group-hover:gap-4 transition-all">
+              Launch Portal
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </div>
           </a>
         </div>

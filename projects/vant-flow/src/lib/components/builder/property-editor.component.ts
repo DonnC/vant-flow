@@ -48,6 +48,27 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
           <textarea class="ui-textarea text-xs" rows="2" [ngModel]="state.document().description" (ngModelChange)="updateFormMetadata({ description: $event })" placeholder="Overview of this Document..."></textarea>
         </div>
 
+        <!-- Stepper Toggle -->
+        <div class="space-y-3 pt-2">
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-indigo-100 bg-indigo-50/30 cursor-pointer hover:bg-indigo-50 transition-all select-none">
+              <div class="flex-1">
+                <p class="text-[11px] font-bold text-zinc-700 uppercase tracking-tight">Stepper Mode</p>
+                <p class="text-[10px] text-zinc-400">Transform this form into a multi-step wizard</p>
+              </div>
+              <button 
+                role="switch" 
+                class="ui-switch"
+                [attr.aria-checked]="state.document().is_stepper ? 'true' : 'false'"
+                (click)="state.setDocumentMetadata({ is_stepper: !state.document().is_stepper })"
+              >
+                <span class="ui-switch-thumb" 
+                  [class.translate-x-4]="state.document().is_stepper"
+                  [class.translate-x-0]="!state.document().is_stepper">
+                </span>
+              </button>
+            </label>
+        </div>
+
         <div class="ui-sep"></div>
 
         <!-- Intro Section -->
@@ -150,96 +171,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
         </div>
       </div>
     }
-    @else if (section()) {
-      <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4 animate-in fade-in duration-300">
-        <div class="flex items-center gap-2">
-          <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-600 bg-amber-50 px-2 py-1 rounded">Section Settings</span>
-        </div>
-
-        <!-- Label -->
-        <div>
-          <label class="ui-label">Section Label (Optional)</label>
-          <input class="ui-input" [ngModel]="section()!.label" (ngModelChange)="state.updateSectionLabel(section()!.id, $event)" placeholder="e.g. Basic Details">
-        </div>
-
-        <!-- Description -->
-        <div>
-          <label class="ui-label">Section Description (Optional)</label>
-          <textarea class="ui-textarea text-xs" rows="2" [ngModel]="section()!.description" (ngModelChange)="state.updateSectionDescription(section()!.id, $event)" placeholder="Help help for this section..."></textarea>
-        </div>
-
-        <!-- Depends On -->
-        <div>
-          <label class="ui-label">Depends On <span class="text-zinc-400">(JS expression)</span></label>
-          <input class="ui-input font-mono text-xs" 
-            [ngModel]="section()!.depends_on" 
-            (ngModelChange)="state.updateSectionDependsOn(section()!.id, $event)"
-            placeholder="doc.status === 'Active'">
-          <p class="text-[11px] text-zinc-400 mt-1">Section is visible when this expression is truthy</p>
-        </div>
-
-        <!-- Columns -->
-        <div>
-          <label class="ui-label text-zinc-400">Layout Columns</label>
-          <div class="flex bg-zinc-100 p-1 rounded-lg gap-1">
-            <button (click)="state.updateSectionColumns(section()!.id, 1)" 
-              class="flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5"
-              [class.bg-white]="section()!.columns_count === 1"
-              [class.shadow-sm]="section()!.columns_count === 1"
-              [class.text-indigo-600]="section()!.columns_count === 1"
-              [class.text-zinc-500]="section()!.columns_count !== 1"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" /></svg>
-              Single
-            </button>
-            <button (click)="state.updateSectionColumns(section()!.id, 2)" 
-              class="flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5"
-              [class.bg-white]="section()!.columns_count !== 1"
-              [class.shadow-sm]="section()!.columns_count !== 1"
-              [class.text-indigo-600]="section()!.columns_count !== 1"
-              [class.text-zinc-500]="section()!.columns_count === 1"
-            >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="18" rx="1" /><rect x="13" y="3" width="8" height="18" rx="1" /></svg>
-              Double
-            </button>
-          </div>
-        </div>
-
-        <!-- Section Toggles -->
-        <div class="space-y-3 pt-2">
-          <label class="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 cursor-pointer hover:bg-zinc-50 transition-all select-none">
-            <div class="flex-1">
-              <p class="text-[11px] font-bold text-zinc-700 uppercase tracking-tight">Collapsible</p>
-              <p class="text-[10px] text-zinc-400">Allow users to toggle section visibility</p>
-            </div>
-            <input type="checkbox" 
-              class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" 
-              [ngModel]="section()!.collapsible" 
-              (ngModelChange)="state.updateSectionProperty(section()!.id, 'collapsible', $event)">
-          </label>
-
-          @if (section()!.collapsible) {
-            <label class="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 cursor-pointer hover:bg-zinc-50 transition-all select-none animate-in slide-in-from-top-1 duration-200">
-              <div class="flex-1">
-                <p class="text-[11px] font-bold text-zinc-700 uppercase tracking-tight">Default Collapsed</p>
-                <p class="text-[10px] text-zinc-400">Start with section minimized</p>
-              </div>
-              <input type="checkbox" 
-                class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" 
-                [ngModel]="section()!.collapsed" 
-                (ngModelChange)="state.updateSectionProperty(section()!.id, 'collapsed', $event)">
-            </label>
-          }
-        </div>
-
-        <div class="ui-sep"></div>
-
-        <!-- Delete -->
-        <button (click)="state.removeSection(section()!.id)" class="ui-btn-destructive w-full justify-center">
-          Remove Section
-        </button>
-      </div>
-    } @else if (field()) {
+    @else if (field()) {
       <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
         <!-- Field Type Badge -->
         <div class="flex items-center gap-2">
@@ -556,6 +488,122 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
         </button>
       </div>
     }
+    @else if (section()) {
+      <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4 animate-in fade-in duration-300">
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-600 bg-amber-50 px-2 py-1 rounded">Section Settings</span>
+        </div>
+
+        <!-- Label -->
+        <div>
+          <label class="ui-label">Section Label (Optional)</label>
+          <input class="ui-input" [ngModel]="section()!.label" (ngModelChange)="state.updateSectionLabel(section()!.id, $event)" placeholder="e.g. Basic Details">
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label class="ui-label">Section Description (Optional)</label>
+          <textarea class="ui-textarea text-xs" rows="2" [ngModel]="section()!.description" (ngModelChange)="state.updateSectionDescription(section()!.id, $event)" placeholder="Help help for this section..."></textarea>
+        </div>
+
+        <!-- Depends On -->
+        <div>
+          <label class="ui-label">Depends On <span class="text-zinc-400">(JS expression)</span></label>
+          <input class="ui-input font-mono text-xs" 
+            [ngModel]="section()!.depends_on" 
+            (ngModelChange)="state.updateSectionDependsOn(section()!.id, $event)"
+            placeholder="doc.status === 'Active'">
+          <p class="text-[11px] text-zinc-400 mt-1">Section is visible when this expression is truthy</p>
+        </div>
+
+        <!-- Columns -->
+        <div>
+          <label class="ui-label text-zinc-400">Layout Columns</label>
+          <div class="flex bg-zinc-100 p-1 rounded-lg gap-1">
+            <button (click)="state.updateSectionColumns(section()!.id, 1)" 
+              class="flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5"
+              [class.bg-white]="section()!.columns_count === 1"
+              [class.shadow-sm]="section()!.columns_count === 1"
+              [class.text-indigo-600]="section()!.columns_count === 1"
+              [class.text-zinc-500]="section()!.columns_count !== 1"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" /></svg>
+              Single
+            </button>
+            <button (click)="state.updateSectionColumns(section()!.id, 2)" 
+              class="flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5"
+              [class.bg-white]="section()!.columns_count !== 1"
+              [class.shadow-sm]="section()!.columns_count !== 1"
+              [class.text-indigo-600]="section()!.columns_count !== 1"
+              [class.text-zinc-500]="section()!.columns_count === 1"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="8" height="18" rx="1" /><rect x="13" y="3" width="8" height="18" rx="1" /></svg>
+              Double
+            </button>
+          </div>
+        </div>
+
+        <!-- Section Toggles -->
+        <div class="space-y-3 pt-2">
+          <label class="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 cursor-pointer hover:bg-zinc-50 transition-all select-none">
+            <div class="flex-1">
+              <p class="text-[11px] font-bold text-zinc-700 uppercase tracking-tight">Collapsible</p>
+              <p class="text-[10px] text-zinc-400">Allow users to toggle section visibility</p>
+            </div>
+            <input type="checkbox" 
+              class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" 
+              [ngModel]="section()!.collapsible" 
+              (ngModelChange)="state.updateSectionProperty(section()!.id, 'collapsible', $event)">
+          </label>
+
+          @if (section()!.collapsible) {
+            <label class="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 cursor-pointer hover:bg-zinc-50 transition-all select-none animate-in slide-in-from-top-1 duration-200">
+              <div class="flex-1">
+                <p class="text-[11px] font-bold text-zinc-700 uppercase tracking-tight">Default Collapsed</p>
+                <p class="text-[10px] text-zinc-400">Start with section minimized</p>
+              </div>
+              <input type="checkbox" 
+                class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" 
+                [ngModel]="section()!.collapsed" 
+                (ngModelChange)="state.updateSectionProperty(section()!.id, 'collapsed', $event)">
+            </label>
+          }
+        </div>
+
+        <div class="ui-sep"></div>
+
+        <!-- Delete -->
+        <button (click)="state.removeSection(section()!.id)" class="ui-btn-destructive w-full justify-center">
+          Remove Section
+        </button>
+      </div>
+    }
+    @else if (step()) {
+      <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4 animate-in fade-in duration-300">
+        <div class="flex items-center gap-2">
+          <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Step Settings</span>
+        </div>
+
+        <!-- Title -->
+        <div>
+          <label class="ui-label">Step Title</label>
+          <input class="ui-input" [ngModel]="step()!.title" (ngModelChange)="state.updateStep(step()!.id, { title: $event })" placeholder="e.g. Basic Details">
+        </div>
+
+        <!-- Description -->
+        <div>
+          <label class="ui-label">Step Description (Optional)</label>
+          <textarea class="ui-textarea text-xs" rows="2" [ngModel]="step()!.description" (ngModelChange)="state.updateStep(step()!.id, { description: $event })" placeholder="Help help for this step..."></textarea>
+        </div>
+
+        <div class="ui-sep"></div>
+
+        <!-- Delete -->
+        <button (click)="state.removeStep(step()!.id)" class="ui-btn-destructive w-full justify-center">
+          Remove Step
+        </button>
+      </div>
+    }
   </div>
   `
 })
@@ -563,8 +611,9 @@ export class VfPropertyEditor {
   state = inject(VfBuilderState);
   field = this.state.selectedField;
   section = this.state.selectedSection;
+  step = this.state.selectedStep;
   fieldTypes = FIELD_TYPES;
-  tableChildTypes = ['Data', 'Int', 'Float', 'Text', 'Select', 'Link', 'Check', 'Date', 'Password'];
+  tableChildTypes = ['Data', 'Int', 'Float', 'Text', 'Select', 'Link', 'Check', 'Date', 'Datetime', 'Time', 'Password', 'Text Editor', 'Attach', 'Signature'];
   actionButtonIds: Array<'save' | 'submit'> = ['save', 'submit'];
 
   getActionConfig(id: string) {

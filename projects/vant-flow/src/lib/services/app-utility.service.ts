@@ -58,7 +58,7 @@ export class VfUtilityService {
    * Show a custom dialog built from Document Fields.
    * Centralized via PromptModalComponent.
    */
-  prompt(fields: DocumentField[], title: string = 'Enter Data'): Promise<Record<string, any> | null> {
+  prompt(fields: DocumentField[], title: string = 'Enter Data', readOnly: boolean = false): Promise<Record<string, any> | null> {
     return new Promise(resolve => {
       const initialValues: Record<string, any> = {};
       fields.forEach(f => { initialValues[f.fieldname] = f.default ?? ''; });
@@ -70,6 +70,7 @@ export class VfUtilityService {
       componentRef.instance.fields = fields;
       componentRef.instance.title = title;
       componentRef.instance.values = initialValues;
+      componentRef.instance.readOnly = readOnly;
 
       componentRef.instance.result.subscribe(res => {
         this.appRef.detachView(componentRef.hostView);
@@ -198,5 +199,9 @@ export class VfUtilityService {
       }
     }
     return result;
+  }
+
+  scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 }

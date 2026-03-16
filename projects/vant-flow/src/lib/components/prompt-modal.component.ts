@@ -20,13 +20,18 @@ import { VfField } from './form-field.component';
             <vf-field 
               [field]="field" 
               [value]="values[field.fieldname]" 
+              [readOnly]="field.read_only || readOnly"
               (valueChange)="updateValue(field.fieldname, $event)">
             </vf-field>
           }
         </div>
         <div class="flex justify-end gap-2 px-6 py-4 bg-zinc-50 border-t border-zinc-100">
-          <button (click)="onCancel()" class="ui-btn-secondary">Cancel</button>
-          <button (click)="submit()" class="ui-btn-primary">Submit</button>
+          @if (readOnly) {
+            <button (click)="onCancel()" class="ui-btn-primary w-full sm:w-auto">Close</button>
+          } @else {
+            <button (click)="onCancel()" class="ui-btn-secondary">Cancel</button>
+            <button (click)="submit()" class="ui-btn-primary">Submit</button>
+          }
         </div>
       </div>
     </div>
@@ -46,6 +51,7 @@ export class VfPromptModal {
   @Input() fields: DocumentField[] = [];
   @Input() title: string = 'Enter Data';
   @Input() values: Record<string, any> = {};
+  @Input() readOnly: boolean = false;
   @Output() result = new EventEmitter<Record<string, any> | null>();
 
   @ViewChildren(VfField) fieldComponents!: QueryList<VfField>;

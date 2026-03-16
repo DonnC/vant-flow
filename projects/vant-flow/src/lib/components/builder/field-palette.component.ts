@@ -17,6 +17,7 @@ import { PALETTE_ITEMS, FieldType } from '../../models/document.model';
         
         <div 
           cdkDropList
+          id="palette-list"
           [cdkDropListData]="paletteItems"
           [cdkDropListConnectedTo]="connectedLists"
           [cdkDropListEnterPredicate]="noEnter"
