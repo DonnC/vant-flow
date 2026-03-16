@@ -286,22 +286,22 @@ import { VfField } from '../form-field.component';
                                                       </td>
                                                       @for (col of field.table_fields?.slice(0, 6); track col.id) {
                                                         <td class="p-2 relative group/cell" 
-                                                            [class.cursor-pointer]="col.fieldtype === 'Text'"
-                                                            (click)="col.fieldtype === 'Text' ? editTableRow(field, $index) : null">
-                                                          <vf-field
-                                                            [field]="col"
-                                                            [(value)]="row[col.fieldname]"
-                                                            (valueChange)="onFieldChange(field.fieldname)"
-                                                            [compact]="true"
-                                                            [hideLabel]="true">
-                                                          </vf-field>
-                                                          @if (col.fieldtype !== 'Text') {
-                                                            <button (click)="$event.stopPropagation(); editTableRow(field, $index)" 
-                                                                    class="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100">
-                                                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-                                                            </button>
-                                                          }
-                                                        </td>
+                                                          [class.cursor-pointer]="['Text', 'Text Editor', 'Attach', 'Signature', 'Datetime'].includes(col.fieldtype)"
+                                                          (click)="['Text', 'Text Editor', 'Attach', 'Signature', 'Datetime'].includes(col.fieldtype) ? editTableRow(field, $index) : null">
+                                                        <vf-field
+                                                          [field]="col"
+                                                          [(value)]="row[col.fieldname]"
+                                                          (valueChange)="onFieldChange(field.fieldname)"
+                                                          [compact]="true"
+                                                          [hideLabel]="true">
+                                                        </vf-field>
+                                                        @if (!['Data', 'Int', 'Float', 'Check', 'Select', 'Link', 'Date', 'Time'].includes(col.fieldtype)) {
+                                                          <button (click)="$event.stopPropagation(); editTableRow(field, $index)" 
+                                                                  class="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100">
+                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                                                          </button>
+                                                        }
+                                                      </td>
                                                       }
                                                       @if ((field.table_fields?.length ?? 0) > 6) {
                                                         <td class="p-2 text-zinc-300 text-[10px] italic">...</td>

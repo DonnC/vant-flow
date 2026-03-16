@@ -5,7 +5,7 @@ export interface TableColumnDef {
   id: string;
   fieldname: string;
   label: string;
-  fieldtype: 'Data' | 'Int' | 'Float' | 'Text' | 'Select' | 'Link' | 'Check' | 'Date' | 'Password';
+  fieldtype: Exclude<FieldType, 'Table'>;
   mandatory?: boolean;
   default?: any;
   options?: string;

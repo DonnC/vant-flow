@@ -81,147 +81,197 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
             </div>
           }
           @case ('Text Editor') {
-            <div class="rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-50/50 transition-all border border-zinc-200"
-                 [class.editor-readonly]="disabled">
-              <quill-editor
-                class="ql-frappe-style"
-                [ngModel]="value"
-                (onContentChanged)="onValueChange($event.html)"
-                [readOnly]="disabled"
-                [placeholder]="disabled ? '' : (field.placeholder || 'Type here...')"
-                theme="snow"
-              ></quill-editor>
-            </div>
+            @if (compact) {
+              <div class="ui-input cursor-pointer truncate italic text-zinc-500" (click)="onInputClick($event)">
+                {{ stripHtml(value) || placeholder }}
+              </div>
+            } @else {
+              <div class="rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-50/50 transition-all border border-zinc-200"
+                   [class.editor-readonly]="disabled">
+                <quill-editor
+                  class="ql-frappe-style"
+                  [ngModel]="value"
+                  (onContentChanged)="onValueChange($event.html)"
+                  [readOnly]="disabled"
+                  [placeholder]="disabled ? '' : (field.placeholder || 'Type here...')"
+                  theme="snow"
+                ></quill-editor>
+              </div>
+            }
           }
           @case ('Date') {
-            <input type="date"
-              class="ui-input"
-              (click)="onInputClick($event)"
-              [ngModel]="value"
-              (ngModelChange)="onValueChange($event)"
-              [disabled]="disabled">
+            @if (compact) {
+              <div class="ui-input cursor-pointer truncate font-mono text-[11px]" (click)="onInputClick($event)">
+                {{ value || placeholder }}
+              </div>
+            } @else {
+              <input type="date"
+                class="ui-input"
+                (click)="onInputClick($event)"
+                [ngModel]="value"
+                (ngModelChange)="onValueChange($event)"
+                [disabled]="disabled">
+            }
           }
           @case ('Datetime') {
-            <input type="datetime-local"
-              class="ui-input"
-              (click)="onInputClick($event)"
-              [ngModel]="value"
-              (ngModelChange)="onValueChange($event)"
-              [disabled]="disabled">
+            @if (compact) {
+              <div class="ui-input cursor-pointer truncate font-mono text-[11px]" (click)="onInputClick($event)">
+                {{ value | date:'short' }}
+              </div>
+            } @else {
+              <input type="datetime-local"
+                class="ui-input"
+                (click)="onInputClick($event)"
+                [ngModel]="value"
+                (ngModelChange)="onValueChange($event)"
+                [disabled]="disabled">
+            }
           }
           @case ('Time') {
-            <input type="time"
-              class="ui-input"
-              (click)="onInputClick($event)"
-              [ngModel]="value"
-              (ngModelChange)="onValueChange($event)"
-              [disabled]="disabled">
+            @if (compact) {
+              <div class="ui-input cursor-pointer truncate font-mono text-[11px]" (click)="onInputClick($event)">
+                {{ value || placeholder }}
+              </div>
+            } @else {
+              <input type="time"
+                class="ui-input"
+                (click)="onInputClick($event)"
+                [ngModel]="value"
+                (ngModelChange)="onValueChange($event)"
+                [disabled]="disabled">
+            }
           }
           @case ('Signature') {
-            <div class="space-y-2">
-              <div class="relative bg-zinc-50 border border-zinc-200 rounded-xl overflow-hidden group/sig">
-                <canvas #signatureCanvas
-                  class="w-full h-40 cursor-crosshair touch-none"
-                  (mousedown)="startDrawing($event)"
-                  (mousemove)="draw($event)"
-                  (mouseup)="stopDrawing()"
-                  (mouseleave)="stopDrawing()"
-                  (touchstart)="startDrawing($event)"
-                  (touchmove)="draw($event)"
-                  (touchend)="stopDrawing()"></canvas>
-                
-                @if (!value && !isDrawing) {
-                  <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                    <span class="text-xs text-zinc-400 font-medium">Draw your signature here</span>
-                  </div>
-                }
-
-                @if (value && !isDrawing) {
-                  <div class="absolute top-2 right-2 flex gap-1.5 opacity-0 group-sig:opacity-100 group-hover/sig:opacity-100 transition-opacity">
-                    <button type="button" (click)="clearSignature()" 
-                      class="p-1.5 rounded-lg bg-white shadow-sm border border-zinc-200 text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                    </button>
-                  </div>
+            @if (compact) {
+              <div class="flex items-center gap-1.5 py-1 px-2 rounded bg-zinc-50 border border-zinc-200 w-fit cursor-pointer"
+                   (click)="onInputClick($event)">
+                @if (value) {
+                  <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                  <span class="text-[10px] font-bold text-zinc-600 uppercase tracking-tighter">Signed</span>
+                } @else {
+                  <div class="w-1.5 h-1.5 rounded-full bg-zinc-300"></div>
+                  <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">No Signature</span>
                 }
               </div>
-              @if (value) {
-                <div class="flex items-center gap-2 px-1">
-                  <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                  <span class="text-[10px] text-emerald-600 font-bold tracking-tight uppercase">Signature Captured</span>
-                </div>
-              }
-            </div>
-          }
-          @case ('Attach') {
-            <div class="space-y-3">
-              <!-- Dropzone -->
-              @if (!disabled) {
-                <div 
-                  class="relative border-2 border-dashed border-zinc-200 rounded-xl p-6 transition-all group/drop cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30"
-                  [class.border-indigo-500]="isDraggingFile"
-                  [class.bg-indigo-50]="isDraggingFile"
-                  (dragover)="onDragOver($event)"
-                  (dragleave)="onDragLeave($event)"
-                  (drop)="onDrop($event)"
-                  (click)="triggerFileInput()">
+            } @else {
+              <div class="space-y-2">
+                <div class="relative bg-zinc-50 border border-zinc-200 rounded-xl overflow-hidden group/sig">
+                  <canvas #signatureCanvas
+                    class="w-full h-40 cursor-crosshair touch-none"
+                    (mousedown)="startDrawing($event)"
+                    (mousemove)="draw($event)"
+                    (mouseup)="stopDrawing()"
+                    (mouseleave)="stopDrawing()"
+                    (touchstart)="startDrawing($event)"
+                    (touchmove)="draw($event)"
+                    (touchend)="stopDrawing()"></canvas>
                   
-                  <input type="file" #fileInput class="hidden" 
-                    [accept]="attachConfig.accept"
-                    [multiple]="attachConfig.maxFiles > 1"
-                    (change)="onFileSelected($event)">
+                  @if (!value && !isDrawing) {
+                    <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <span class="text-xs text-zinc-400 font-medium">Draw your signature here</span>
+                    </div>
+                  }
   
-                  <div class="flex flex-col items-center gap-2 text-center">
-                    <div class="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 group-hover/drop:bg-indigo-100 group-hover/drop:text-indigo-600 transition-colors">
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                    </div>
-                    <div>
-                      <p class="text-[13px] text-zinc-600 font-bold">Click or drag to upload</p>
-                      <p class="text-[11px] text-zinc-400">{{ attachConfig.accept || 'All files' }} • Max {{ attachConfig.maxSizeText }}</p>
-                    </div>
-                  </div>
-                </div>
-              } @else if (attachments.length === 0) {
-                <div class="p-4 bg-zinc-50 border border-zinc-100 rounded-xl text-center">
-                   <p class="text-[11px] text-zinc-400 font-bold uppercase tracking-widest italic">No files attached</p>
-                </div>
-              }
-
-              <!-- File List -->
-              @if (attachments.length > 0) {
-                <div class="space-y-2">
-                  @for (file of attachments; track file.name; let i = $index) {
-                    <div class="flex items-center justify-between p-2.5 bg-white border border-zinc-100 rounded-lg group/file hover:border-zinc-200 transition-all shadow-sm">
-                      <div class="flex items-center gap-3 min-w-0">
-                        <!-- Preview Icon -->
-                        <div class="w-9 h-9 rounded-md bg-zinc-50 flex items-center justify-center shrink-0 overflow-hidden">
-                          @if (isImage(file.type)) {
-                            <img [src]="file.url" class="w-full h-full object-cover">
-                          } @else {
-                            <svg class="text-zinc-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                          }
-                        </div>
-                        <div class="min-w-0">
-                          <p class="text-[12px] font-bold text-zinc-700 truncate leading-none mb-1">{{ file.name }}</p>
-                          <p class="text-[10px] text-zinc-400 font-medium tracking-tight uppercase">{{ getFileSize(file.size) }}</p>
-                        </div>
-                      </div>
-                      <div class="flex items-center gap-1 transition-opacity" 
-                           [ngClass]="{'opacity-0': !disabled, 'group-hover/file:opacity-100': !disabled}">
-                        <button type="button" (click)="downloadFile(file)" class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                        </button>
-                        @if (!disabled) {
-                          <button type="button" (click)="removeFile(i)" class="p-1.5 rounded-md text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                          </button>
-                        }
-                      </div>
+                  @if (value && !isDrawing) {
+                    <div class="absolute top-2 right-2 flex gap-1.5 opacity-0 group-sig:opacity-100 group-hover/sig:opacity-100 transition-opacity">
+                      <button type="button" (click)="clearSignature()" 
+                        class="p-1.5 rounded-lg bg-white shadow-sm border border-zinc-200 text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                      </button>
                     </div>
                   }
                 </div>
-              }
-            </div>
+                @if (value) {
+                  <div class="flex items-center gap-2 px-1">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span class="text-[10px] text-emerald-600 font-bold tracking-tight uppercase">Signature Captured</span>
+                  </div>
+                }
+              </div>
+            }
+          }
+          @case ('Attach') {
+            @if (compact) {
+              <div class="flex items-center gap-1.5 py-1 px-2 rounded bg-zinc-50 border border-zinc-200 w-fit cursor-pointer"
+                   (click)="onInputClick($event)">
+                @if (attachments.length > 0) {
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-indigo-600"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                  <span class="text-[10px] font-bold text-zinc-600">{{ attachments.length }} {{ attachments.length === 1 ? 'file' : 'files' }}</span>
+                } @else {
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-zinc-300"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                  <span class="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter">Empty</span>
+                }
+              </div>
+            } @else {
+              <div class="space-y-3">
+                <!-- Dropzone -->
+                @if (!disabled) {
+                  <div 
+                    class="relative border-2 border-dashed border-zinc-200 rounded-xl p-6 transition-all group/drop cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30"
+                    [class.border-indigo-500]="isDraggingFile"
+                    [class.bg-indigo-50]="isDraggingFile"
+                    (dragover)="onDragOver($event)"
+                    (dragleave)="onDragLeave($event)"
+                    (drop)="onDrop($event)"
+                    (click)="triggerFileInput()">
+                    
+                    <input type="file" #fileInput class="hidden" 
+                      [accept]="attachConfig.accept"
+                      [multiple]="attachConfig.maxFiles > 1"
+                      (change)="onFileSelected($event)">
+    
+                    <div class="flex flex-col items-center gap-2 text-center">
+                      <div class="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 group-hover/drop:bg-indigo-100 group-hover/drop:text-indigo-600 transition-colors">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                      </div>
+                      <div>
+                        <p class="text-[13px] text-zinc-600 font-bold">Click or drag to upload</p>
+                        <p class="text-[11px] text-zinc-400">{{ attachConfig.accept || 'All files' }} • Max {{ attachConfig.maxSizeText }}</p>
+                      </div>
+                    </div>
+                  </div>
+                } @else if (attachments.length === 0) {
+                  <div class="p-4 bg-zinc-50 border border-zinc-100 rounded-xl text-center">
+                    <p class="text-[11px] text-zinc-400 font-bold uppercase tracking-widest italic">No files attached</p>
+                  </div>
+                }
+  
+                <!-- File List -->
+                @if (attachments.length > 0) {
+                  <div class="space-y-2">
+                    @for (file of attachments; track file.name; let i = $index) {
+                      <div class="flex items-center justify-between p-2.5 bg-white border border-zinc-100 rounded-lg group/file hover:border-zinc-200 transition-all shadow-sm">
+                        <div class="flex items-center gap-3 min-w-0">
+                          <!-- Preview Icon -->
+                          <div class="w-9 h-9 rounded-md bg-zinc-50 flex items-center justify-center shrink-0 overflow-hidden">
+                            @if (isImage(file.type)) {
+                              <img [src]="file.url" class="w-full h-full object-cover">
+                            } @else {
+                              <svg class="text-zinc-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                            }
+                          </div>
+                          <div class="min-w-0">
+                            <p class="text-[12px] font-bold text-zinc-700 truncate leading-none mb-1">{{ file.name }}</p>
+                            <p class="text-[10px] text-zinc-400 font-medium tracking-tight uppercase">{{ getFileSize(file.size) }}</p>
+                          </div>
+                        </div>
+                        <div class="flex items-center gap-1 transition-opacity" 
+                            [ngClass]="{'opacity-0': !disabled, 'group-hover/file:opacity-100': !disabled}">
+                          <button type="button" (click)="downloadFile(file)" class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                          </button>
+                          @if (!disabled) {
+                            <button type="button" (click)="removeFile(i)" class="p-1.5 rounded-md text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
           }
           @case ('Password') {
             <input type="password"
@@ -604,6 +654,11 @@ export class VfField implements AfterViewInit {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  stripHtml(html: string): string {
+    if (!html) return '';
+    return html.replace(/<[^>]*>?/gm, '');
   }
 
   private isAccepted(file: File, accept: string): boolean {
