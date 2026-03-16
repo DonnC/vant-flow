@@ -5,7 +5,7 @@ export interface TableColumnDef {
   id: string;
   fieldname: string;
   label: string;
-  fieldtype: 'Data' | 'Int' | 'Float' | 'Text' | 'Select' | 'Link' | 'Check' | 'Date' | 'Password';
+  fieldtype: Exclude<FieldType, 'Table'>;
   mandatory?: boolean;
   default?: any;
   options?: string;
@@ -49,11 +49,19 @@ export interface DocumentSection {
   columns: DocumentColumn[];
 }
 
+export interface DocumentStep {
+  id: string;
+  title: string;
+  description?: string;
+  sections: DocumentSection[];
+}
+
 export interface FormActionButton {
   label: string;
   visible: boolean;
   type?: string;
   action?: string; // Custom script event to trigger
+  disable_on_readonly?: boolean;
 }
 
 export interface FormActionsConfig {
@@ -68,9 +76,11 @@ export interface DocumentDefinition {
   module?: string;
   description?: string;
   version?: string;
+  is_stepper?: boolean;
   intro_text?: string;
   intro_color?: 'blue' | 'orange' | 'red' | 'gray';
-  sections: DocumentSection[];
+  sections: DocumentSection[]; // Sections for legacy/flat forms
+  steps?: DocumentStep[]; // Steps for multi-step forms
   client_script?: string;
   actions?: FormActionsConfig;
 }

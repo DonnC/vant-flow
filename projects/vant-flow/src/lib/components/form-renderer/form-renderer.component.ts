@@ -51,24 +51,24 @@ import { VfField } from '../form-field.component';
             <!-- Custom Buttons -->
             @for (btn of ctx.customButtons(); track btn.id) {
               <button (click)="btn.action()"
-                      [disabled]="disabled"
+                      [disabled]="disabled || (ctx.isReadOnly() && btn.disable_on_readonly !== false)"
                       [class]="'px-4 py-2 text-sm font-bold rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ' + getButtonClass(btn.type)">
                 {{ btn.label }}
               </button>
             }
 
             <!-- Default Actions (shown unless showActions=false) -->
-            @if (showActions) {
+            @if (showActions && (!document.is_stepper || isLastStep)) {
               @if (ctx.actionsConfig()?.save?.visible !== false) {
                 <button (click)="onAction('save')"
-                        [disabled]="disabled"
+                        [disabled]="disabled || (ctx.isReadOnly() && ctx.actionsConfig()?.save?.disable_on_readonly !== false)"
                         class="px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                  {{ draftLabel || ctx.actionsConfig()?.save?.label || 'Save as Draft' }}
+                  {{ draftLabel || ctx.actionsConfig()?.save?.label || 'Save' }}
                 </button>
               }
               @if (ctx.actionsConfig()?.submit?.visible !== false) {
                 <button (click)="onAction('submit')"
-                        [disabled]="disabled"
+                        [disabled]="disabled || (ctx.isReadOnly() && ctx.actionsConfig()?.submit?.disable_on_readonly !== false)"
                         class="ui-btn-primary px-6 py-2 text-sm shadow-indigo-100 shadow-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100">
                   {{ submitLabel || ctx.actionsConfig()?.submit?.label || 'Submit' }}
                 </button>
@@ -109,11 +109,101 @@ import { VfField } from '../form-field.component';
             </div>
           }
 
-          <!-- Sections -->
-          <div class="space-y-6">
-            @for (section of document.sections; track section.id) {
-              @if (!ctx.getSectionSignal(section.id, 'hidden')()) {
-                <div class="section-card bg-white border border-zinc-200 shadow-sm rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+          @if (document.is_stepper && document.steps?.length) {
+            <!-- Stepper UI -->
+            <div class="mb-10">
+              <!-- Progress Bar -->
+              <div class="flex items-center justify-between mb-8 px-4">
+                @for (step of document.steps; track step.id; let i = $index) {
+                  <div class="flex flex-col items-center gap-2 flex-1 relative">
+                    <!-- Line -->
+                    @if (i > 0) {
+                      <div class="absolute right-[50%] top-4 w-full h-[2px] -z-10 transition-colors duration-500"
+                           [class.bg-indigo-600]="i <= ctx.currentStepIndex()"
+                           [class.bg-zinc-100]="i > ctx.currentStepIndex()"></div>
+                    }
+
+                    <button (click)="i < ctx.currentStepIndex() ? ctx.go_to_step(i) : null"
+                            class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border-2"
+                            [class.bg-indigo-600]="i <= ctx.currentStepIndex()"
+                            [class.border-indigo-600]="i <= ctx.currentStepIndex()"
+                            [class.text-white]="i <= ctx.currentStepIndex()"
+                            [class.bg-white]="i > ctx.currentStepIndex()"
+                            [class.border-zinc-200]="i > ctx.currentStepIndex()"
+                            [class.text-zinc-400]="i > ctx.currentStepIndex()"
+                            [class.shadow-lg]="i === ctx.currentStepIndex()"
+                            [class.shadow-indigo-100]="i === ctx.currentStepIndex()">
+                       @if (i < ctx.currentStepIndex()) {
+                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                       } @else {
+                         {{ i + 1 }}
+                       }
+                    </button>
+                    <span class="text-[10px] font-bold uppercase tracking-widest transition-colors duration-300"
+                          [class.text-indigo-600]="i === ctx.currentStepIndex()"
+                          [class.text-zinc-400]="i !== ctx.currentStepIndex()">
+                      {{ step.title }}
+                    </span>
+                  </div>
+                }
+              </div>
+
+              <!-- Current Step Content -->
+              <div class="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div class="mb-6">
+                  <h3 class="text-lg font-bold text-zinc-900">{{ document.steps![ctx.currentStepIndex()].title }}</h3>
+                  @if (document.steps![ctx.currentStepIndex()].description) {
+                    <p class="text-xs text-zinc-500 mt-1">{{ document.steps![ctx.currentStepIndex()].description }}</p>
+                  }
+                </div>
+
+                @for (section of document.steps![ctx.currentStepIndex()].sections; track section.id) {
+                   <ng-container *ngTemplateOutlet="sectionTemplate; context: { $implicit: section }"></ng-container>
+                }
+              </div>
+
+              <!-- Stepper Navigation Footer -->
+              <div class="mt-12 pt-8 border-t border-zinc-100 flex items-center justify-between">
+                <button (click)="ctx.prev_step()"
+                        [disabled]="ctx.currentStepIndex() === 0"
+                        class="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-all disabled:opacity-0">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                  Back
+                </button>
+
+                <div class="flex items-center gap-3">
+                  @if (ctx.currentStepIndex() < document.steps!.length - 1) {
+                    <button (click)="nextStepWithValidation()"
+                            class="ui-btn-primary px-8 py-2.5 text-sm flex items-center gap-2 shadow-indigo-100 shadow-xl active:scale-95 transition-all">
+                      Continue
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                  } @else {
+                    @if (showActions && ctx.actionsConfig()?.submit?.visible !== false) {
+                      <button (click)="onAction('submit')"
+                              [disabled]="disabled || (ctx.isReadOnly() && ctx.actionsConfig()?.submit?.disable_on_readonly !== false)"
+                              class="ui-btn-primary px-10 py-2.5 text-sm shadow-indigo-100 shadow-xl active:scale-95 transition-all">
+                        {{ submitLabel || ctx.actionsConfig()?.submit?.label || 'Complete Submission' }}
+                      </button>
+                    }
+                  }
+                </div>
+              </div>
+            </div>
+          } @else {
+            <!-- Flat Sections (Original) -->
+            <div class="space-y-6">
+              @for (section of document.sections; track section.id) {
+                <ng-container *ngTemplateOutlet="sectionTemplate; context: { $implicit: section }"></ng-container>
+              }
+            </div>
+          }
+
+        </div>
+
+        <ng-template #sectionTemplate let-section>
+          @if (!ctx.getSectionSignal(section.id, 'hidden')()) {
+            <div class="section-card bg-white border border-zinc-200 shadow-sm rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
                   
                   <!-- Section Header (Clickable if collapsible) -->
                   <div class="px-6 py-5 flex items-center justify-between gap-4 transition-all bg-zinc-50/30 border-b border-transparent"
@@ -196,22 +286,22 @@ import { VfField } from '../form-field.component';
                                                       </td>
                                                       @for (col of field.table_fields?.slice(0, 6); track col.id) {
                                                         <td class="p-2 relative group/cell" 
-                                                            [class.cursor-pointer]="col.fieldtype === 'Text'"
-                                                            (click)="col.fieldtype === 'Text' ? editTableRow(field, $index) : null">
-                                                          <vf-field
-                                                            [field]="col"
-                                                            [(value)]="row[col.fieldname]"
-                                                            (valueChange)="onFieldChange(field.fieldname)"
-                                                            [compact]="true"
-                                                            [hideLabel]="true">
-                                                          </vf-field>
-                                                          @if (col.fieldtype !== 'Text') {
-                                                            <button (click)="$event.stopPropagation(); editTableRow(field, $index)" 
-                                                                    class="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100">
-                                                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-                                                            </button>
-                                                          }
-                                                        </td>
+                                                          [class.cursor-pointer]="['Text', 'Text Editor', 'Attach', 'Signature', 'Datetime'].includes(col.fieldtype)"
+                                                          (click)="['Text', 'Text Editor', 'Attach', 'Signature', 'Datetime'].includes(col.fieldtype) ? editTableRow(field, $index) : null">
+                                                        <vf-field
+                                                          [field]="col"
+                                                          [(value)]="row[col.fieldname]"
+                                                          (valueChange)="onFieldChange(field.fieldname)"
+                                                          [compact]="true"
+                                                          [hideLabel]="true">
+                                                        </vf-field>
+                                                        @if (!['Data', 'Int', 'Float', 'Check', 'Select', 'Link', 'Date', 'Time'].includes(col.fieldtype)) {
+                                                          <button (click)="$event.stopPropagation(); editTableRow(field, $index)" 
+                                                                  class="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100">
+                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                                                          </button>
+                                                        }
+                                                      </td>
                                                       }
                                                       @if ((field.table_fields?.length ?? 0) > 6) {
                                                         <td class="p-2 text-zinc-300 text-[10px] italic">...</td>
@@ -221,19 +311,26 @@ import { VfField } from '../form-field.component';
                                                                 class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
                                                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                                                                stroke="currentColor" stroke-width="2">
-                                                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                                                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                            @if (!ctx.isReadOnly()) {
+                                                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                            } @else {
+                                                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                              <circle cx="12" cy="12" r="3"/>
+                                                            }
                                                           </svg>
                                                         </button>
-                                                        <button (click)="removeTableRow(field.fieldname, $index)"
-                                                                [disabled]="ctx.isReadOnly()"
-                                                                class="p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-0 opacity-0 group-hover/row:opacity-100 transition-all">
-                                                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                                               stroke="currentColor" stroke-width="2.5">
-                                                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                                                          </svg>
-                                                        </button>
+                                                        @if (!ctx.isReadOnly()) {
+                                                          <button (click)="removeTableRow(field.fieldname, $index)"
+                                                                  [disabled]="ctx.isReadOnly()"
+                                                                  class="p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-0 opacity-0 group-hover/row:opacity-100 transition-all">
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                                 stroke="currentColor" stroke-width="2.5">
+                                                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                            </svg>
+                                                          </button>
+                                                        }
                                                       </td>
                                                     </tr>
                                                   }
@@ -298,10 +395,7 @@ import { VfField } from '../form-field.component';
                   </div>
                 </div>
               }
-            }
-          </div>
-
-        </div>
+        </ng-template>
 
         <!-- Submit placeholder (Bottom) -->
         <div class="px-8 pb-10 flex items-center justify-center">
@@ -419,6 +513,11 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   ctx = inject(VfFormContext);
   utils = inject(VfUtilityService);
 
+  get isLastStep(): boolean {
+    if (!this.document.is_stepper || !this.document.steps) return true;
+    return this.ctx.currentStepIndex() === this.document.steps.length - 1;
+  }
+
   constructor() {
     effect(() => {
       this.evaluateDependsOn();
@@ -454,7 +553,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     const rawData = { ...(this.initialData || {}), ...this.formData };
     this.formData = {};
 
-    this.document.sections.forEach((s: DocumentSection) => {
+    const allSections: DocumentSection[] = [];
+    if (this.document.is_stepper && this.document.steps) {
+      this.document.steps.forEach(s => allSections.push(...s.sections));
+    } else if (this.document.sections) {
+      allSections.push(...this.document.sections);
+    }
+
+    allSections.forEach((s: DocumentSection) => {
       s.columns.forEach((c) => {
         c.fields.forEach((f: DocumentField) => {
           const path = f.data_group ? `${f.data_group}.${f.fieldname}` : f.fieldname;
@@ -492,8 +598,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
 
   validateForm(): boolean {
     const invalidFields: string[] = [];
+    const allSections: DocumentSection[] = [];
+    if (this.document.is_stepper && this.document.steps) {
+      this.document.steps.forEach(s => allSections.push(...s.sections));
+    } else {
+      allSections.push(...this.document.sections);
+    }
 
-    this.document.sections.forEach((s: DocumentSection) => {
+    allSections.forEach((s: DocumentSection) => {
       if (this.ctx.getSectionSignal(s.id, 'hidden')()) return;
       s.columns.forEach((c) => {
         c.fields.forEach((f: DocumentField) => {
@@ -528,7 +640,8 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     });
 
     if (invalidFields.length > 0) {
-      this.utils.show_alert('Please fill in all mandatory fields correctly before submitting.', 'error');
+      this.utils.show_alert('Please fill in all mandatory fields correctly before staying.', 'error');
+      // console.log('Invalid Fields:', invalidFields);
       this.formError.emit(invalidFields);
       return false;
     }
@@ -538,6 +651,60 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       return false;
     }
 
+    return true;
+  }
+
+  nextStepWithValidation() {
+    if (this.validateStep()) {
+      this.ctx.next_step();
+    }
+  }
+
+  validateStep(): boolean {
+    const currentIndex = this.ctx.currentStepIndex();
+    const step = this.document.steps?.[currentIndex];
+    if (!step) return true;
+
+    const invalidFields: string[] = [];
+    step.sections.forEach(s => {
+      if (this.ctx.getSectionSignal(s.id, 'hidden')()) return;
+      s.columns.forEach(c => {
+        c.fields.forEach(f => {
+          if (this.ctx.getFieldSignal(f.fieldname, 'hidden')()) return;
+          const isMandatory = this.ctx.getFieldSignal(f.fieldname, 'mandatory')();
+          const val = this.formData[f.fieldname];
+
+          if (isMandatory && (val === undefined || val === null || val === '')) {
+            invalidFields.push(f.fieldname);
+          }
+
+          if (f.regex && val && !this.isValidRegex(f.fieldname, f.regex)) {
+            invalidFields.push(f.fieldname);
+          }
+
+          if (f.fieldtype === 'Table' && this.formData[f.fieldname]) {
+            const rows = this.formData[f.fieldname] as any[];
+            rows.forEach(row => {
+              f.table_fields?.forEach((tf: any) => {
+                const cellVal = row[tf.fieldname];
+                if (tf.mandatory && (cellVal === undefined || cellVal === null || cellVal === '')) {
+                  invalidFields.push(`${f.fieldname}.${tf.fieldname}`);
+                }
+                if (tf.regex && cellVal && !this.isValidRegex(tf.fieldname, tf.regex, cellVal)) {
+                  invalidFields.push(`${f.fieldname}.${tf.fieldname}`);
+                }
+              });
+            });
+          }
+        });
+      });
+    });
+
+    if (invalidFields.length > 0) {
+      this.utils.show_alert('Please fill in all mandatory fields before proceeding.', 'error');
+      this.formError.emit(invalidFields);
+      return false;
+    }
     return true;
   }
 
@@ -557,7 +724,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
 
   private packData(): any {
     const packedData: any = {};
-    this.document.sections.forEach((s: DocumentSection) => {
+    const allSections: DocumentSection[] = [];
+    if (this.document.is_stepper && this.document.steps) {
+      this.document.steps.forEach(s => allSections.push(...s.sections));
+    } else {
+      allSections.push(...this.document.sections);
+    }
+
+    allSections.forEach((s: DocumentSection) => {
       s.columns.forEach((c) => {
         c.fields.forEach((f: DocumentField) => {
           if (f.fieldtype === 'Button') return;
@@ -571,7 +745,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   }
 
   private evaluateDependsOn() {
-    this.document.sections.forEach((s: DocumentSection) => {
+    const allSections: DocumentSection[] = [];
+    if (this.document.is_stepper && this.document.steps) {
+      this.document.steps.forEach(s => allSections.push(...s.sections));
+    } else {
+      allSections.push(...this.document.sections);
+    }
+
+    allSections.forEach((s: DocumentSection) => {
       s.columns.forEach((c) => {
         c.fields.forEach((f: DocumentField) => {
           if (f.depends_on) {
@@ -586,7 +767,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       });
     });
 
-    this.document.sections.forEach((s: DocumentSection) => {
+    allSections.forEach((s: DocumentSection) => {
       if (s.depends_on) {
         const visible = this.evalExpression(s.depends_on);
         this.ctx.set_section_property(s.id, 'hidden', visible ? 0 : 1);
@@ -658,19 +839,29 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     return map[style ?? 'secondary'] || map['secondary'];
   }
 
-  onAction(id: string) {
-    const config = (this.ctx.actionsConfig() as any)?.[id.toLowerCase()];
-    if (!config) return;
+  onAction(action: string) {
+    if (this.disabled) return;
 
-    if (config.runtimeAction) {
-      config.runtimeAction(this.ctx);
-    } else if (config.action) {
-      this.ctx.execute(config.action, id);
+    if (action === 'delete') {
+      // not implemented
+      return;
+    }
+
+    // Both save and submit require full form validation now
+    if (!this.validateForm()) return;
+
+    if (action === 'save') {
+      this.saveDraft();
+    } else if (action === 'submit') {
+      this.submit();
     } else {
-      if (id === 'save') this.saveDraft();
-      else if (id === 'submit') this.submit();
-      else {
-        this.utils.show_alert(`${id.charAt(0).toUpperCase() + id.slice(1)} action triggered`, 'info');
+      const config = (this.ctx.actionsConfig() as any)?.[action.toLowerCase()];
+      if (config?.runtimeAction) {
+        config.runtimeAction(this.ctx);
+      } else if (config?.action) {
+        this.ctx.execute(config.action, action);
+      } else {
+        this.utils.show_alert(`${action.charAt(0).toUpperCase() + action.slice(1)} action triggered`, 'info');
       }
     }
   }
@@ -700,13 +891,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       mandatory: tf.mandatory,
       options: tf.options,
       regex: tf.regex,
-      default: row[tf.fieldname]
+      default: row[tf.fieldname],
+      read_only: this.ctx.isReadOnly()
     }));
 
     this.ctx.prompt(promptFields, (values) => {
       Object.assign(row, values);
       this.onFieldChange(field.fieldname);
-    }, `Edit Row #${index + 1}`);
+    }, this.ctx.isReadOnly() ? (field.label || 'Row Detail') : `Edit Row #${index + 1}`, this.ctx.isReadOnly());
   }
 
   addTableRow(fieldname: string) {

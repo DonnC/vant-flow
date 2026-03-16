@@ -147,6 +147,17 @@ export class VfScriptEditor {
         { label: 'frm.set_button_label', code: "frm.set_button_label('submit', 'Send Now');" },
         { label: 'frm.set_button_action', code: "frm.set_button_action('submit', (frm) => {\n  frm.msgprint('Custom submit logic');\n});" },
       ]
+    },
+    {
+      name: 'Form Stepper',
+      items: [
+        { label: 'frm.next_step', code: "frm.next_step();" },
+        { label: 'frm.prev_step', code: "frm.prev_step();" },
+        { label: 'frm.go_to_step', code: "frm.go_to_step('step_id');" },
+        { label: 'frm.set_step_hidden', code: "frm.set_step_hidden('step_id', true);" },
+        { label: 'frm.on(before_step_change)', code: "frm.on('before_step_change', (val, frm) => {\n  // val is { from: number, to: number }\n  // return false to cancel\n});" },
+        { label: 'frm.on(after_step_change)', code: "frm.on('after_step_change', (val, frm) => {\n  // val is { from: number, to: number }\n});" },
+      ]
     }
   ];
 
@@ -230,6 +241,15 @@ export class VfScriptEditor {
         /** Remove a row from a table field */
         remove_row(fieldname: string, index: number): void;
         
+        /** Move to the next visible step */
+        next_step(): void;
+        /** Move to the previous visible step */
+        prev_step(): void;
+        /** Go to a specific step by index or ID */
+        go_to_step(indexOrId: number | string): void;
+        /** Hide/Show a specific step */
+        set_step_hidden(stepId: string, hidden: boolean): void;
+
         /** Global UI freezing */
         freeze(message?: string): void;
         unfreeze(): void;
