@@ -54,6 +54,7 @@ export interface FormActionButton {
   visible: boolean;
   type?: string;
   action?: string; // Custom script event to trigger
+  disable_on_readonly?: boolean;
 }
 
 export interface FormActionsConfig {
