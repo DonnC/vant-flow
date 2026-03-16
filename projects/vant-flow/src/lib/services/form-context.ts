@@ -19,6 +19,10 @@ export class VfFormContext {
     public customButtons = signal<{ id: string; label: string; action: Function; type?: string; disable_on_readonly?: boolean }[]>([]);
     public actionsConfig = signal<FormActionsConfig | undefined>(undefined);
 
+    // Stepper state
+    public currentStepIndex = signal<number>(0);
+    public stepSignals = new Map<string, WritableSignal<{ id: string; title: string; description?: string; hidden: boolean }>>();
+
     constructor(
         private appUtility: VfUtilityService,
         private state: VfBuilderState
@@ -31,17 +35,37 @@ export class VfFormContext {
         // Initialize signals
         this.fieldSignals.clear();
         this.sectionSignals.clear();
+        this.stepSignals.clear();
         this.dynamicIntro.set(null);
         this.isReadOnly.set(false);
         this.customButtons.set([]);
         this.actionsConfig.set(document.actions);
+        this.currentStepIndex.set(0);
 
-        document.sections.forEach(section => {
-            this.sectionSignals.set(section.id, signal({ ...section }));
-            section.columns.forEach(col => {
-                col.fields.forEach(field => {
-                    this.fieldSignals.set(field.fieldname, signal({ ...field }));
-                });
+        // Process flat sections
+        this.document.sections?.forEach(section => {
+            this.initSection(section);
+        });
+
+        // Process steps
+        this.document.steps?.forEach(step => {
+            this.stepSignals.set(step.id, signal({
+                id: step.id,
+                title: step.title,
+                description: step.description,
+                hidden: false
+            }));
+            step.sections.forEach(section => {
+                this.initSection(section);
+            });
+        });
+    }
+
+    private initSection(section: DocumentSection) {
+        this.sectionSignals.set(section.id, signal({ ...section }));
+        section.columns.forEach(col => {
+            col.fields.forEach(field => {
+                this.fieldSignals.set(field.fieldname, signal({ ...field }));
             });
         });
     }
@@ -94,6 +118,100 @@ export class VfFormContext {
 
     set_readonly(readOnly: boolean) {
         this.isReadOnly.set(readOnly);
+    }
+
+    // ── Stepper methods ──────────────────────────────────────────
+
+    next_step() {
+        const doc = this.document;
+        if (!doc.is_stepper || !doc.steps) return;
+
+        const currentIndex = this.currentStepIndex();
+        if (currentIndex < doc.steps.length - 1) {
+            // Trigger before change hook - can stop if returns false
+            if (this.trigger('before_step_change', { from: currentIndex, to: currentIndex + 1 }) === false) {
+                return;
+            }
+
+            // Find next visible step
+            let nextIndex = currentIndex + 1;
+            while (nextIndex < doc.steps.length) {
+                const stepId = doc.steps[nextIndex].id;
+                const isHidden = this.getStepSignal(stepId, 'hidden')();
+                if (!isHidden) break;
+                nextIndex++;
+            }
+
+            if (nextIndex < doc.steps.length) {
+                this.currentStepIndex.set(nextIndex);
+                this.trigger('after_step_change', { from: currentIndex, to: nextIndex });
+                this.appUtility.scrollToTop();
+            }
+        }
+    }
+
+    prev_step() {
+        const doc = this.document;
+        if (!doc.is_stepper || !doc.steps) return;
+
+        const currentIndex = this.currentStepIndex();
+        if (currentIndex > 0) {
+            // Find prev visible step
+            let prevIndex = currentIndex - 1;
+            while (prevIndex >= 0) {
+                const stepId = doc.steps[prevIndex].id;
+                const isHidden = this.getStepSignal(stepId, 'hidden')();
+                if (!isHidden) break;
+                prevIndex--;
+            }
+
+            if (prevIndex >= 0) {
+                this.currentStepIndex.set(prevIndex);
+                this.trigger('after_step_change', { from: currentIndex, to: prevIndex });
+                this.appUtility.scrollToTop();
+            }
+        }
+    }
+
+    go_to_step(indexOrId: number | string) {
+        const doc = this.document;
+        if (!doc.is_stepper || !doc.steps) return;
+
+        const currentIndex = this.currentStepIndex();
+        let targetIndex = -1;
+
+        if (typeof indexOrId === 'number') {
+            targetIndex = indexOrId;
+        } else {
+            targetIndex = doc.steps.findIndex(s => s.id === indexOrId);
+        }
+
+        if (targetIndex >= 0 && targetIndex < doc.steps.length && targetIndex !== currentIndex) {
+            const stepId = doc.steps[targetIndex].id;
+            if (this.getStepSignal(stepId, 'hidden')()) {
+                console.warn(`[frm] cannot jump to hidden step: ${indexOrId}`);
+                return;
+            }
+
+            if (this.trigger('before_step_change', { from: currentIndex, to: targetIndex }) === false) {
+                return;
+            }
+
+            this.currentStepIndex.set(targetIndex);
+            this.trigger('after_step_change', { from: currentIndex, to: targetIndex });
+            this.appUtility.scrollToTop();
+        }
+    }
+
+    set_step_hidden(stepId: string, hidden: boolean) {
+        const s = this.stepSignals.get(stepId);
+        if (!s) { console.warn(`[frm] Unknown step: ${stepId}`); return; }
+        s.update(current => ({ ...current, hidden }));
+    }
+
+    getStepSignal(stepId: string, prop: 'hidden' | 'title' | 'description') {
+        const s = this.stepSignals.get(stepId);
+        return () => s ? (s() as any)[prop] : undefined;
     }
 
     add_custom_button(label: string, action: Function, type: string = 'secondary', disable_on_readonly: boolean = true) {

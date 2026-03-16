@@ -109,11 +109,101 @@ import { VfField } from '../form-field.component';
             </div>
           }
 
-          <!-- Sections -->
-          <div class="space-y-6">
-            @for (section of document.sections; track section.id) {
-              @if (!ctx.getSectionSignal(section.id, 'hidden')()) {
-                <div class="section-card bg-white border border-zinc-200 shadow-sm rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
+          @if (document.is_stepper && document.steps?.length) {
+            <!-- Stepper UI -->
+            <div class="mb-10">
+              <!-- Progress Bar -->
+              <div class="flex items-center justify-between mb-8 px-4">
+                @for (step of document.steps; track step.id; let i = $index) {
+                  <div class="flex flex-col items-center gap-2 flex-1 relative">
+                    <!-- Line -->
+                    @if (i > 0) {
+                      <div class="absolute right-[50%] top-4 w-full h-[2px] -z-10 transition-colors duration-500"
+                           [class.bg-indigo-600]="i <= ctx.currentStepIndex()"
+                           [class.bg-zinc-100]="i > ctx.currentStepIndex()"></div>
+                    }
+
+                    <button (click)="i < ctx.currentStepIndex() ? ctx.go_to_step(i) : null"
+                            class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300 border-2"
+                            [class.bg-indigo-600]="i <= ctx.currentStepIndex()"
+                            [class.border-indigo-600]="i <= ctx.currentStepIndex()"
+                            [class.text-white]="i <= ctx.currentStepIndex()"
+                            [class.bg-white]="i > ctx.currentStepIndex()"
+                            [class.border-zinc-200]="i > ctx.currentStepIndex()"
+                            [class.text-zinc-400]="i > ctx.currentStepIndex()"
+                            [class.shadow-lg]="i === ctx.currentStepIndex()"
+                            [class.shadow-indigo-100]="i === ctx.currentStepIndex()">
+                       @if (i < ctx.currentStepIndex()) {
+                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+                       } @else {
+                         {{ i + 1 }}
+                       }
+                    </button>
+                    <span class="text-[10px] font-bold uppercase tracking-widest transition-colors duration-300"
+                          [class.text-indigo-600]="i === ctx.currentStepIndex()"
+                          [class.text-zinc-400]="i !== ctx.currentStepIndex()">
+                      {{ step.title }}
+                    </span>
+                  </div>
+                }
+              </div>
+
+              <!-- Current Step Content -->
+              <div class="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div class="mb-6">
+                  <h3 class="text-lg font-bold text-zinc-900">{{ document.steps![ctx.currentStepIndex()].title }}</h3>
+                  @if (document.steps![ctx.currentStepIndex()].description) {
+                    <p class="text-xs text-zinc-500 mt-1">{{ document.steps![ctx.currentStepIndex()].description }}</p>
+                  }
+                </div>
+
+                @for (section of document.steps![ctx.currentStepIndex()].sections; track section.id) {
+                   <ng-container *ngTemplateOutlet="sectionTemplate; context: { $implicit: section }"></ng-container>
+                }
+              </div>
+
+              <!-- Stepper Navigation Footer -->
+              <div class="mt-12 pt-8 border-t border-zinc-100 flex items-center justify-between">
+                <button (click)="ctx.prev_step()"
+                        [disabled]="ctx.currentStepIndex() === 0"
+                        class="flex items-center gap-2 px-5 py-2.5 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-xl transition-all disabled:opacity-0">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+                  Back
+                </button>
+
+                <div class="flex items-center gap-3">
+                  @if (ctx.currentStepIndex() < document.steps!.length - 1) {
+                    <button (click)="nextStepWithValidation()"
+                            class="ui-btn-primary px-8 py-2.5 text-sm flex items-center gap-2 shadow-indigo-100 shadow-xl active:scale-95 transition-all">
+                      Continue
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                    </button>
+                  } @else {
+                    @if (showActions && ctx.actionsConfig()?.submit?.visible !== false) {
+                      <button (click)="onAction('submit')"
+                              [disabled]="disabled || (ctx.isReadOnly() && ctx.actionsConfig()?.submit?.disable_on_readonly !== false)"
+                              class="ui-btn-primary px-10 py-2.5 text-sm shadow-indigo-100 shadow-xl active:scale-95 transition-all">
+                        {{ submitLabel || ctx.actionsConfig()?.submit?.label || 'Complete Submission' }}
+                      </button>
+                    }
+                  }
+                </div>
+              </div>
+            </div>
+          } @else {
+            <!-- Flat Sections (Original) -->
+            <div class="space-y-6">
+              @for (section of document.sections; track section.id) {
+                <ng-container *ngTemplateOutlet="sectionTemplate; context: { $implicit: section }"></ng-container>
+              }
+            </div>
+          }
+
+        </div>
+
+        <ng-template #sectionTemplate let-section>
+          @if (!ctx.getSectionSignal(section.id, 'hidden')()) {
+            <div class="section-card bg-white border border-zinc-200 shadow-sm rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
                   
                   <!-- Section Header (Clickable if collapsible) -->
                   <div class="px-6 py-5 flex items-center justify-between gap-4 transition-all bg-zinc-50/30 border-b border-transparent"
@@ -305,10 +395,7 @@ import { VfField } from '../form-field.component';
                   </div>
                 </div>
               }
-            }
-          </div>
-
-        </div>
+        </ng-template>
 
         <!-- Submit placeholder (Bottom) -->
         <div class="px-8 pb-10 flex items-center justify-center">
@@ -461,7 +548,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     const rawData = { ...(this.initialData || {}), ...this.formData };
     this.formData = {};
 
-    this.document.sections.forEach((s: DocumentSection) => {
+    const allSections: DocumentSection[] = [];
+    if (this.document.is_stepper && this.document.steps) {
+      this.document.steps.forEach(s => allSections.push(...s.sections));
+    } else if (this.document.sections) {
+      allSections.push(...this.document.sections);
+    }
+
+    allSections.forEach((s: DocumentSection) => {
       s.columns.forEach((c) => {
         c.fields.forEach((f: DocumentField) => {
           const path = f.data_group ? `${f.data_group}.${f.fieldname}` : f.fieldname;
@@ -499,8 +593,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
 
   validateForm(): boolean {
     const invalidFields: string[] = [];
+    const allSections: DocumentSection[] = [];
+    if (this.document.is_stepper && this.document.steps) {
+      this.document.steps.forEach(s => allSections.push(...s.sections));
+    } else {
+      allSections.push(...this.document.sections);
+    }
 
-    this.document.sections.forEach((s: DocumentSection) => {
+    allSections.forEach((s: DocumentSection) => {
       if (this.ctx.getSectionSignal(s.id, 'hidden')()) return;
       s.columns.forEach((c) => {
         c.fields.forEach((f: DocumentField) => {
@@ -548,6 +648,60 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     return true;
   }
 
+  nextStepWithValidation() {
+    if (this.validateStep()) {
+      this.ctx.next_step();
+    }
+  }
+
+  validateStep(): boolean {
+    const currentIndex = this.ctx.currentStepIndex();
+    const step = this.document.steps?.[currentIndex];
+    if (!step) return true;
+
+    const invalidFields: string[] = [];
+    step.sections.forEach(s => {
+      if (this.ctx.getSectionSignal(s.id, 'hidden')()) return;
+      s.columns.forEach(c => {
+        c.fields.forEach(f => {
+          if (this.ctx.getFieldSignal(f.fieldname, 'hidden')()) return;
+          const isMandatory = this.ctx.getFieldSignal(f.fieldname, 'mandatory')();
+          const val = this.formData[f.fieldname];
+
+          if (isMandatory && (val === undefined || val === null || val === '')) {
+            invalidFields.push(f.fieldname);
+          }
+
+          if (f.regex && val && !this.isValidRegex(f.fieldname, f.regex)) {
+            invalidFields.push(f.fieldname);
+          }
+
+          if (f.fieldtype === 'Table' && this.formData[f.fieldname]) {
+            const rows = this.formData[f.fieldname] as any[];
+            rows.forEach(row => {
+              f.table_fields?.forEach((tf: any) => {
+                const cellVal = row[tf.fieldname];
+                if (tf.mandatory && (cellVal === undefined || cellVal === null || cellVal === '')) {
+                  invalidFields.push(`${f.fieldname}.${tf.fieldname}`);
+                }
+                if (tf.regex && cellVal && !this.isValidRegex(tf.fieldname, tf.regex, cellVal)) {
+                  invalidFields.push(`${f.fieldname}.${tf.fieldname}`);
+                }
+              });
+            });
+          }
+        });
+      });
+    });
+
+    if (invalidFields.length > 0) {
+      this.utils.show_alert('Please fill in all mandatory fields before proceeding.', 'error');
+      this.formError.emit(invalidFields);
+      return false;
+    }
+    return true;
+  }
+
   saveDraft() {
     const packed = this.packData();
     this.formDraft.emit(packed);
@@ -564,7 +718,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
 
   private packData(): any {
     const packedData: any = {};
-    this.document.sections.forEach((s: DocumentSection) => {
+    const allSections: DocumentSection[] = [];
+    if (this.document.is_stepper && this.document.steps) {
+      this.document.steps.forEach(s => allSections.push(...s.sections));
+    } else {
+      allSections.push(...this.document.sections);
+    }
+
+    allSections.forEach((s: DocumentSection) => {
       s.columns.forEach((c) => {
         c.fields.forEach((f: DocumentField) => {
           if (f.fieldtype === 'Button') return;
@@ -578,7 +739,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   }
 
   private evaluateDependsOn() {
-    this.document.sections.forEach((s: DocumentSection) => {
+    const allSections: DocumentSection[] = [];
+    if (this.document.is_stepper && this.document.steps) {
+      this.document.steps.forEach(s => allSections.push(...s.sections));
+    } else {
+      allSections.push(...this.document.sections);
+    }
+
+    allSections.forEach((s: DocumentSection) => {
       s.columns.forEach((c) => {
         c.fields.forEach((f: DocumentField) => {
           if (f.depends_on) {
@@ -593,7 +761,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       });
     });
 
-    this.document.sections.forEach((s: DocumentSection) => {
+    allSections.forEach((s: DocumentSection) => {
       if (s.depends_on) {
         const visible = this.evalExpression(s.depends_on);
         this.ctx.set_section_property(s.id, 'hidden', visible ? 0 : 1);

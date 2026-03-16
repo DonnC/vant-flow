@@ -200,4 +200,8 @@ export class VfUtilityService {
     }
     return result;
   }
+
+  scrollToTop() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
 }

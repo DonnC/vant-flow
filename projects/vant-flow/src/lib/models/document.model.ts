@@ -49,6 +49,13 @@ export interface DocumentSection {
   columns: DocumentColumn[];
 }
 
+export interface DocumentStep {
+  id: string;
+  title: string;
+  description?: string;
+  sections: DocumentSection[];
+}
+
 export interface FormActionButton {
   label: string;
   visible: boolean;
@@ -69,9 +76,11 @@ export interface DocumentDefinition {
   module?: string;
   description?: string;
   version?: string;
+  is_stepper?: boolean;
   intro_text?: string;
   intro_color?: 'blue' | 'orange' | 'red' | 'gray';
-  sections: DocumentSection[];
+  sections: DocumentSection[]; // Sections for legacy/flat forms
+  steps?: DocumentStep[]; // Steps for multi-step forms
   client_script?: string;
   actions?: FormActionsConfig;
 }
