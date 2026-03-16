@@ -1,5 +1,5 @@
 {
-    "name": "Employee Onboarding Flow",
+    "name": "Vant Employee Onboarding",
     "is_stepper": true,
     "intro_text": "Welcome to Vant Flow! Please complete your onboarding details below.",
     "intro_color": "blue",
@@ -135,7 +135,93 @@
                     ]
                 }
             ]
+        },
+        {
+            "id": "id_6_7lj02",
+            "title": "Final",
+            "sections": [
+                {
+                    "id": "id_7_fd6jt",
+                    "label": "Media",
+                    "columns": [
+                        {
+                            "id": "id_8_a44ua",
+                            "fields": [
+                                {
+                                    "id": "id_12_6furr",
+                                    "fieldname": "resume",
+                                    "fieldtype": "Attach",
+                                    "label": "Resume",
+                                    "hidden": false,
+                                    "read_only": false,
+                                    "mandatory": true,
+                                    "data_group": "media"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "id_9_76dfw",
+                            "fields": [
+                                {
+                                    "id": "id_13_cwuof",
+                                    "fieldname": "letter",
+                                    "fieldtype": "Attach",
+                                    "label": "Motivational Letter",
+                                    "hidden": false,
+                                    "read_only": false,
+                                    "mandatory": true,
+                                    "data_group": "media"
+                                }
+                            ]
+                        }
+                    ],
+                    "columns_count": 2,
+                    "collapsible": true,
+                    "collapsed": true
+                },
+                {
+                    "id": "id_14_mp0n1",
+                    "label": "Sign Off",
+                    "columns": [
+                        {
+                            "id": "id_15_gxclr",
+                            "fields": [
+                                {
+                                    "id": "id_17_w22is",
+                                    "fieldname": "signature",
+                                    "fieldtype": "Signature",
+                                    "label": "Signature",
+                                    "hidden": false,
+                                    "read_only": false,
+                                    "mandatory": false,
+                                    "data_group": "kyc"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "id_16_s7nln",
+                            "fields": []
+                        }
+                    ],
+                    "columns_count": 1
+                }
+            ],
+            "description": "Upload your certificates"
         }
     ],
-    "sections": []
+    "sections": [],
+    "actions": {
+        "save": {
+            "label": "Save Draft",
+            "visible": true,
+            "type": "secondary"
+        },
+        "submit": {
+            "label": "Submit",
+            "visible": true,
+            "type": "primary"
+        }
+    },
+    "description": "Apply with your resume",
+    "version": "1.0.1"
 }

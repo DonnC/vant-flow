@@ -58,12 +58,12 @@ import { VfField } from '../form-field.component';
             }
 
             <!-- Default Actions (shown unless showActions=false) -->
-            @if (showActions) {
+            @if (showActions && (!document.is_stepper || isLastStep)) {
               @if (ctx.actionsConfig()?.save?.visible !== false) {
                 <button (click)="onAction('save')"
                         [disabled]="disabled || (ctx.isReadOnly() && ctx.actionsConfig()?.save?.disable_on_readonly !== false)"
                         class="px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                  {{ draftLabel || ctx.actionsConfig()?.save?.label || 'Save as Draft' }}
+                  {{ draftLabel || ctx.actionsConfig()?.save?.label || 'Save' }}
                 </button>
               }
               @if (ctx.actionsConfig()?.submit?.visible !== false) {
@@ -513,6 +513,11 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   ctx = inject(VfFormContext);
   utils = inject(VfUtilityService);
 
+  get isLastStep(): boolean {
+    if (!this.document.is_stepper || !this.document.steps) return true;
+    return this.ctx.currentStepIndex() === this.document.steps.length - 1;
+  }
+
   constructor() {
     effect(() => {
       this.evaluateDependsOn();
@@ -635,7 +640,8 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     });
 
     if (invalidFields.length > 0) {
-      this.utils.show_alert('Please fill in all mandatory fields correctly before submitting.', 'error');
+      this.utils.show_alert('Please fill in all mandatory fields correctly before staying.', 'error');
+      // console.log('Invalid Fields:', invalidFields);
       this.formError.emit(invalidFields);
       return false;
     }
@@ -833,19 +839,29 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     return map[style ?? 'secondary'] || map['secondary'];
   }
 
-  onAction(id: string) {
-    const config = (this.ctx.actionsConfig() as any)?.[id.toLowerCase()];
-    if (!config) return;
+  onAction(action: string) {
+    if (this.disabled) return;
 
-    if (config.runtimeAction) {
-      config.runtimeAction(this.ctx);
-    } else if (config.action) {
-      this.ctx.execute(config.action, id);
+    if (action === 'delete') {
+      // not implemented
+      return;
+    }
+
+    // Both save and submit require full form validation now
+    if (!this.validateForm()) return;
+
+    if (action === 'save') {
+      this.saveDraft();
+    } else if (action === 'submit') {
+      this.submit();
     } else {
-      if (id === 'save') this.saveDraft();
-      else if (id === 'submit') this.submit();
-      else {
-        this.utils.show_alert(`${id.charAt(0).toUpperCase() + id.slice(1)} action triggered`, 'info');
+      const config = (this.ctx.actionsConfig() as any)?.[action.toLowerCase()];
+      if (config?.runtimeAction) {
+        config.runtimeAction(this.ctx);
+      } else if (config?.action) {
+        this.ctx.execute(config.action, action);
+      } else {
+        this.utils.show_alert(`${action.charAt(0).toUpperCase() + action.slice(1)} action triggered`, 'info');
       }
     }
   }

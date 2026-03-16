@@ -189,32 +189,86 @@ type RightTab = 'properties' | 'script';
 
         <!-- CENTER: Canvas -->
         <main class="flex-1 overflow-y-auto p-5">
-          @if (state.document().sections.length === 0) {
-            <!-- Empty state -->
-            <div class="h-full flex flex-col items-center justify-center text-center">
-              <div class="w-20 h-20 rounded-2xl bg-white border-2 border-dashed border-zinc-200 flex items-center justify-center mb-4 shadow-sm">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-zinc-300">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/>
-                </svg>
+          @if (state.document().is_stepper) {
+            <!-- Stepper Builder View -->
+            <div class="flex gap-4 h-full min-h-[500px]">
+              <!-- Step List Sidebar -->
+              <div class="w-48 shrink-0 flex flex-col gap-2">
+                <div class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest px-2 mb-1">Steps</div>
+                @for (step of state.document().steps; track step.id; let i = $index) {
+                  <div 
+                    (click)="state.selectStep(step.id)"
+                    class="group flex items-center justify-between px-3 py-2 rounded-lg cursor-pointer transition-all border"
+                    [class.bg-white]="state.selectedStepId() === step.id"
+                    [class.border-indigo-200]="state.selectedStepId() === step.id"
+                    [class.shadow-sm]="state.selectedStepId() === step.id"
+                    [class.bg-zinc-50]="state.selectedStepId() !== step.id"
+                    [class.border-transparent]="state.selectedStepId() !== step.id"
+                  >
+                    <div class="flex items-center gap-2 overflow-hidden">
+                      <span class="text-[10px] font-mono text-zinc-400 w-4">{{ i + 1 }}</span>
+                      <span class="text-xs font-medium truncate" [class.text-indigo-600]="state.selectedStepId() === step.id">{{ step.title }}</span>
+                    </div>
+                    <button (click)="state.removeStep(step.id); $event.stopPropagation()" class="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-red-500 transition-opacity">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+                }
+                <button (click)="state.addStep()" class="mt-2 text-[10px] font-bold text-indigo-500 hover:text-indigo-600 px-2 flex items-center gap-1">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  ADD STEP
+                </button>
               </div>
-              <h3 class="text-base font-semibold text-zinc-700 mb-1">Start Building</h3>
-              <p class="text-sm text-zinc-400 mb-5 max-w-xs">Add a Section from the left panel, then drag fields into it to build your form layout</p>
-              <button (click)="addSection()" class="ui-btn-primary">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Add First Section
-              </button>
+
+              <!-- Step Content (Sections) -->
+              <div class="flex-1 bg-white/50 rounded-xl border-2 border-dashed border-zinc-200 p-4">
+                @if (state.selectedStep()) {
+                  @for (section of state.selectedStep()!.sections; track section.id) {
+                    <vf-canvas-section
+                      [section]="section"
+                      [allColumnIds]="allColumnIds()"
+                    ></vf-canvas-section>
+                  }
+                  <button (click)="state.addSection(state.selectedStepId()!)" class="flex items-center gap-2 text-sm text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors rounded-lg px-4 py-2.5 w-full border border-dashed border-zinc-200 hover:border-indigo-300 mt-2">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    Add Section to {{ state.selectedStep()!.title }}
+                  </button>
+                } @else {
+                  <div class="h-full flex flex-col items-center justify-center text-zinc-400 text-sm italic">
+                    Select a step to edit its contents
+                  </div>
+                }
+              </div>
             </div>
           } @else {
-            @for (section of state.document().sections; track section.id) {
-              <vf-canvas-section
-                [section]="section"
-                [allColumnIds]="allColumnIds()"
-              ></vf-canvas-section>
+            <!-- Legacy Flat Builder View -->
+            @if (state.document().sections.length === 0) {
+              <!-- Empty state -->
+              <div class="h-full flex flex-col items-center justify-center text-center">
+                <div class="w-20 h-20 rounded-2xl bg-white border-2 border-dashed border-zinc-200 flex items-center justify-center mb-4 shadow-sm">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-zinc-300">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/>
+                  </svg>
+                </div>
+                <h3 class="text-base font-semibold text-zinc-700 mb-1">Start Building</h3>
+                <p class="text-sm text-zinc-400 mb-5 max-w-xs">Add a Section from the left panel, then drag fields into it to build your form layout</p>
+                <button (click)="addSection()" class="ui-btn-primary">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Add First Section
+                </button>
+              </div>
+            } @else {
+              @for (section of state.document().sections; track section.id) {
+                <vf-canvas-section
+                  [section]="section"
+                  [allColumnIds]="allColumnIds()"
+                ></vf-canvas-section>
+              }
+              <button (click)="addSection()" class="flex items-center gap-2 text-sm text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors rounded-lg px-4 py-2.5 w-full border border-dashed border-zinc-200 hover:border-indigo-300 mt-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Section
+              </button>
             }
-            <button (click)="addSection()" class="flex items-center gap-2 text-sm text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors rounded-lg px-4 py-2.5 w-full border border-dashed border-zinc-200 hover:border-indigo-300 mt-2">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              Add Section
-            </button>
           }
         </main>
 
@@ -334,9 +388,9 @@ export class VfBuilder implements OnInit {
   isResizing = signal(false);
 
   constructor() {
-    // Auto-focus properties tab when a field or section is selected
+    // Auto-focus properties tab when a field, section, or step is selected
     effect(() => {
-      if (this.state.selectedFieldId() || this.state.selectedSectionId()) {
+      if (this.state.selectedFieldId() || this.state.selectedSectionId() || this.state.selectedStepId()) {
         this.rightTab = 'properties';
         this.rightSidebarVisible.set(true);
       }
@@ -349,16 +403,30 @@ export class VfBuilder implements OnInit {
     });
   }
 
-  allColumnIds = computed(() =>
-    this.state.document().sections.flatMap(s => s.columns.map(c => c.id))
-  );
+  allColumnIds = computed(() => {
+    const doc = this.state.document();
+    if (!doc.is_stepper) {
+      return doc.sections.flatMap(s => s.columns.map(c => c.id));
+    }
+    // In stepper mode, ONLY connect to columns on the active/selected step
+    const activeStep = this.state.selectedStep();
+    if (!activeStep) return [];
+    return activeStep.sections.flatMap(s => s.columns.map(c => c.id));
+  });
 
-  fieldCount = computed(() =>
-    this.state.document().sections.reduce((total, s) =>
-      total + s.columns.reduce((ct, c) => ct + c.fields.length, 0), 0)
-  );
+  fieldCount = computed(() => {
+    const doc = this.state.document();
+    const sections = doc.is_stepper ? (doc.steps?.flatMap(s => s.sections) || []) : doc.sections;
+    return sections.reduce((total, s) =>
+      total + s.columns.reduce((ct, c) => ct + c.fields.length, 0), 0);
+  });
 
-  sectionCount = computed(() => this.state.document().sections.length);
+  sectionCount = computed(() => {
+    const doc = this.state.document();
+    return doc.is_stepper ? (doc.steps?.reduce((acc, s) => acc + s.sections.length, 0) || 0) : doc.sections.length;
+  });
+
+  stepCount = computed(() => this.state.document().steps?.length || 0);
 
   ngOnInit() {
     if (this.initialSchema) {
