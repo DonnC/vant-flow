@@ -16,7 +16,7 @@ export class VfFormContext {
     private formData: any;
 
     public isReadOnly = signal<boolean>(false);
-    public customButtons = signal<{ id: string; label: string; action: Function; type?: string }[]>([]);
+    public customButtons = signal<{ id: string; label: string; action: Function; type?: string; disable_on_readonly?: boolean }[]>([]);
     public actionsConfig = signal<FormActionsConfig | undefined>(undefined);
 
     constructor(
@@ -71,8 +71,8 @@ export class VfFormContext {
         throw new Error(message);
     }
 
-    prompt(fields: DocumentField[], callback: (values: any) => void, title?: string) {
-        this.appUtility.prompt(fields, title).then((values: any) => {
+    prompt(fields: DocumentField[], callback: (values: any) => void, title?: string, read_only: boolean = false) {
+        this.appUtility.prompt(fields, title, read_only).then((values: any) => {
             if (values) callback(values);
         });
     }
@@ -96,11 +96,11 @@ export class VfFormContext {
         this.isReadOnly.set(readOnly);
     }
 
-    add_custom_button(label: string, action: Function, type: string = 'secondary') {
+    add_custom_button(label: string, action: Function, type: string = 'secondary', disable_on_readonly: boolean = true) {
         const id = label.toLowerCase().replace(/\s+/g, '_');
         this.customButtons.update(btns => {
             const existing = btns.findIndex(b => b.id === id);
-            const newBtn = { id, label, action, type };
+            const newBtn = { id, label, action, type, disable_on_readonly };
             if (existing > -1) {
                 btns[existing] = newBtn;
                 return [...btns];

@@ -81,13 +81,14 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
             </div>
           }
           @case ('Text Editor') {
-            <div class="rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-50/50 transition-all border border-zinc-200">
+            <div class="rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-50/50 transition-all border border-zinc-200"
+                 [class.editor-readonly]="disabled">
               <quill-editor
                 class="ql-frappe-style"
                 [ngModel]="value"
                 (onContentChanged)="onValueChange($event.html)"
                 [readOnly]="disabled"
-                [placeholder]="field.placeholder || 'Type here...'"
+                [placeholder]="disabled ? '' : (field.placeholder || 'Type here...')"
                 theme="snow"
               ></quill-editor>
             </div>
@@ -155,30 +156,36 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
           @case ('Attach') {
             <div class="space-y-3">
               <!-- Dropzone -->
-              <div 
-                class="relative border-2 border-dashed border-zinc-200 rounded-xl p-6 transition-all group/drop cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30"
-                [class.border-indigo-500]="isDraggingFile"
-                [class.bg-indigo-50]="isDraggingFile"
-                (dragover)="onDragOver($event)"
-                (dragleave)="onDragLeave($event)"
-                (drop)="onDrop($event)"
-                (click)="triggerFileInput()">
-                
-                <input type="file" #fileInput class="hidden" 
-                  [accept]="attachConfig.accept"
-                  [multiple]="attachConfig.maxFiles > 1"
-                  (change)="onFileSelected($event)">
-
-                <div class="flex flex-col items-center gap-2 text-center">
-                  <div class="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 group-hover/drop:bg-indigo-100 group-hover/drop:text-indigo-600 transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                  </div>
-                  <div>
-                    <p class="text-[13px] text-zinc-600 font-bold">Click or drag to upload</p>
-                    <p class="text-[11px] text-zinc-400">{{ attachConfig.accept || 'All files' }} • Max {{ attachConfig.maxSizeText }}</p>
+              @if (!disabled) {
+                <div 
+                  class="relative border-2 border-dashed border-zinc-200 rounded-xl p-6 transition-all group/drop cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/30"
+                  [class.border-indigo-500]="isDraggingFile"
+                  [class.bg-indigo-50]="isDraggingFile"
+                  (dragover)="onDragOver($event)"
+                  (dragleave)="onDragLeave($event)"
+                  (drop)="onDrop($event)"
+                  (click)="triggerFileInput()">
+                  
+                  <input type="file" #fileInput class="hidden" 
+                    [accept]="attachConfig.accept"
+                    [multiple]="attachConfig.maxFiles > 1"
+                    (change)="onFileSelected($event)">
+  
+                  <div class="flex flex-col items-center gap-2 text-center">
+                    <div class="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 group-hover/drop:bg-indigo-100 group-hover/drop:text-indigo-600 transition-colors">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                    </div>
+                    <div>
+                      <p class="text-[13px] text-zinc-600 font-bold">Click or drag to upload</p>
+                      <p class="text-[11px] text-zinc-400">{{ attachConfig.accept || 'All files' }} • Max {{ attachConfig.maxSizeText }}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              } @else if (attachments.length === 0) {
+                <div class="p-4 bg-zinc-50 border border-zinc-100 rounded-xl text-center">
+                   <p class="text-[11px] text-zinc-400 font-bold uppercase tracking-widest italic">No files attached</p>
+                </div>
+              }
 
               <!-- File List -->
               @if (attachments.length > 0) {
@@ -199,13 +206,16 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                           <p class="text-[10px] text-zinc-400 font-medium tracking-tight uppercase">{{ getFileSize(file.size) }}</p>
                         </div>
                       </div>
-                      <div class="flex items-center gap-1 opacity-0 group-hover/file:opacity-100 transition-opacity">
+                      <div class="flex items-center gap-1 transition-opacity" 
+                           [ngClass]="{'opacity-0': !disabled, 'group-hover/file:opacity-100': !disabled}">
                         <button type="button" (click)="downloadFile(file)" class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
                         </button>
-                        <button type="button" (click)="removeFile(i)" class="p-1.5 rounded-md text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                        </button>
+                        @if (!disabled) {
+                          <button type="button" (click)="removeFile(i)" class="p-1.5 rounded-md text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                          </button>
+                        }
                       </div>
                     </div>
                   }
@@ -239,7 +249,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
           </div>
         }
 
-        @if (disabled && !isEditor) {
+        @if (disabled && !isEditor && field.fieldtype !== 'Attach') {
           <div class="absolute inset-0 bg-transparent cursor-not-allowed"></div>
         }
       </div>
@@ -269,6 +279,16 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
     }
 
     /* Text Editor Specific */
+    .editor-readonly ::ng-deep .ql-toolbar {
+      @apply hidden !important;
+    }
+    .editor-readonly ::ng-deep .ql-frappe-style .ql-container {
+      @apply border-0 min-h-[10px] !important;
+    }
+    .editor-readonly ::ng-deep .ql-editor {
+      @apply px-4 py-2 opacity-90;
+    }
+
     ::ng-deep .ql-frappe-style .ql-toolbar {
       @apply bg-zinc-50 border-0 border-b border-zinc-200 py-2 px-3 !important;
     }
@@ -282,6 +302,18 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
     }
     ::ng-deep .ql-frappe-style .ql-editor {
       @apply px-4 py-3 leading-relaxed;
+    }
+
+    /* Quill Table Better Styling */
+    ::ng-deep .ql-editor table {
+      border-collapse: collapse;
+      width: 100% !important;
+      margin-bottom: 1rem;
+    }
+    ::ng-deep .ql-editor table td {
+      border: 1px solid #e2e8f0 !important;
+      padding: 8px !important;
+      min-width: 50px;
     }
   `]
 })

@@ -51,7 +51,7 @@ import { VfField } from '../form-field.component';
             <!-- Custom Buttons -->
             @for (btn of ctx.customButtons(); track btn.id) {
               <button (click)="btn.action()"
-                      [disabled]="disabled"
+                      [disabled]="disabled || (ctx.isReadOnly() && btn.disable_on_readonly !== false)"
                       [class]="'px-4 py-2 text-sm font-bold rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ' + getButtonClass(btn.type)">
                 {{ btn.label }}
               </button>
@@ -61,14 +61,14 @@ import { VfField } from '../form-field.component';
             @if (showActions) {
               @if (ctx.actionsConfig()?.save?.visible !== false) {
                 <button (click)="onAction('save')"
-                        [disabled]="disabled"
+                        [disabled]="disabled || (ctx.isReadOnly() && ctx.actionsConfig()?.save?.disable_on_readonly !== false)"
                         class="px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                   {{ draftLabel || ctx.actionsConfig()?.save?.label || 'Save as Draft' }}
                 </button>
               }
               @if (ctx.actionsConfig()?.submit?.visible !== false) {
                 <button (click)="onAction('submit')"
-                        [disabled]="disabled"
+                        [disabled]="disabled || (ctx.isReadOnly() && ctx.actionsConfig()?.submit?.disable_on_readonly !== false)"
                         class="ui-btn-primary px-6 py-2 text-sm shadow-indigo-100 shadow-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100">
                   {{ submitLabel || ctx.actionsConfig()?.submit?.label || 'Submit' }}
                 </button>
@@ -221,19 +221,26 @@ import { VfField } from '../form-field.component';
                                                                 class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
                                                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                                                                stroke="currentColor" stroke-width="2">
-                                                            <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
-                                                            <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                            @if (!ctx.isReadOnly()) {
+                                                              <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/>
+                                                              <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                                            } @else {
+                                                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                                              <circle cx="12" cy="12" r="3"/>
+                                                            }
                                                           </svg>
                                                         </button>
-                                                        <button (click)="removeTableRow(field.fieldname, $index)"
-                                                                [disabled]="ctx.isReadOnly()"
-                                                                class="p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-0 opacity-0 group-hover/row:opacity-100 transition-all">
-                                                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                                                               stroke="currentColor" stroke-width="2.5">
-                                                            <line x1="18" y1="6" x2="6" y2="18"></line>
-                                                            <line x1="6" y1="6" x2="18" y2="18"></line>
-                                                          </svg>
-                                                        </button>
+                                                        @if (!ctx.isReadOnly()) {
+                                                          <button (click)="removeTableRow(field.fieldname, $index)"
+                                                                  [disabled]="ctx.isReadOnly()"
+                                                                  class="p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-0 opacity-0 group-hover/row:opacity-100 transition-all">
+                                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                                 stroke="currentColor" stroke-width="2.5">
+                                                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                                                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                                                            </svg>
+                                                          </button>
+                                                        }
                                                       </td>
                                                     </tr>
                                                   }
@@ -700,13 +707,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       mandatory: tf.mandatory,
       options: tf.options,
       regex: tf.regex,
-      default: row[tf.fieldname]
+      default: row[tf.fieldname],
+      read_only: this.ctx.isReadOnly()
     }));
 
     this.ctx.prompt(promptFields, (values) => {
       Object.assign(row, values);
       this.onFieldChange(field.fieldname);
-    }, `Edit Row #${index + 1}`);
+    }, this.ctx.isReadOnly() ? (field.label || 'Row Detail') : `Edit Row #${index + 1}`, this.ctx.isReadOnly());
   }
 
   addTableRow(fieldname: string) {
