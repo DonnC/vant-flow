@@ -260,14 +260,16 @@ import { VfField } from '../form-field.component';
                                                     class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest w-12 text-center">
                                                     #
                                                   </th>
-                                                  @for (col of field.table_fields?.slice(0, 6); track col.id) {
-                                                    <th
-                                                      class="p-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-                                                      {{ col.label }}
-                                                      @if (col.mandatory) {
-                                                        <span class="text-red-500">*</span>
-                                                      }
-                                                    </th>
+                                                  @for (col of (ctx.getFieldSignal(field.fieldname, 'table_fields')() || []).slice(0, 6); track col.id) {
+                                                    @if (!col.hidden) {
+                                                      <th
+                                                        class="p-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                                                        {{ col.label }}
+                                                        @if (col.mandatory) {
+                                                          <span class="text-red-500">*</span>
+                                                        }
+                                                      </th>
+                                                    }
                                                   }
                                                   @if ((field.table_fields?.length ?? 0) > 6) {
                                                     <th
@@ -284,24 +286,26 @@ import { VfField } from '../form-field.component';
                                                       <td
                                                         class="p-3 text-center text-[11px] font-mono text-zinc-400">{{ $index + 1 }}
                                                       </td>
-                                                      @for (col of field.table_fields?.slice(0, 6); track col.id) {
-                                                        <td class="p-2 relative group/cell" 
-                                                          [class.cursor-pointer]="['Text', 'Text Editor', 'Attach', 'Signature', 'Datetime'].includes(col.fieldtype)"
-                                                          (click)="['Text', 'Text Editor', 'Attach', 'Signature', 'Datetime'].includes(col.fieldtype) ? editTableRow(field, $index) : null">
-                                                        <vf-field
-                                                          [field]="col"
-                                                          [(value)]="row[col.fieldname]"
-                                                          (valueChange)="onFieldChange(field.fieldname)"
-                                                          [compact]="true"
-                                                          [hideLabel]="true">
-                                                        </vf-field>
-                                                        @if (!['Data', 'Int', 'Float', 'Check', 'Select', 'Link', 'Date', 'Time'].includes(col.fieldtype)) {
-                                                          <button (click)="$event.stopPropagation(); editTableRow(field, $index)" 
-                                                                  class="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100">
-                                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-                                                          </button>
+                                                      @for (col of (ctx.getFieldSignal(field.fieldname, 'table_fields')() || []).slice(0, 6); track col.id) {
+                                                        @if (!col.hidden) {
+                                                          <td class="p-2 relative group/cell" 
+                                                              [class.cursor-pointer]="['Text', 'Text Editor', 'Attach', 'Signature', 'Datetime'].includes(col.fieldtype)"
+                                                              (click)="['Text', 'Text Editor', 'Attach', 'Signature', 'Datetime'].includes(col.fieldtype) ? editTableRow(field, $index) : null">
+                                                            <vf-field
+                                                              [field]="col"
+                                                              [(value)]="row[col.fieldname]"
+                                                              (valueChange)="onFieldChange(field.fieldname)"
+                                                              [compact]="true"
+                                                              [hideLabel]="true">
+                                                            </vf-field>
+                                                            @if (!['Data', 'Int', 'Float', 'Check', 'Select', 'Link', 'Date', 'Time'].includes(col.fieldtype)) {
+                                                              <button (click)="$event.stopPropagation(); editTableRow(field, $index)" 
+                                                                      class="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100">
+                                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                                                              </button>
+                                                            }
+                                                          </td>
                                                         }
-                                                      </td>
                                                       }
                                                       @if ((field.table_fields?.length ?? 0) > 6) {
                                                         <td class="p-2 text-zinc-300 text-[10px] italic">...</td>

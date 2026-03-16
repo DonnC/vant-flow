@@ -101,10 +101,26 @@ export class VfFormContext {
         });
     }
 
-    set_df_property(fieldname: string, prop: keyof DocumentField, val: any) {
+    set_df_property(fieldname: string, prop: keyof DocumentField, val: any, child_fieldname?: string) {
         const s = this.fieldSignals.get(fieldname);
         if (!s) { console.warn(`[frm] Unknown field: ${fieldname}`); return; }
-        s.update(current => ({ ...current, [prop]: val }));
+
+        if (child_fieldname) {
+            // Target a column within a table
+            s.update(current => {
+                if (current.fieldtype !== 'Table' || !current.table_fields) return current;
+                const updatedCols = current.table_fields.map(col => {
+                    if (col.fieldname === child_fieldname) {
+                        return { ...col, [prop]: val };
+                    }
+                    return col;
+                });
+                return { ...current, table_fields: updatedCols };
+            });
+        } else {
+            // Target the field itself
+            s.update(current => ({ ...current, [prop]: val }));
+        }
     }
 
     set_section_property(sectionId: string, prop: keyof DocumentSection, val: any) {

@@ -7,6 +7,7 @@ export interface TableColumnDef {
   label: string;
   fieldtype: Exclude<FieldType, 'Table'>;
   mandatory?: boolean;
+  hidden?: boolean;
   default?: any;
   options?: string;
   regex?: string;

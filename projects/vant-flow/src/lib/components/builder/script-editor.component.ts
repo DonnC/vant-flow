@@ -137,6 +137,7 @@ export class VfScriptEditor {
         { label: 'frm.get_value', code: "const val = frm.get_value('fieldname');" },
         { label: 'frm.set_readonly', code: "frm.set_readonly(true);" },
         { label: 'frm.set_df_property', code: "frm.set_df_property('fieldname', 'read_only', 1);" },
+        { label: 'frm.set_df_property (Table Column)', code: "frm.set_df_property('table_fieldname', 'options', '.pdf,.jpg', 'column_fieldname');" },
       ]
     },
     {
@@ -198,7 +199,7 @@ export class VfScriptEditor {
         /** Get value of a field */
         get_value(fieldname: string): any;
         /** Set a property of a field (hidden, read_only, mandatory, etc.) */
-        set_df_property(fieldname: string, prop: 'hidden' | 'read_only' | 'mandatory' | 'label' | 'options', val: any): void;
+        set_df_property(fieldname: string, prop: 'hidden' | 'read_only' | 'mandatory' | 'label' | 'options', val: any, child_fieldname?: string): void;
         /** Set a property of a section (hidden, label, description) */
         set_section_property(sectionId: string, prop: 'hidden' | 'label' | 'description', val: any): void;
         /** Show an introduction banner at the top of the form */
