@@ -20,6 +20,7 @@
     "@angular/platform-browser": "^17.3.0",
     "@angular/platform-browser-dynamic": "^17.3.0",
     "@angular/router": "^17.3.0",
+    "@google/genai": "^1.45.0",
     "monaco-editor": "^0.55.1",
     "ngx-monaco-editor-v2": "^21.1.4",
     "ngx-quill": "^25.3.3",

@@ -145,6 +145,45 @@ frm.set_df_property('items_table', 'hidden', true, 'rate_col');
 
 ---
 
+### 🤖 AI Agent Integrations
+
+Vant Flow's strictly typed JSON schema structure (`DocumentDefinition`) and comprehensive `VfFormContext` (frm) make it incredibly well-suited for **Large Language Model (LLM)** integrations. 
+
+Because the entire form state, validation, and layout can be represented and manipulated via structured JSON and Javascript, AI Agents can interact with Vant Forms as if they were human users.
+
+The included demo application (`kai-ng-flow`) showcases two prime examples of this "AI-First" capability using the **Google Gemini Pro SDK**:
+
+1. **Scaffolding from Prompts (Admin Builder)**: Rather than manually dragging fields, administrators can simply type requirements (e.g. *"I need a vehicle inspection form with an equipment checkpoint table"*). The AI generates the complete `DocumentDefinition` JSON, which is instantly loaded into the visual builder for final refinement.
+2. **AI Form Assistant (Client Runner)**: End-users are provided an embedded ChatGPT-style side panel. The assistant is fed the complex JSON schema as its system prompt. Users can converse natively, and the AI will invoke `frm.set_value()` under the hood to completely fill out the actual form fields in the foreground UI based on their unstructured responses.
+
+This unlocks powerful workflows for enterprise data capturing, allowing complex form logic to be abstracted behind natural language! 
+
+#### 💡 Example AI Test Prompts
+
+Try testing the AI capabilities with these diverse cross-sector prompts:
+
+**1. Healthcare: Patient Intake**
+* **Admin Builder:** "Create a comprehensive Patient Intake form. Include sections for Personal info, Emergency contacts, robust Medical History, and generic consent checkboxes."
+* **Client Chat:** "My name is John Doe, born Jan 1st 1990. My emergency contact is my wife Jane at 555-0199. I have a history of asthma and I consent to the terms."
+
+**2. Finance: Expense Claim**
+* **Admin Builder:** "Generate a Corporate Expense Claim report. I need a table for line items (date, description, amount), fields for receipt uploads, and a manager approval step."
+* **Client Chat:** "I need to file an expense for my trip to the Vanguard conference yesterday. The flight was $450 and the hotel was $300."
+
+**3. Logistics: Incident Report**
+* **Admin Builder:** "Draft a Delivery Incident Report with fields for tracking number, incident type dropdown (Loss, Damage, Delay), a large description box, and a table for impacted item SKUs."
+* **Client Chat:** "Tracking #1Z9999 was delayed because of the severe snowstorm on Tuesday. The package contains SKU-1234 and SKU-5678."
+
+**4. IT Operations: Asset Request**
+* **Admin Builder:** "Create an IT Asset Request form. It needs a dropdown for equipment type (Laptop, Monitor, Phone), a justification text area, and checkboxes for software licenses required."
+* **Client Chat:** "I'm starting next week and need a new Macbook Pro and an external 4K monitor for my design work. Oh, and include an Adobe Creative Cloud license."
+
+**5. HR: Employee Evaluation**
+* **Admin Builder:** "Build an Employee Performance Review form. Include an employee select field, rating sliders for teamwork and technical skills, and a large text area for reviewer comments."
+* **Client Chat:** "Fill this out for Alice Smith. I'm rating her teamwork 9/10 and technical skills 8/10. She's exceeding expectations but needs to work on long-term planning."
+
+---
+
 ### 📦 Injected Metadata
 
 Developers can pass arbitrary data (like an authenticated user object, roles, server responses, configuration options) from the host application seamlessly into client scripts using the `[metadata]` input. 

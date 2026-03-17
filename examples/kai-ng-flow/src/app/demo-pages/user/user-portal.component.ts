@@ -105,7 +105,15 @@ import { MockStorageService } from '../../core/services/mock-storage.service';
                               <span class="text-xs font-mono text-zinc-500">{{ sub.id }}</span>
                            </td>
                            <td class="px-6 py-4">
-                              <span class="text-sm font-bold text-zinc-700">{{ sub.formName }}</span>
+                              <div class="flex items-center gap-2">
+                                <span class="text-sm font-bold text-zinc-700">{{ sub.formName }}</span>
+                                @if (sub.metadata?.['ai_submitted']) {
+                                  <span class="flex items-center gap-1 bg-violet-50 text-violet-600 border border-violet-200 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 shadow-sm">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2a2 2 0 0 1 2-2"/><path d="M3 8v4c0 1.1.9 2 2 2h3v6c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2v-6h3c1.1 0 2-.9 2-2V8"/><path d="M9 14v4"/><path d="M15 14v4"/></svg>
+                                    AI
+                                  </span>
+                                }
+                              </div>
                            </td>
                            <td class="px-6 py-4">
                               <span class="text-xs text-zinc-400">{{ sub.timestamp | date:'medium' }}</span>

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { VfBuilder, VfRenderer, VfToastOutlet, DocumentDefinition } from 'vant-flow';
 import { MockStorageService } from '../core/services/mock-storage.service';
+import { AiFormService } from '../core/services/ai-form.service';
 import { EXAMPLE_DOCUMENT } from './example-data';
 
 @Component({
@@ -41,6 +42,28 @@ import { EXAMPLE_DOCUMENT } from './example-data';
 
         <div class="flex-1"></div>
         
+        <!-- AI Toggle -->
+        <div class="flex items-center gap-2 mr-4 border border-zinc-200 bg-zinc-50 rounded-xl p-1">
+           <button (click)="toggleAi()" 
+             class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all"
+             [class.bg-white]="ai.isAiEnabled()"
+             [class.shadow-sm]="ai.isAiEnabled()"
+             [class.text-indigo-600]="ai.isAiEnabled()"
+             [class.text-zinc-400]="!ai.isAiEnabled()"
+           >
+             REAL AI
+           </button>
+           <button (click)="ai.disableRealModel()" 
+             class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all"
+             [class.bg-white]="!ai.isAiEnabled()"
+             [class.shadow-sm]="!ai.isAiEnabled()"
+             [class.text-zinc-600]="!ai.isAiEnabled()"
+             [class.text-zinc-400]="ai.isAiEnabled()"
+           >
+             MOCK AI
+           </button>
+        </div>
+        
         <div class="flex items-center gap-5">
            @if (lastSaved()) {
              <div class="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
@@ -62,7 +85,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
         @if (loading()) {
            <div class="h-full flex flex-col items-center justify-center bg-white z-[60]">
               <div class="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-              <p class="text-xs font-bold text-zinc-400 uppercase tracking-widest">Warming Up Designer...</p>
+              <p class="text-xs font-bold text-zinc-400 uppercase tracking-widest">{{ loadingMessage() }}</p>
            </div>
         } @else {
           @if (activeTab === 'builder') {
@@ -87,16 +110,41 @@ export class AdminDemoComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private storage = inject(MockStorageService);
+  ai = inject(AiFormService);
 
   formId: string | null = null;
   activeTab: 'builder' | 'renderer' = 'builder';
   schema = signal<DocumentDefinition>(EXAMPLE_DOCUMENT);
   lastSaved = signal<Date | null>(null);
   loading = signal(true);
+  loadingMessage = signal('Warming Up Designer...');
 
   ngOnInit() {
-    this.route.params.subscribe(params => {
+    this.route.params.subscribe(async params => {
       this.formId = params['id'];
+
+      const prompt = this.route.snapshot.queryParams['prompt'];
+
+      if (prompt && this.formId === 'new') {
+        this.loadingMessage.set('AI Generating Form Layout...');
+        this.loading.set(true);
+        try {
+          const aiSchema = await this.ai.scaffoldFormFromPrompt(prompt);
+          this.schema.set(aiSchema);
+
+          // Clear the prompt from URL so reload doesn't trigger it again
+          this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { prompt: null },
+            queryParamsHandling: 'merge'
+          });
+        } catch (err: any) {
+          alert('Failed to generate form: ' + err.message);
+        }
+        this.loading.set(false);
+        return;
+      }
+
       if (this.formId && this.formId !== 'new') {
         const existing = this.storage.getFormById(this.formId) as any;
         if (existing) {
@@ -130,6 +178,13 @@ export class AdminDemoComponent implements OnInit {
 
     if (this.formId === 'new') {
       this.router.navigate(['/admin/builder', id]);
+    }
+  }
+
+  toggleAi() {
+    const key = prompt('Enter your Google Gemini API Key:');
+    if (key) {
+      this.ai.setupRealModel(key);
     }
   }
 }

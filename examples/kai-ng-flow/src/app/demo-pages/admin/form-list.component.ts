@@ -28,9 +28,16 @@ import { MockStorageService, FormDesign } from '../../core/services/mock-storage
 
         <div class="flex-1"></div>
 
-        <button (click)="createNewForm()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] font-bold px-6 py-2.5 rounded-xl transition-all shadow-lg shadow-indigo-500/20 active:scale-95">
-          + CREATE NEW FORM
-        </button>
+        <div class="flex items-center gap-3">
+          <button (click)="openAiPrompt()" class="bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 text-[11px] font-bold px-5 py-2.5 rounded-xl transition-all shadow-sm active:scale-95 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+            AI GENERATE
+          </button>
+          <button (click)="createNewForm()" class="bg-zinc-900 hover:bg-zinc-800 text-white text-[11px] font-bold px-6 py-2.5 rounded-xl transition-all shadow-lg active:scale-95 flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            BLANK FORM
+          </button>
+        </div>
       </header>
 
       <main class="flex-1 overflow-y-auto p-10">
@@ -60,8 +67,16 @@ import { MockStorageService, FormDesign } from '../../core/services/mock-storage
                    </svg>
                 </div>
 
-                <h3 class="font-bold text-zinc-800 text-base mb-1">{{ form.schema.name }}</h3>
-                <p class="text-xs text-zinc-400 line-clamp-2 mb-6 h-8">{{ form.schema.description || 'No description provided.' }}</p>
+                <div class="flex items-start justify-between mb-1">
+                  <h3 class="font-bold text-zinc-800 text-base max-w-[70%] line-clamp-1 truncate" title="{{ form.schema.name }}">{{ form.schema.name }}</h3>
+                  @if (form.schema.metadata?.['is_ai_generated']) {
+                    <span class="flex items-center gap-1 bg-amber-50 text-amber-600 border border-amber-200 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 shadow-sm">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2a2 2 0 0 1 2-2"/><path d="M3 8v4c0 1.1.9 2 2 2h3v6c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2v-6h3c1.1 0 2-.9 2-2V8"/><path d="M9 14v4"/><path d="M15 14v4"/></svg>
+                      AI
+                    </span>
+                  }
+                </div>
+                <p class="text-[11px] text-zinc-400 line-clamp-2 mb-6 h-8 leading-snug">{{ form.schema.description || 'No description provided.' }}</p>
 
                 <div class="flex items-center justify-between pt-6 border-t border-zinc-50">
                    <div class="flex flex-col">
@@ -80,20 +95,55 @@ import { MockStorageService, FormDesign } from '../../core/services/mock-storage
                  </div>
                  <h3 class="text-lg font-bold text-zinc-700">No Forms Found</h3>
                  <p class="text-sm text-zinc-400 max-w-xs mt-1 mb-6">You haven't created any form designs yet. Start by creating your first document template.</p>
-                 <button (click)="createNewForm()" class="ui-btn-primary px-8">Create First Form</button>
+                 <div class="flex items-center justify-center gap-3">
+                    <button (click)="openAiPrompt()" class="bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 text-[11px] font-bold px-5 py-2.5 rounded-xl transition-all">Generate with AI</button>
+                    <button (click)="createNewForm()" class="ui-btn-primary px-8">Create Blank Form</button>
+                 </div>
               </div>
             }
           </div>
-        </div>
-      </main>
-    </div>
-  `
+         </div>
+       </main>
+
+       <!-- Simple AI Prompt Dialog Overlay -->
+       @if (showAiDialog) {
+         <div class="fixed inset-0 bg-zinc-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-zinc-200 overflow-hidden animate-in zoom-in-95 duration-200">
+               <div class="p-6 border-b border-zinc-100 flex items-center gap-4">
+                  <div class="w-10 h-10 rounded-full bg-indigo-50 flex items-center justify-center shrink-0">
+                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-indigo-600"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+                  </div>
+                  <div>
+                    <h2 class="text-lg font-black text-zinc-800 tracking-tight">AI Form Generator</h2>
+                    <p class="text-[11px] font-bold text-zinc-400 tracking-widest uppercase">Powered by Vant Flow MCP</p>
+                  </div>
+               </div>
+               
+               <div class="p-6">
+                 <label class="block text-xs font-bold text-zinc-700 uppercase tracking-widest mb-2">Describe the form you need</label>
+                 <textarea 
+                   #promptInput
+                   class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none h-32 ui-custom-scrollbar"
+                   placeholder="e.g. A comprehensive employee onboarding form with personal details, emergency contacts, tax information, and IT hardware requests..."
+                 ></textarea>
+                 
+                 <div class="mt-6 flex items-center gap-3">
+                    <button (click)="showAiDialog = false" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors">Cancel</button>
+                    <button (click)="submitAiPrompt(promptInput.value)" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20">Generate Design</button>
+                 </div>
+               </div>
+            </div>
+         </div>
+       }
+     </div>
+   `
 })
 export class AdminFormListComponent {
   private storage = inject(MockStorageService);
   private router = inject(Router);
 
   forms = this.storage.forms;
+  showAiDialog = false;
 
   getFieldCount(form: FormDesign): number {
     return form.schema.sections.reduce((acc: number, s: any) =>
@@ -102,6 +152,16 @@ export class AdminFormListComponent {
 
   createNewForm() {
     this.router.navigate(['/admin/builder', 'new']);
+  }
+
+  openAiPrompt() {
+    this.showAiDialog = true;
+  }
+
+  submitAiPrompt(prompt: string) {
+    if (!prompt.trim()) return;
+    this.showAiDialog = false;
+    this.router.navigate(['/admin/builder', 'new'], { queryParams: { prompt } });
   }
 
   editForm(id: string) {
