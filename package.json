@@ -10,6 +10,7 @@
     "build:mcp": "cd projects/vant-mcp && npm run build",
     "mcp": "cd projects/vant-mcp && npx @modelcontextprotocol/inspector node dist/index.js",
     "mcp:sse": "cd projects/vant-mcp && set TRANSPORT=sse&& node dist/index.js",
+    "example:proxy": "cd examples/kai-ng-flow/proxy && npm start",
     "test": "ng test"
   },
   "private": true,

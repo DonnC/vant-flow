@@ -1,6 +1,4 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { GoogleGenAI } from '@google/genai';
-import OpenAI from 'openai';
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { DocumentDefinition } from 'vant-flow';
@@ -25,6 +23,7 @@ export class AiFormService {
     openAiKey = signal<string>(aiConfig.openAiKey || '');
     openAiModel = signal<string>(aiConfig.openAiModel || 'gpt-4o-mini-2024-07-18');
     mcpUrl = signal<string>(aiConfig.mcpServerUrl || 'http://localhost:3001/sse');
+    proxyUrl = signal<string>('http://localhost:3002/ai/completion');
 
     // Computed for UI compatibility
     apiKey = computed(() => {
@@ -37,7 +36,6 @@ export class AiFormService {
         // Automatically enable if keys are present in environment
         if (this.geminiKey() || this.openAiKey()) {
             this.isAiEnabled.set(true);
-            // Default to OpenAI if key is present, otherwise Gemini
             if (this.openAiKey()) {
                 this.selectedProvider.set('openai');
             } else {
@@ -98,137 +96,86 @@ export class AiFormService {
     }
 
     // Call a tool on the live MCP server
-    async callMcpTool(name: string, args: any) {
+    async callMcpTool(name: string, args: any): Promise<any> {
         if (!this.mcpClient || !this.isMcpConnected()) {
-            throw new Error("MCP server not connected");
+            throw new Error("MCP server is not connected.");
         }
+        console.log(`[MCP] Calling tool: ${name}`, args);
         try {
-            console.log(`[MCP] Calling tool: ${name}`, args);
-            const response = await this.mcpClient.callTool({
-                name,
-                arguments: args
-            });
-
-            const toolResult = response as any;
-            if (toolResult.isError) {
-                const errorText = toolResult.content?.[0]?.type === 'text' ? toolResult.content[0].text : 'Unknown error';
+            const result = await this.mcpClient.callTool({ name, arguments: args });
+            if (result.isError) {
+                const errorText = (result.content as any)[0].type === 'text' ? (result.content as any)[0].text : 'Tool error';
                 throw new Error(errorText);
             }
-
-            const text = toolResult.content?.[0]?.type === 'text' ? toolResult.content[0].text : '';
-            try {
-                return JSON.parse(text);
-            } catch {
-                return text;
-            }
+            return result;
         } catch (err: any) {
             console.error(`[MCP] Tool call failed: ${name}`, err);
             throw err;
         }
     }
 
-    // 1. Admin Function: Scaffold Form from Prompt
+    /**
+     * CENTRALIZED AI CALL VIA PROXY
+     */
+    private async callAiProxy(messages: any[], config: any = {}): Promise<any> {
+        const provider = this.selectedProvider();
+        const response = await fetch(this.proxyUrl(), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                provider,
+                model: provider === 'openai' ? this.openAiModel() : 'gemini-1.5-flash',
+                messages,
+                config
+            })
+        });
+        if (!response.ok) throw new Error('AI Proxy Error: ' + response.statusText);
+        return await response.json();
+    }
+
+    // 1. User Function: Generates a complete form definition from a prompt
     async scaffoldFormFromPrompt(prompt: string): Promise<DocumentDefinition> {
         if (!this.isAiEnabled()) {
-            // Even if AI disabled, if MCP is connected, we can use the 'create_form_from_prompt' tool 
-            // but that tool in the server usually requires AI context. 
-            // So we fallback to mock if AI is off.
             return this.getMockedScaffoldResponse(prompt);
         }
 
-        const provider = this.selectedProvider();
-
-        // If MCP is connected, we fetch the dynamic guidance from the server
-        let systemInstruction = "";
+        // Check if MCP is connected to get real-time guidance
+        let guidance = '';
         if (this.isMcpConnected()) {
             try {
-                const res = await this.callMcpTool("create_form_from_prompt", { prompt });
-                // Note: The MCP server's 'create_form_from_prompt' currently returns "Instructional text"
-                // which includes the full schema reference.
-                systemInstruction = typeof res === 'string' ? res : JSON.stringify(res);
-            } catch (e) {
-                console.warn("[MCP] Failed to get guidance from live server, using fallback prompt.");
-                systemInstruction = this.getFallbackSystemInstruction();
-            }
-        } else {
-            systemInstruction = this.getFallbackSystemInstruction();
+                const res = await this.callMcpTool('create_form_from_prompt', { prompt });
+                guidance = res.content[0].text;
+            } catch { }
         }
+
+        const systemInstruction = `You are an expert Vant Flow architect. 
+${guidance ? `LIVE MCP GUIDANCE:\n${guidance}\n` : `FIELD TYPES:\n${this.getFieldTypeCatalog()}\n`}
+Available 'frm' API:\n${this.getFrmApiDocs()}\n
+Task: Create a JSON DocumentDefinition for: "${prompt}". 
+Only return the JSON. No Markdown.`;
 
         try {
-            if (provider === 'gemini') {
-                return await this.generateWithGemini(prompt, systemInstruction);
-            } else {
-                return await this.generateWithOpenAi(prompt, systemInstruction);
-            }
-        } catch (err: any) {
-            console.error(`${provider} Generation failed:`, err);
-            throw new Error(`${provider} generation failed: ${err.message}`);
-        }
-    }
-
-    private getFallbackSystemInstruction(): string {
-        return `You are an expert Vant Flow form architect. Use the Vant Flow metadata patterns. 
-        Fieldtypes: Data, Text, Text Editor, Int, Float, Select, Check, Date, Datetime, Time, Password, Link, Attach, Signature, Button, Table.
-        Return ONLY valid JSON.`;
-    }
-
-    private async generateWithGemini(prompt: string, systemInstruction: string): Promise<DocumentDefinition> {
-        const ai = new GoogleGenAI({ apiKey: this.geminiKey() });
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.0-flash',
-            contents: [{ role: 'user', parts: [{ text: `Create a complete, rich Vant Flow form schema for: "${prompt}"\n\nContext:\n${systemInstruction}` }] }],
-            config: {
-                responseMimeType: 'application/json',
-            }
-        });
-
-        if (response.text) {
-            const parsed = JSON.parse(response.text) as DocumentDefinition;
-            parsed.metadata = { ...(parsed.metadata || {}), is_ai_generated: true, generated_from: prompt };
-            return parsed;
-        }
-        throw new Error("Gemini returned empty response");
-    }
-
-    private async generateWithOpenAi(prompt: string, systemInstruction: string): Promise<DocumentDefinition> {
-        const openai = new OpenAI({ apiKey: this.openAiKey(), dangerouslyAllowBrowser: true });
-
-        // Define the tool for OpenAI if we want to use function calling
-        const tools: OpenAI.Chat.Completions.ChatCompletionTool[] = [
-            {
-                type: 'function',
-                function: {
-                    name: 'scaffold_form',
-                    description: 'Generate the final Vant Flow form schema',
-                    parameters: {
-                        type: 'object',
-                        properties: {
-                            schema: { type: 'object', description: 'The Vant DocumentDefinition JSON' }
-                        },
-                        required: ['schema']
-                    }
-                }
-            }
-        ];
-
-        const completion = await openai.chat.completions.create({
-            model: this.openAiModel(),
-            messages: [
+            const data = await this.callAiProxy([
                 { role: 'system', content: systemInstruction },
                 { role: 'user', content: `Create a complete, rich Vant Flow form schema for: "${prompt}"` }
-            ],
-            tools,
-            tool_choice: { type: 'function', function: { name: 'scaffold_form' } }
-        });
+            ]);
 
-        const toolCall = completion.choices[0].message.tool_calls?.[0];
-        if (toolCall && 'function' in toolCall) {
-            const args = JSON.parse(toolCall.function.arguments);
-            const parsed = args.schema as DocumentDefinition;
+            const content = data.choices[0].message.content || '{}';
+            const parsed = JSON.parse(content.replace(/```json|```/g, '').trim()) as DocumentDefinition;
             parsed.metadata = { ...(parsed.metadata || {}), is_ai_generated: true, generated_from: prompt };
             return parsed;
+        } catch (err) {
+            console.error("Scaffold Generation failed:", err);
+            throw err;
         }
-        throw new Error("OpenAI returned empty response");
+    }
+
+    private getFieldTypeCatalog(): string {
+        return "Data, Text, Text Editor, Int, Float, Select, Check, Date, Datetime, Time, Password, Link, Attach, Signature, Button, Table.";
+    }
+
+    private getFrmApiDocs(): string {
+        return "frm.get_value, frm.set_value, frm.set_df_property, frm.msgprint, frm.set_intro, frm.add_custom_button, frm.prompt, frm.confirm, frm.call";
     }
 
     private async getMockedScaffoldResponse(prompt: string): Promise<DocumentDefinition> {
@@ -236,7 +183,7 @@ export class AiFormService {
             setTimeout(() => {
                 resolve({
                     name: `AI Mock Form: ${prompt.slice(0, 15)}...`,
-                    description: `This is a mocked form payload. Configure an API key in the .env file to use real AI.`,
+                    description: `This is a mocked form payload. Run 'npm run example:proxy' to use real AI.`,
                     version: '1.0.0',
                     metadata: { is_ai_generated: true, mocked: true, generated_from: prompt },
                     sections: [{
@@ -248,10 +195,9 @@ export class AiFormService {
                                 {
                                     id: 'field_mock_1',
                                     fieldname: 'mock_field',
-                                    label: 'Example Field based on: ' + prompt,
+                                    label: 'Example Field: ' + prompt,
                                     fieldtype: 'Data',
                                     mandatory: true,
-                                    description: 'This is a mocked output.'
                                 }
                             ]
                         }]
@@ -268,57 +214,37 @@ export class AiFormService {
         }
 
         const provider = this.selectedProvider();
-        let context = "";
+        let fieldContext = "";
 
-        // Fetch field types info from MCP if possible
         if (this.isMcpConnected()) {
             try {
-                context = await this.callMcpTool("get_field_types", {});
+                const res = await this.callMcpTool("get_field_types", {});
+                fieldContext = res.content[0].text;
             } catch { }
         }
 
         const systemInstruction = `You are an expert Vant Flow AI Assistant. 
 Schema JSON Structure: ${JSON.stringify(schema)}
 CURRENT USER DATA STATE: ${JSON.stringify(currentData)}
-Field Context: ${context}
+Field Context: ${fieldContext}
 
 Assist the user in filling out this dynamic form.`;
 
         try {
-            if (provider === 'gemini') {
-                const ai = new GoogleGenAI({ apiKey: this.geminiKey() });
-                const history = messages.map(m => ({
-                    role: m.role === 'assistant' ? 'model' as const : m.role as 'user' | 'model',
-                    parts: [{ text: m.content }]
-                }));
+            const chatHistory = messages.map(m => ({
+                role: m.role === 'assistant' ? 'assistant' : 'user',
+                content: m.content
+            }));
 
-                const response = await ai.models.generateContent({
-                    model: 'gemini-2.0-flash',
-                    contents: history,
-                    config: { systemInstruction: systemInstruction }
-                });
+            const data = await this.callAiProxy([
+                { role: 'system', content: systemInstruction },
+                ...chatHistory
+            ]);
 
-                return response.text || 'I am sorry, I am unable to respond at this time.';
-            } else {
-                const openai = new OpenAI({ apiKey: this.openAiKey(), dangerouslyAllowBrowser: true });
-                const chatHistory = messages.map(m => ({
-                    role: m.role as 'user' | 'assistant' | 'system',
-                    content: m.content
-                }));
-
-                const completion = await openai.chat.completions.create({
-                    model: this.openAiModel(),
-                    messages: [
-                        { role: 'system', content: systemInstruction },
-                        ...chatHistory
-                    ]
-                });
-
-                return completion.choices[0].message.content || 'I am sorry, I am unable to respond at this time.';
-            }
+            return data.choices[0].message.content || 'I am sorry, I am unable to respond at this time.';
         } catch (err) {
             console.error("AI Chat failed:", err);
-            return "[AI Error] Interaction failed. Check console logger.";
+            return "[AI Error] Interaction failed via proxy. Check console.";
         }
     }
 }
