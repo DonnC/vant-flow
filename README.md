@@ -184,6 +184,19 @@ Try testing the AI capabilities with these diverse cross-sector prompts:
 
 ---
 
+#### � Configuration & Tokens
+
+Currently, the Vant Flow AI integration uses the **Google Generative AI SDK**, so it natively supports **Gemini** tokens.
+
+*   **How to Set Your Token**: In the demo app, click the **"AI Setup"** button in any header. A standard prompt will appear asking for your `Gemini API Key`. This key is stored in memory for the duration of your session.
+*   **What about OpenAI?**: While the current code is tailored towards Gemini, the `AiFormService` architecture is model-agnostic. To use an OpenAI token, you can simply swap out the `GoogleGenAI` library for the `openai` npm package in `src/app/core/services/ai-form.service.ts` and update the content generation calls to use the Chat Completions API.
+*   **Production Setup**: In a real production application, you should handle these tokens securely via **environment variables** or a **backend proxy service** to avoid exposing keys in client-side code.
+
+> [!IMPORTANT]
+> To use a live model, ensure your internet connection is active and your API key has sufficient quota.
+
+---
+
 ### 📦 Injected Metadata
 
 Developers can pass arbitrary data (like an authenticated user object, roles, server responses, configuration options) from the host application seamlessly into client scripts using the `[metadata]` input. 

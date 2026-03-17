@@ -20,6 +20,7 @@ export class AiFormService {
     }
 
     // 1. Admin Function: Scaffold Form from Prompt
+    // Uses the same field type knowledge as the Vant MCP's get_field_types tool.
     async scaffoldFormFromPrompt(prompt: string): Promise<DocumentDefinition> {
         if (!this.isAiEnabled() || !this.apiKey()) {
             return this.getMockedScaffoldResponse(prompt);
@@ -27,65 +28,72 @@ export class AiFormService {
 
         try {
             const ai = new GoogleGenAI({ apiKey: this.apiKey() });
-            const SC_PROMPT = `You are a Vant Flow expert. Create a detailed form schema (DocumentDefinition) based on exactly what the user needs: "${prompt}". 
-Respond ONLY with raw, valid JSON conforming to the Vant Flow DocumentDefinition interface. Do NOT wrap it in markdown.`;
 
-            // Note: We use structured outputs here so the AI guarantees returning what we expect.
+            // System instruction mirrors the Vant MCP get_field_types + create_form_from_prompt tools.
+            // This IS the same source of truth that MCP-connected AI agents use.
+            const systemInstruction = `You are an expert Vant Flow form architect. Vant Flow is a metadata-driven reactive form framework.
+
+== ALL SUPPORTED FIELD TYPES ==
+- Data: single-line text. Extra: regex
+- Text: multi-line textarea
+- Text Editor: rich Quill HTML editor
+- Int: integer number
+- Float: decimal number
+- Select: dropdown. REQUIRED: options (newline-separated e.g. "A\\nB\\nC"). Extra: default
+- Check: boolean checkbox. Stores 1 or 0.
+- Date: date picker
+- Datetime: date + time picker
+- Time: time-only picker (HH:mm)
+- Password: masked input
+- Link: relational selector. Extra: options (doctype name)
+- Attach: file upload. Extra: options as "<mime> | <maxSize> | <maxCount>" e.g. ".pdf,.docx | 10MB | 3". Always set data_group: "files"
+- Signature: signature capture pad. Always set data_group: "files"
+- Button: inline clickable button
+- Table: repeating data grid. REQUIRED: table_fields[] each with id, fieldname, label, fieldtype. Supports all types except Table.
+
+== FIELD PROPERTIES ==
+Required per field: id (unique), fieldname (snake_case unique), label, fieldtype
+Optional: mandatory, read_only, hidden, placeholder, description, default, regex, options, depends_on, data_group, table_fields
+
+== DOCUMENT STRUCTURE EXAMPLE ==
+{
+  "name": "Form Name", "module": "Module", "version": "1.0.0",
+  "description": "...", "intro_text": "<b>HTML</b> banner", "intro_color": "blue",
+  "metadata": { "is_ai_generated": true },
+  "sections": [
+    {
+      "id": "sec_1", "label": "Section", "columns_count": 2,
+      "columns": [
+        { "id": "col_1", "fields": [{ "id": "f_1", "fieldname": "field_name", "label": "Field", "fieldtype": "Data", "mandatory": true }] },
+        { "id": "col_2", "fields": [] }
+      ]
+    }
+  ],
+  "actions": { "save": { "label": "Save Draft", "visible": true, "type": "secondary" }, "submit": { "label": "Submit", "visible": true, "type": "primary" } }
+}
+
+== GENERATION RULES ==
+1. Analyze the prompt. Identify every entity/attribute the domain needs.
+2. Create 3–5 well-named sections. Use columns_count: 2 for header sections.
+3. Use Select with real options for any categorical field (status, type, priority, category).
+4. Use Table for any repeating data (line items, expense rows, defect logs, etc.).
+5. Use Attach for document/photo uploads, Signature for sign-off.
+6. Use meaningful intro_text and customize actions.submit label for the domain.
+7. All IDs must be unique. All fieldnames must be unique and snake_case.
+8. Return ONLY raw valid JSON — no markdown, no explanation.`;
+
             const response = await ai.models.generateContent({
                 model: 'gemini-2.5-flash',
-                contents: SC_PROMPT,
+                contents: `Create a complete, rich Vant Flow form schema for: "${prompt}"`,
                 config: {
+                    systemInstruction,
                     responseMimeType: 'application/json',
-                    responseSchema: {
-                        type: Type.OBJECT,
-                        properties: {
-                            name: { type: Type.STRING },
-                            description: { type: Type.STRING },
-                            version: { type: Type.STRING },
-                            metadata: { type: Type.OBJECT },
-                            sections: {
-                                type: Type.ARRAY,
-                                items: {
-                                    type: Type.OBJECT,
-                                    properties: {
-                                        id: { type: Type.STRING },
-                                        label: { type: Type.STRING },
-                                        columns: {
-                                            type: Type.ARRAY,
-                                            items: {
-                                                type: Type.OBJECT,
-                                                properties: {
-                                                    id: { type: Type.STRING },
-                                                    fields: {
-                                                        type: Type.ARRAY,
-                                                        items: {
-                                                            type: Type.OBJECT,
-                                                            properties: {
-                                                                id: { type: Type.STRING },
-                                                                fieldname: { type: Type.STRING },
-                                                                label: { type: Type.STRING },
-                                                                fieldtype: { type: Type.STRING }
-                                                            },
-                                                            required: ['id', 'fieldname', 'label', 'fieldtype']
-                                                        }
-                                                    }
-                                                },
-                                                required: ['id', 'fields']
-                                            }
-                                        }
-                                    },
-                                    required: ['id', 'label', 'columns']
-                                }
-                            }
-                        },
-                        required: ['name', 'sections']
-                    }
                 }
             });
 
             if (response.text) {
                 const parsed = JSON.parse(response.text) as DocumentDefinition;
-                parsed.metadata = { is_ai_generated: true, generated_from: prompt };
+                parsed.metadata = { ...(parsed.metadata || {}), is_ai_generated: true, generated_from: prompt };
                 return parsed;
             } else {
                 throw new Error("AI returned empty response");

@@ -44,6 +44,140 @@ Methods:
 - frm.confirm(msg, callback): Show confirmation dialog.
 - frm.call({method, args, callback}): Call a backend simulation.
 - frm.set_step_hidden(id, hidden): Hide/Show a specific step.
+- frm.set_section_property(sectionId, property, value): Set a section's property (hidden, collapsed, etc).
+- frm.set_readonly(readOnly): Set full form read-only state.
+- frm.add_row(fieldname, row?): Add a row to a table field.
+- frm.remove_row(fieldname, index): Remove a table row by index.
+- frm.reset(): Reset all form fields to default values.
+- frm.freeze(message?): Freeze the form UI.
+- frm.unfreeze(): Unfreeze the form UI.
+- frm.metadata: Access arbitrary data injected by the host application (type: any).
+`;
+
+const FIELD_TYPE_CATALOG = `
+Vant Flow Field Type Reference — All supported fieldtypes and their configuration properties.
+Use this when generating a DocumentDefinition to always pick the correct fieldtype and props.
+
+== COMMON FIELD PROPERTIES (apply to all fields) ==
+- id: string (unique, e.g. "f_inspector") [REQUIRED]
+- fieldname: string (snake_case, unique across form, e.g. "inspector_name") [REQUIRED]
+- label: string (display label) [REQUIRED]
+- fieldtype: FieldType (see below) [REQUIRED]
+- mandatory: boolean | 1 | 0 — marks field as required
+- read_only: boolean — prevents user input
+- hidden: boolean — hides field from UI
+- placeholder: string — input hint text
+- description: string — shown below field
+- default: any — pre-filled default value
+- depends_on: string — JS expression e.g. "doc.status == 'Active'" to conditionally show
+- data_group: string — groups file data for Attach/Signature fields (e.g. "files")
+
+== FIELD TYPES ==
+
+1. Data
+   Simple single-line text input.
+   Extra props: regex (string, validation pattern e.g. "^[A-Z]{2}-\\d{4}$")
+   Example: { "fieldtype": "Data", "regex": "^QC-[A-Z]{2}-[0-9]{4}$", "description": "Format: QC-AA-0000" }
+
+2. Text
+   Multi-line plain text (textarea).
+   Example: { "fieldtype": "Text", "placeholder": "Describe the issue..." }
+
+3. Text Editor
+   Rich HTML text editor (Quill editor).
+   Example: { "fieldtype": "Text Editor" }
+
+4. Int
+   Integer number input.
+   Example: { "fieldtype": "Int", "default": 0 }
+
+5. Float
+   Decimal number input.
+   Example: { "fieldtype": "Float", "placeholder": "0.00" }
+
+6. Select
+   Dropdown with fixed options.
+   REQUIRED extra prop: options (newline-separated string e.g. "Option A\nOption B\nOption C")
+   Extra props: default (string, must match one of the options)
+   Example: { "fieldtype": "Select", "options": "Morning\nAfternoon\nNight", "default": "Morning" }
+
+7. Check
+   Boolean checkbox (true/false). Stores 1 or 0.
+   Example: { "fieldtype": "Check", "default": 0, "label": "I agree to terms" }
+
+8. Date
+   Date-only picker.
+   Example: { "fieldtype": "Date", "mandatory": true }
+
+9. Datetime
+   Date + time picker.
+   Example: { "fieldtype": "Datetime", "mandatory": true }
+
+10. Time
+    Time-only picker (HH:mm format).
+    Example: { "fieldtype": "Time", "mandatory": true }
+
+11. Password
+    Masked text input.
+    Example: { "fieldtype": "Password" }
+
+12. Link
+    Reference/relation-style selector input.
+    Extra props: options (string, name of the linked doctype or dataset)
+    Example: { "fieldtype": "Link", "options": "Employee" }
+
+13. Attach
+    File upload widget. Can limit file types, count, and size.
+    Extra props: options (string in format "<mime> | <maxSize> | <maxCount>", e.g. ".pdf,.doc | 10MB | 3" or "image/* | 5MB | 5")
+    IMPORTANT: Set data_group: "files" for all Attach fields.
+    Example: { "fieldtype": "Attach", "options": ".pdf,.docx | 10MB | 3", "data_group": "files" }
+
+14. Signature
+    Touchscreen/mouse signature capture pad.
+    IMPORTANT: Set data_group: "files" for all Signature fields.
+    Example: { "fieldtype": "Signature", "mandatory": true, "data_group": "files" }
+
+15. Button
+    Clickable button rendered inside the form body (triggers client script).
+    Example: { "fieldtype": "Button", "label": "Calculate Total" }
+
+16. Table
+    Repeating data grid (sub-table). Stores an array of row objects.
+    REQUIRED extra prop: table_fields (array of column definitions, each with id, fieldname, label, fieldtype)
+    table_fields support: Data, Select, Check, Int, Float, Date, Time, Text, Attach — NOT another Table.
+    Example:
+    {
+      "fieldtype": "Table",
+      "label": "Line Items",
+      "table_fields": [
+        { "id": "tc_1", "fieldname": "item_name", "label": "Item", "fieldtype": "Data", "mandatory": true },
+        { "id": "tc_2", "fieldname": "qty", "label": "Qty", "fieldtype": "Int" },
+        { "id": "tc_3", "fieldname": "unit_price", "label": "Unit Price", "fieldtype": "Float" },
+        { "id": "tc_4", "fieldname": "status", "label": "Status", "fieldtype": "Select", "options": "Pending\nApproved\nRejected", "default": "Pending" }
+      ]
+    }
+
+== DOCUMENT-LEVEL PROPERTIES ==
+- name: string — Human-readable form title [REQUIRED]
+- module: string — Business module name (e.g. "HR", "Finance", "Quality Management")
+- version: string — Semantic version (e.g. "1.0.0")
+- description: string — Brief form purpose
+- intro_text: string — Top banner HTML text (supports <b>, <i> tags)
+- intro_color: "blue" | "orange" | "red" | "gray"
+- is_stepper: boolean — Enables multi-step wizard mode (uses 'steps' instead of 'sections')
+- metadata: object — Arbitrary metadata (e.g. { is_ai_generated: true })
+- actions.save: { label, visible, type } — Save draft button
+- actions.submit: { label, visible, type } — Final submit button
+- client_script: string — JavaScript executed in the form context (frm.on(...))
+
+== SECTION PROPERTIES ==
+- id: string [REQUIRED]
+- label: string [REQUIRED]
+- columns_count: 1 | 2 | 3 — splits section into columns
+- columns: DocumentColumn[] — each column has id and fields[]
+- collapsible: boolean
+- collapsed: boolean
+- depends_on: string
 `;
 
 server.setRequestHandler(ListToolsRequestSchema, async () => {
@@ -65,7 +199,12 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             // --- Context & Discovery ---
             {
                 name: "get_models",
-                description: "Get the complete TypeScript interfaces and scripting API docs for Vant Flow.",
+                description: "Get the complete TypeScript interfaces and scripting API docs for Vant Flow's frm context API.",
+                inputSchema: { type: "object", properties: {} },
+            },
+            {
+                name: "get_field_types",
+                description: "Get the complete Vant Flow field type catalog — all supported fieldtypes, their configurable properties, valid values, and JSON examples. ALWAYS call this first before generating any form schema to ensure correctness.",
                 inputSchema: { type: "object", properties: {} },
             },
             {
@@ -231,11 +370,31 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     try {
         switch (name) {
             case "get_models":
-                return { content: [{ type: "text", text: `Models & API:\n${FRM_API_DOCS}` }] };
+                return { content: [{ type: "text", text: `Vant Flow frm Scripting API:\n${FRM_API_DOCS}\n\nFor field type reference, call the 'get_field_types' tool.` }] };
+
+            case "get_field_types":
+                return { content: [{ type: "text", text: FIELD_TYPE_CATALOG }] };
 
             case "create_form_from_prompt": {
-                const schema = builder.buildFromPrompt((args as any).prompt);
-                return { content: [{ type: "text", text: JSON.stringify(schema, null, 2) }] };
+                // This tool provides the AI with the full field type reference + instructions.
+                // An AI agent should use this context to then construct the schema as JSON directly,
+                // NOT use hardcoded templates. The get_field_types catalog is the source of truth.
+                const promptText = (args as any).prompt;
+                const guidance = `You have been asked to create a Vant Flow form for: "${promptText}"
+
+Here is the complete Vant Flow field type and document reference — the SINGLE SOURCE OF TRUTH:
+
+${FIELD_TYPE_CATALOG}
+
+Instructions:
+1. Analyze the user's prompt carefully. Identify the domain, entities, and data fields required.
+2. Design a rich, multi-section DocumentDefinition with correct fieldtypes.
+3. Use Select with meaningful options, Table with typed columns, Attach/Signature where applicable.
+4. Set columns_count: 2 for header info sections to use space efficiently.
+5. Write a relevant intro_text and customize actions.submit label for the domain.
+6. Set metadata.is_ai_generated = true.
+7. Return ONLY valid DocumentDefinition JSON — no markdown, no explanation.`;
+                return { content: [{ type: "text", text: guidance }] };
             }
 
             case "analyze_schema": {
