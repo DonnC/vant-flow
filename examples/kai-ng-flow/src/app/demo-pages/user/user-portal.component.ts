@@ -41,31 +41,7 @@ import { AiFormService } from '../../core/services/ai-form.service';
 
         <div class="flex-1"></div>
         
-        <!-- AI Setup Toggle -->
-        <div class="flex items-center gap-2 mr-4 border border-zinc-200 bg-zinc-50 rounded-xl p-1">
-           <button (click)="setupAi()" 
-             class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all"
-             [class.bg-white]="ai.isAiEnabled()"
-             [class.shadow-sm]="ai.isAiEnabled()"
-             [class.text-violet-600]="ai.isAiEnabled()"
-             [class.text-zinc-400]="!ai.isAiEnabled()"
-           >
-             REAL AI
-           </button>
-           <button (click)="ai.disableRealModel()" 
-             class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all"
-             [class.bg-white]="!ai.isAiEnabled()"
-             [class.shadow-sm]="!ai.isAiEnabled()"
-             [class.text-zinc-600]="!ai.isAiEnabled()"
-             [class.text-zinc-400]="ai.isAiEnabled()"
-           >
-             MOCK AI
-           </button>
-           <div class="h-4 w-px bg-zinc-200 mx-1"></div>
-           <button (click)="setupAi()" class="p-1.5 text-zinc-400 hover:text-violet-600 transition-colors" title="AI Setup">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
-           </button>
-        </div>
+        <div class="h-6 w-px bg-zinc-200 mx-2"></div>
 
         <a routerLink="/admin" class="text-[11px] font-bold text-zinc-400 hover:text-indigo-600 transition-colors uppercase tracking-widest flex items-center gap-2">
            Internal Admin
@@ -176,13 +152,6 @@ export class UserPortalComponent {
   activeTab = signal<'forms' | 'submissions'>('forms');
   forms = this.storage.forms;
   submissions = this.storage.submissions;
-
-  setupAi() {
-    const key = prompt('Enter your Google Gemini API Key:', this.ai.apiKey());
-    if (key) {
-      this.ai.setupRealModel(key);
-    }
-  }
 
   fillForm(id: string) {
     this.router.navigate(['/user/fill', id]);

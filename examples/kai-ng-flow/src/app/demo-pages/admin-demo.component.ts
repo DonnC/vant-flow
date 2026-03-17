@@ -42,32 +42,6 @@ import { EXAMPLE_DOCUMENT } from './example-data';
 
         <div class="flex-1"></div>
         
-        <!-- AI Setup Toggle -->
-        <div class="flex items-center gap-2 mr-4 border border-zinc-200 bg-zinc-50 rounded-xl p-1">
-           <button (click)="toggleAi()" 
-             class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all"
-             [class.bg-white]="ai.isAiEnabled()"
-             [class.shadow-sm]="ai.isAiEnabled()"
-             [class.text-indigo-600]="ai.isAiEnabled()"
-             [class.text-zinc-400]="!ai.isAiEnabled()"
-           >
-             REAL AI
-           </button>
-           <button (click)="ai.disableRealModel()" 
-             class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all"
-             [class.bg-white]="!ai.isAiEnabled()"
-             [class.shadow-sm]="!ai.isAiEnabled()"
-             [class.text-zinc-600]="!ai.isAiEnabled()"
-             [class.text-zinc-400]="ai.isAiEnabled()"
-           >
-             MOCK AI
-           </button>
-           <div class="h-4 w-px bg-zinc-200 mx-1"></div>
-           <button (click)="setupAi()" class="p-1.5 text-zinc-400 hover:text-indigo-600 transition-colors" title="AI Setup">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
-           </button>
-        </div>
-        
         <div class="flex items-center gap-5">
            @if (lastSaved()) {
              <div class="flex items-center gap-2 animate-in fade-in slide-in-from-right-2">
@@ -118,7 +92,16 @@ export class AdminDemoComponent implements OnInit {
 
   formId: string | null = null;
   activeTab: 'builder' | 'renderer' = 'builder';
-  schema = signal<DocumentDefinition>(EXAMPLE_DOCUMENT);
+  schema = signal<DocumentDefinition>({
+    name: 'Untitled Form',
+    description: '',
+    version: '1.0.0',
+    sections: [{
+      id: 'section_init',
+      label: 'Main Section',
+      columns: [{ id: 'col_init', fields: [] }]
+    }]
+  });
   lastSaved = signal<Date | null>(null);
   loading = signal(true);
   loadingMessage = signal('Warming Up Designer...');
@@ -144,6 +127,8 @@ export class AdminDemoComponent implements OnInit {
           });
         } catch (err: any) {
           alert('Failed to generate form: ' + err.message);
+          // Reset to blank form so we don't show the "Quality Inspection" example on failure
+          this.resetToBlank();
         }
         this.loading.set(false);
         return;
@@ -185,18 +170,22 @@ export class AdminDemoComponent implements OnInit {
     }
   }
 
-  setupAi() {
-    const key = prompt('Enter your Google Gemini API Key:', this.ai.apiKey());
-    if (key) {
-      this.ai.setupRealModel(key);
-    }
+  toggleAi() {
+    this.ai.selectedProvider.set(
+      this.ai.selectedProvider() === 'openai' ? 'gemini' : 'openai'
+    );
   }
 
-  toggleAi() {
-    if (this.ai.isAiEnabled()) {
-      this.ai.disableRealModel();
-    } else {
-      this.setupAi();
-    }
+  private resetToBlank() {
+    this.schema.set({
+      name: 'Untitled Form',
+      description: '',
+      version: '1.0.0',
+      sections: [{
+        id: 'section_' + Math.random().toString(36).substring(2, 9),
+        label: 'Main Section',
+        columns: [{ id: 'col_' + Math.random().toString(36).substring(2, 9), fields: [] }]
+      }]
+    });
   }
 }

@@ -9,40 +9,19 @@ export type AiProvider = 'gemini' | 'openai';
 @Injectable({ providedIn: 'root' })
 export class AiFormService {
     // Basic service state
-    isAiEnabled = signal<boolean>(false);
+    isAiEnabled = signal<boolean>(true); // Enabled by default now that proxy handles keys
     isMcpConnected = signal<boolean>(false);
 
-    // Config from environment
-    config = aiConfig;
-
     // Selection state
-    selectedProvider = signal<AiProvider>('gemini');
+    selectedProvider = signal<AiProvider>('openai'); // Default to OpenAI as requested
 
-    // Keys (can still be overridden manually if needed)
-    geminiKey = signal<string>(aiConfig.geminiApiKey || '');
-    openAiKey = signal<string>(aiConfig.openAiKey || '');
-    openAiModel = signal<string>(aiConfig.openAiModel || 'gpt-4o-mini-2024-07-18');
+    // URLs (can be configured in environment.ai.ts if needed, otherwise use defaults)
     mcpUrl = signal<string>(aiConfig.mcpServerUrl || 'http://localhost:3001/sse');
     proxyUrl = signal<string>('http://localhost:3002/ai/completion');
-
-    // Computed for UI compatibility
-    apiKey = computed(() => {
-        return this.selectedProvider() === 'gemini' ? this.geminiKey() : this.openAiKey();
-    });
 
     private mcpClient: Client | null = null;
 
     constructor() {
-        // Automatically enable if keys are present in environment
-        if (this.geminiKey() || this.openAiKey()) {
-            this.isAiEnabled.set(true);
-            if (this.openAiKey()) {
-                this.selectedProvider.set('openai');
-            } else {
-                this.selectedProvider.set('gemini');
-            }
-        }
-
         // Initialize MCP connection if URL is provided
         if (this.mcpUrl()) {
             this.connectToMcp();
@@ -67,20 +46,13 @@ export class AiFormService {
         }
     }
 
-    // Manual setup (UI support)
+    // Manual setup (UI support) - No longer needed with proxy handling keys
     setupRealModel(key: string, provider: AiProvider = 'gemini') {
-        if (!key) return;
-        if (provider === 'gemini') {
-            this.geminiKey.set(key);
-        } else {
-            this.openAiKey.set(key);
-        }
-        this.selectedProvider.set(provider);
-        this.isAiEnabled.set(true);
+        // Redundant
     }
 
     disableRealModel() {
-        this.isAiEnabled.set(false);
+        // Redundant
     }
 
     // List available tools from the live MCP server
@@ -124,7 +96,7 @@ export class AiFormService {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 provider,
-                model: provider === 'openai' ? this.openAiModel() : 'gemini-1.5-flash',
+                model: undefined, // Let proxy handle defaults
                 messages,
                 config
             })

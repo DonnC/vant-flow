@@ -23,31 +23,7 @@ import { FormsModule } from '@angular/forms';
         </div>
         <div class="flex-1"></div>
         
-        <!-- AI Setup Toggle -->
-        <div class="flex items-center gap-2 mr-4 border border-zinc-200 bg-zinc-50 rounded-xl p-1">
-           <button (click)="toggleAi()" 
-             class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all"
-             [class.bg-white]="ai.isAiEnabled()"
-             [class.shadow-sm]="ai.isAiEnabled()"
-             [class.text-violet-600]="ai.isAiEnabled()"
-             [class.text-zinc-400]="!ai.isAiEnabled()"
-           >
-             REAL AI
-           </button>
-           <button (click)="ai.disableRealModel()" 
-             class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all"
-             [class.bg-white]="!ai.isAiEnabled()"
-             [class.shadow-sm]="!ai.isAiEnabled()"
-             [class.text-zinc-600]="!ai.isAiEnabled()"
-             [class.text-zinc-400]="ai.isAiEnabled()"
-           >
-             MOCK AI
-           </button>
-           <div class="h-4 w-px bg-zinc-200 mx-1"></div>
-           <button (click)="setupAi()" class="p-1.5 text-zinc-400 hover:text-violet-600 transition-colors" title="AI Setup">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
-           </button>
-        </div>
+        <div class="h-6 w-px bg-zinc-200 mx-2"></div>
 
         <button (click)="isChatOpen.set(!isChatOpen())" class="flex items-center gap-2 bg-violet-50 text-violet-700 hover:bg-violet-100 px-4 py-2 rounded-xl transition-colors font-bold text-xs">
            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
@@ -85,7 +61,7 @@ import { FormsModule } from '@angular/forms';
                    </div>
                    <div>
                      <h3 class="text-sm font-bold text-zinc-900 leading-tight">Vant AI</h3>
-                     <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">{{ ai.isAiEnabled() ? 'Gemini 2.5 Flash' : 'Mock Mode' }}</p>
+                      <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Powered by Vant AI Proxy</p>
                    </div>
                 </div>
                 <button (click)="isChatOpen.set(false)" class="p-2 text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg transition-colors">
@@ -278,18 +254,4 @@ export class FormRunnerComponent implements OnInit {
     this.isAiTyping.set(false);
   }
 
-  setupAi() {
-    const key = prompt('Enter your Google Gemini API Key:');
-    if (key) {
-      this.ai.setupRealModel(key);
-    }
-  }
-
-  toggleAi() {
-    if (this.ai.isAiEnabled()) {
-      this.ai.disableRealModel();
-    } else {
-      this.setupAi();
-    }
-  }
 }
