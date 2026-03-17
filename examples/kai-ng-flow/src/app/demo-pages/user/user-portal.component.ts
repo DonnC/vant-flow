@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { MockStorageService } from '../../core/services/mock-storage.service';
+import { AiFormService } from '../../core/services/ai-form.service';
 
 @Component({
   selector: 'app-user-portal',
@@ -39,6 +40,8 @@ import { MockStorageService } from '../../core/services/mock-storage.service';
         </nav>
 
         <div class="flex-1"></div>
+        
+        <div class="h-6 w-px bg-zinc-200 mx-2"></div>
 
         <a routerLink="/admin" class="text-[11px] font-bold text-zinc-400 hover:text-indigo-600 transition-colors uppercase tracking-widest flex items-center gap-2">
            Internal Admin
@@ -105,7 +108,15 @@ import { MockStorageService } from '../../core/services/mock-storage.service';
                               <span class="text-xs font-mono text-zinc-500">{{ sub.id }}</span>
                            </td>
                            <td class="px-6 py-4">
-                              <span class="text-sm font-bold text-zinc-700">{{ sub.formName }}</span>
+                              <div class="flex items-center gap-2">
+                                <span class="text-sm font-bold text-zinc-700">{{ sub.formName }}</span>
+                                @if (sub.metadata?.['ai_submitted']) {
+                                  <span class="flex items-center gap-1 bg-violet-50 text-violet-600 border border-violet-200 text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full shrink-0 shadow-sm">
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2a2 2 0 0 1 2-2"/><path d="M3 8v4c0 1.1.9 2 2 2h3v6c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2v-6h3c1.1 0 2-.9 2-2V8"/><path d="M9 14v4"/><path d="M15 14v4"/></svg>
+                                    AI
+                                  </span>
+                                }
+                              </div>
                            </td>
                            <td class="px-6 py-4">
                               <span class="text-xs text-zinc-400">{{ sub.timestamp | date:'medium' }}</span>
@@ -136,6 +147,7 @@ import { MockStorageService } from '../../core/services/mock-storage.service';
 export class UserPortalComponent {
   private storage = inject(MockStorageService);
   private router = inject(Router);
+  ai = inject(AiFormService);
 
   activeTab = signal<'forms' | 'submissions'>('forms');
   forms = this.storage.forms;

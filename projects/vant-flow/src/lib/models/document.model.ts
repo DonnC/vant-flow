@@ -7,6 +7,7 @@ export interface TableColumnDef {
   label: string;
   fieldtype: Exclude<FieldType, 'Table'>;
   mandatory?: boolean;
+  hidden?: boolean;
   default?: any;
   options?: string;
   regex?: string;
@@ -83,6 +84,7 @@ export interface DocumentDefinition {
   steps?: DocumentStep[]; // Steps for multi-step forms
   client_script?: string;
   actions?: FormActionsConfig;
+  metadata?: { [key: string]: any }; // Injectable arbitrary metadata (e.g. is_ai_generated)
 }
 
 // Palette items used by the left sidebar (not actual fields yet)

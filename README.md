@@ -5,7 +5,7 @@ Form builder designed to bridge the gap between static JSON schemas and complex 
 
 ## 🖋️ A Note on Inspiration
 
-**Vant Flow** is a specialized, lightweight subset of the immensely powerful and mature [Frappe Framework](https://frappeframework.com/). We are huge fans of the open-source revolution Frappe started—proving that metadata-driven applications are the future of rapid development. While Frappe is an all-encompassing Python/JS monolith, **Vant Flow** brings its core philosophy of "Logic-in-Data" to the modern Angular ecosystem.
+This is a specialized, lightweight subset heavily inspired by the immensely powerful and mature [Frappe Framework](https://frappeframework.com/).
 
 ---
 
@@ -26,11 +26,13 @@ In traditional enterprise apps, a simple change (like hiding a field based on a 
 
 ## 🌟 Features
 
-* **Visual IDE**: Drag-and-drop builder for complex form layouts.
-* **High-Performance Renderer**: JSON-driven rendering with sub-second initialization.
+* **Visual IDE**: Drag-and-drop builder for complex form layouts with collapsible property management.
+* **Stepper Flow**: Native support for multi-step onboarding and wizard-style forms with global validation.
+* **High-Performance Renderer**: JSON-driven rendering with sub-second initialization and reactive column visibility.
 * **Client Scripting**: Powerful JavaScript API (`frm`) with Monaco Editor intellisense, executed in a secure Proxy-based sandbox.
 * **Modern Stack**: Built with Angular Signals, Standalone Components, and Tailwind CSS.
-* **Rich Components**: Signature pads, file attachments, recursive tables, and more.
+* **Rich Components**: Signature pads, file attachments, recursive tables, and text editors.
+* **Enhanced Tables**: Support for any field type as a column with specialized compact rendering (previews for attachments, text editors, and signatures).
 
 ---
 
@@ -129,6 +131,122 @@ frm.on('quality_score', (val, frm) => {
 
 ---
 
+### Enhanced Table Interaction
+The `set_df_property` method now supports targeting columns within a table by providing a fourth argument:
+
+```javascript
+// Target a top-level field
+frm.set_df_property('email', 'read_only', true);
+
+// Target a column within a table
+frm.set_df_property('items_table', 'options', '.pdf,.jpg', 'attachment_col');
+frm.set_df_property('items_table', 'hidden', true, 'rate_col');
+```
+
+---
+
+### 🤖 AI Agent Integrations
+
+Vant Flow's strictly typed JSON schema structure (`DocumentDefinition`) and comprehensive `VfFormContext` (frm) make it incredibly well-suited for **Large Language Model (LLM)** integrations. 
+
+Because the entire form state, validation, and layout can be represented and manipulated via structured JSON and Javascript, AI Agents can interact with Vant Forms as if they were human users.
+
+The included demo application (`kai-ng-flow`) showcases two prime examples of this "AI-First" capability using the **Google Gemini Pro SDK**:
+
+1. **Scaffolding from Prompts (Admin Builder)**: Rather than manually dragging fields, administrators can simply type requirements (e.g. *"I need a vehicle inspection form with an equipment checkpoint table"*). The AI generates the complete `DocumentDefinition` JSON, which is instantly loaded into the visual builder for final refinement.
+2. **AI Form Assistant (Client Runner)**: End-users are provided an embedded ChatGPT-style side panel. The assistant is fed the complex JSON schema as its system prompt. Users can converse natively, and the AI will invoke `frm.set_value()` under the hood to completely fill out the actual form fields in the foreground UI based on their unstructured responses.
+
+This unlocks powerful workflows for enterprise data capturing, allowing complex form logic to be abstracted behind natural language! 
+
+#### 💡 Example AI Test Prompts
+
+Try testing the AI capabilities with these diverse cross-sector prompts:
+
+**1. Healthcare: Patient Intake**
+* **Admin Builder:** "Create a comprehensive Patient Intake form. Include sections for Personal info, Emergency contacts, robust Medical History, and generic consent checkboxes."
+* **Client Chat:** "My name is John Doe, born Jan 1st 1990. My emergency contact is my wife Jane at 555-0199. I have a history of asthma and I consent to the terms."
+
+**2. Finance: Expense Claim**
+* **Admin Builder:** "Generate a Corporate Expense Claim report. I need a table for line items (date, description, amount), fields for receipt uploads, and a manager approval step."
+* **Client Chat:** "I need to file an expense for my trip to the Vanguard conference yesterday. The flight was $450 and the hotel was $300."
+
+**3. Logistics: Incident Report**
+* **Admin Builder:** "Draft a Delivery Incident Report with fields for tracking number, incident type dropdown (Loss, Damage, Delay), a large description box, and a table for impacted item SKUs."
+* **Client Chat:** "Tracking #1Z9999 was delayed because of the severe snowstorm on Tuesday. The package contains SKU-1234 and SKU-5678."
+
+**4. IT Operations: Asset Request**
+* **Admin Builder:** "Create an IT Asset Request form. It needs a dropdown for equipment type (Laptop, Monitor, Phone), a justification text area, and checkboxes for software licenses required."
+* **Client Chat:** "I'm starting next week and need a new Macbook Pro and an external 4K monitor for my design work. Oh, and include an Adobe Creative Cloud license."
+
+**5. HR: Employee Evaluation**
+* **Admin Builder:** "Build an Employee Performance Review form. Include an employee select field, rating sliders for teamwork and technical skills, and a large text area for reviewer comments."
+* **Client Chat:** "Fill this out for Alice Smith. I'm rating her teamwork 9/10 and technical skills 8/10. She's exceeding expectations but needs to work on long-term planning."
+
+---
+
+#### 🤖 AI & LLM Support
+
+Vant Flow supports both **Google Gemini** and **OpenAI** for form scaffolding and assistance.
+
+*   **Configuring Tokens (Securely)**:
+    1.  Create a `.env` file in the root directory (use `.env.example` as a template).
+    2.  Add your `GEMINI_API_KEY` or `OPEN_AI_KEY` and `OPEN_AI_MODEL`.
+    3.  Run `npm start` – the configuration is automatically synchronized into the Angular environment via a secure, git-ignored file.
+*   **Switching Models**: By default, the system favors OpenAI if a key is present. You can change the model by updating `OPEN_AI_MODEL` in your `.env` (e.g., `gpt-4o-mini-2024-07-18`).
+*   **MCP Integration**: The AI service uses the exact same tool definitions as the **Vant MCP Server**, ensuring consistent "Magic" form generation across both the MCP Inspector and the built-in UI.
+
+> [!IMPORTANT]
+> To use a live model, ensure your internet connection is active and your API key has sufficient quota.
+
+*   **Live MCP Mode**: For advanced development, you can connect the app to a running MCP server:
+    1.  Start the MCP server in SSE mode: `npm run mcp:sse`
+    2.  Start the app: `npm start`
+    3.  The app will connect to `http://localhost:3001/sse` and fetch dynamic tools and guidance!
+
+---
+
+### 📦 Injected Metadata
+
+Developers can pass arbitrary data (like an authenticated user object, roles, server responses, configuration options) from the host application seamlessly into client scripts using the `[metadata]` input. 
+
+This empowers scripts to evaluate custom business rules using external domain knowledge context without making a network request or coupling the library to specific dependencies!
+
+**Host Application (`app.component.html`)**:
+
+```html
+<vf-renderer
+  [document]="invoiceSchema"
+  [initialData]="invoiceData"
+  [metadata]="{ 
+    currentUser: { name: 'Alice', role: 'Manager' }, 
+    maxTransactionLimit: 5000 
+  }"
+></vf-renderer>
+```
+
+**Client Script**:
+
+```javascript
+frm.on('amount', (val, frm) => {
+    // Access external references injected via [metadata] using frm.metadata
+    const isManager = frm.metadata?.currentUser?.role === 'Manager';
+    const limit = frm.metadata?.maxTransactionLimit || 1000;
+
+    if (val > limit && !isManager) {
+        frm.msgprint(`Amount exceeds limit of $${limit} for your role!`, 'error');
+        frm.set_value('amount', limit);
+    }
+});
+```
+
+Tables also feature **Smart Compact Rendering**:
+- **Text Editor**: Automatic HTML stripping for table cell previews.
+- **Attach**: Visual file counters and icons.
+- **Signature**: High-density "Signed" status badges.
+- **Check**: Minimal checkbox-only display (hides label for vertical spacing).
+
+---
+
 ## 🛡️ Security: The Sandbox
 
 Vant Flow shadows dangerous globals to prevent data exfiltration. Inside a client script, the following are `undefined`:
@@ -138,17 +256,36 @@ Vant Flow shadows dangerous globals to prevent data exfiltration. Inside a clien
 
 ---
 
-## 💻 Local Development & Showcase
+## 💻 Local Development & Workspace
+
+This project is structured as an **Angular Workspace**. The root directory manages shared dependencies and configuration.
 
 1.  **Clone & Install**:
     ```bash
     git clone https://github.com/DonnC/vant-flow.git
     npm install
     ```
-2.  **Build Library**: `ng build vant-flow`
-3.  **Run Showcase**: `npm start`
 
-The showcase application demonstrates:
-- **Landing Page**: Feature overview and navigation.
-- **Admin Side**: Integrated Builder + Renderer side-by-side.
-- **Standalone Demos**: Isolated components for debugging.
+2.  **Build Primary Library**: 
+    ```bash
+    npm run build # ng build vant-flow
+    ```
+
+3.  **Run Example Application**:
+    ```bash
+    npm start # ng serve kai-ng-flow
+    ```
+
+4.  **Run Vant MCP Server**:
+    ```bash
+    npm run build:mcp # Build the server
+    npm run mcp       # Run Inspector for projects/vant-mcp
+    ```
+
+---
+
+## 📂 Repository Structure
+
+- `projects/vant-flow`: Core library source.
+- `projects/vant-mcp`: Model Context Protocol server for AI integration.
+- `examples/kai-ng-flow`: Reference Angular application using the library.

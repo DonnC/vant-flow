@@ -42,5 +42,3 @@ testem.log
 Thumbs.db
 
 *.txt
-.env
-environment.ai.ts

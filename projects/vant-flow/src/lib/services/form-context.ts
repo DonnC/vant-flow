@@ -9,6 +9,7 @@ export class VfFormContext {
     public fieldSignals = new Map<string, WritableSignal<DocumentField>>();
     public sectionSignals = new Map<string, WritableSignal<DocumentSection>>();
     public dynamicIntro = signal<{ message: string; color: string } | null>(null);
+    public valueUpdateSignal = signal(0);
 
     private eventListeners = new Map<string, Function[]>();
     private queries = new Map<string, Function>();
@@ -23,14 +24,17 @@ export class VfFormContext {
     public currentStepIndex = signal<number>(0);
     public stepSignals = new Map<string, WritableSignal<{ id: string; title: string; description?: string; hidden: boolean }>>();
 
+    public metadata?: any;
+
     constructor(
         private appUtility: VfUtilityService,
         private state: VfBuilderState
     ) { }
 
-    initialize(document: DocumentDefinition, formData: any) {
+    initialize(document: DocumentDefinition, formData: any, metadata?: any) {
         this.document = document;
         this.formData = formData;
+        this.metadata = metadata;
 
         // Initialize signals
         this.fieldSignals.clear();
@@ -101,10 +105,26 @@ export class VfFormContext {
         });
     }
 
-    set_df_property(fieldname: string, prop: keyof DocumentField, val: any) {
+    set_df_property(fieldname: string, prop: keyof DocumentField, val: any, child_fieldname?: string) {
         const s = this.fieldSignals.get(fieldname);
         if (!s) { console.warn(`[frm] Unknown field: ${fieldname}`); return; }
-        s.update(current => ({ ...current, [prop]: val }));
+
+        if (child_fieldname) {
+            // Target a column within a table
+            s.update(current => {
+                if (current.fieldtype !== 'Table' || !current.table_fields) return current;
+                const updatedCols = current.table_fields.map(col => {
+                    if (col.fieldname === child_fieldname) {
+                        return { ...col, [prop]: val };
+                    }
+                    return col;
+                });
+                return { ...current, table_fields: updatedCols };
+            });
+        } else {
+            // Target the field itself
+            s.update(current => ({ ...current, [prop]: val }));
+        }
     }
 
     set_section_property(sectionId: string, prop: keyof DocumentSection, val: any) {
@@ -254,6 +274,7 @@ export class VfFormContext {
         this.dynamicIntro.set(null);
         this.customButtons.set([]);
         this.isReadOnly.set(false);
+        this.valueUpdateSignal.update(n => n + 1);
         this.trigger('refresh');
     }
 
@@ -265,6 +286,7 @@ export class VfFormContext {
         const index = table.length - 1;
         this.trigger(`${fieldname}_add`, { row, index });
         this.trigger(fieldname, this.formData[fieldname]);
+        this.valueUpdateSignal.update(n => n + 1);
     }
 
     remove_row(fieldname: string, index: number) {
@@ -273,6 +295,7 @@ export class VfFormContext {
         this.formData[fieldname].splice(index, 1);
         this.trigger(`${fieldname}_remove`, { row, index });
         this.trigger(fieldname, this.formData[fieldname]);
+        this.valueUpdateSignal.update(n => n + 1);
     }
 
     call(opts: { method: string; args?: any; callback?: (r: any) => void; freeze?: boolean; freeze_message?: string }) {
@@ -324,6 +347,7 @@ export class VfFormContext {
             this.formData[fieldnameOrObj] = value;
             this.triggerChange(fieldnameOrObj, value);
         }
+        this.valueUpdateSignal.update(n => n + 1);
     }
 
     // ── Internal Helpers for Renderer ──────────────────────────
@@ -345,6 +369,7 @@ export class VfFormContext {
 
     triggerChange(fieldname: string, value: any) {
         this.trigger(fieldname, value);
+        this.valueUpdateSignal.update(n => n + 1);
     }
 
     public trigger(event: string, data?: any): boolean {

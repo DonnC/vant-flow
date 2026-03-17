@@ -1,8 +1,9 @@
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
-import { VfBuilder, VfRenderer, VfToastOutlet, DocumentDefinition } from '../../../projects/vant-flow/src/public-api';
+import { VfBuilder, VfRenderer, VfToastOutlet, DocumentDefinition } from 'vant-flow';
 import { MockStorageService } from '../core/services/mock-storage.service';
+import { AiFormService } from '../core/services/ai-form.service';
 import { EXAMPLE_DOCUMENT } from './example-data';
 
 @Component({
@@ -62,7 +63,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
         @if (loading()) {
            <div class="h-full flex flex-col items-center justify-center bg-white z-[60]">
               <div class="w-10 h-10 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
-              <p class="text-xs font-bold text-zinc-400 uppercase tracking-widest">Warming Up Designer...</p>
+              <p class="text-xs font-bold text-zinc-400 uppercase tracking-widest">{{ loadingMessage() }}</p>
            </div>
         } @else {
           @if (activeTab === 'builder') {
@@ -87,18 +88,54 @@ export class AdminDemoComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private storage = inject(MockStorageService);
+  ai = inject(AiFormService);
 
   formId: string | null = null;
   activeTab: 'builder' | 'renderer' = 'builder';
-  schema = signal<DocumentDefinition>(EXAMPLE_DOCUMENT);
+  schema = signal<DocumentDefinition>({
+    name: 'Untitled Form',
+    description: '',
+    version: '1.0.0',
+    sections: [{
+      id: 'section_init',
+      label: 'Main Section',
+      columns: [{ id: 'col_init', fields: [] }]
+    }]
+  });
   lastSaved = signal<Date | null>(null);
   loading = signal(true);
+  loadingMessage = signal('Warming Up Designer...');
 
   ngOnInit() {
-    this.route.params.subscribe(params => {
+    this.route.params.subscribe(async params => {
       this.formId = params['id'];
+
+      const prompt = this.route.snapshot.queryParams['prompt'];
+
+      if (prompt && this.formId === 'new') {
+        this.loadingMessage.set('AI Generating Form Layout...');
+        this.loading.set(true);
+        try {
+          const aiSchema = await this.ai.scaffoldFormFromPrompt(prompt);
+          this.schema.set(aiSchema);
+
+          // Clear the prompt from URL so reload doesn't trigger it again
+          this.router.navigate([], {
+            relativeTo: this.route,
+            queryParams: { prompt: null },
+            queryParamsHandling: 'merge'
+          });
+        } catch (err: any) {
+          alert('Failed to generate form: ' + err.message);
+          // Reset to blank form so we don't show the "Quality Inspection" example on failure
+          this.resetToBlank();
+        }
+        this.loading.set(false);
+        return;
+      }
+
       if (this.formId && this.formId !== 'new') {
-        const existing = this.storage.getFormById(this.formId);
+        const existing = this.storage.getFormById(this.formId) as any;
         if (existing) {
           this.schema.set({ ...existing.schema });
           this.lastSaved.set(new Date(existing.lastModified));
@@ -125,11 +162,30 @@ export class AdminDemoComponent implements OnInit {
   }
 
   saveForm() {
-    const id = this.storage.saveForm(this.schema(), this.formId === 'new' ? undefined : this.formId!);
+    this.storage.saveForm(this.schema(), this.formId === 'new' ? undefined : this.formId!);
     this.lastSaved.set(new Date());
 
     if (this.formId === 'new') {
-      this.router.navigate(['/admin/builder', id]);
+      this.router.navigate(['/admin/builder', this.formId]);
     }
+  }
+
+  toggleAi() {
+    this.ai.selectedProvider.set(
+      this.ai.selectedProvider() === 'openai' ? 'gemini' : 'openai'
+    );
+  }
+
+  private resetToBlank() {
+    this.schema.set({
+      name: 'Untitled Form',
+      description: '',
+      version: '1.0.0',
+      sections: [{
+        id: 'section_' + Math.random().toString(36).substring(2, 9),
+        label: 'Main Section',
+        columns: [{ id: 'col_' + Math.random().toString(36).substring(2, 9), fields: [] }]
+      }]
+    });
   }
 }
