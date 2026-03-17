@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { DocumentDefinition } from '../../../../projects/vant-flow/src/lib/models/document.model';
+import { DocumentDefinition } from 'vant-flow';
 
 export interface FormSubmission {
     id: string;
@@ -7,6 +7,7 @@ export interface FormSubmission {
     formName: string;
     timestamp: string;
     data: any;
+    metadata?: { [key: string]: any };
 }
 
 export interface FormDesign {
@@ -97,14 +98,15 @@ export class MockStorageService {
         return this.submissions().find(s => s.id === id);
     }
 
-    saveSubmission(formId: string, formName: string, data: any) {
+    saveSubmission(formId: string, formName: string, data: any, metadata?: any) {
         const submissions = [...this.submissions()];
         const newSubmission: FormSubmission = {
             id: 'sub_' + Math.random().toString(36).substring(2, 9),
             formId,
             formName,
             timestamp: new Date().toISOString(),
-            data
+            data,
+            ...(metadata ? { metadata } : {}) // conditionally add
         };
 
         submissions.unshift(newSubmission);

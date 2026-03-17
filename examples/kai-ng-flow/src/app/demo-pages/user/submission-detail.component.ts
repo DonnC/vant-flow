@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MockStorageService, FormSubmission, FormDesign } from '../../core/services/mock-storage.service';
-import { VfRenderer } from '../../../../projects/vant-flow/src/public-api';
+import { VfRenderer } from 'vant-flow';
 
 @Component({
    selector: 'app-submission-detail',
@@ -46,7 +46,15 @@ import { VfRenderer } from '../../../../projects/vant-flow/src/public-api';
             <div class="max-w-4xl mx-auto">
                <div class="mb-10 bg-white border border-zinc-200 rounded-2xl p-8 shadow-sm flex items-center justify-between">
                   <div>
-                     <h2 class="text-2xl font-black text-zinc-800 tracking-tight">{{ submission.formName }}</h2>
+                     <div class="flex items-center gap-3">
+                        <h2 class="text-2xl font-black text-zinc-800 tracking-tight">{{ submission.formName }}</h2>
+                        @if (submission.metadata?.['ai_submitted']) {
+                          <span class="flex items-center gap-1 bg-violet-50 text-violet-600 border border-violet-200 text-[10px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full shrink-0 shadow-sm mt-1">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2a2 2 0 0 1 2 2c0 1.1-.9 2-2 2s-2-.9-2-2a2 2 0 0 1 2-2"/><path d="M3 8v4c0 1.1.9 2 2 2h3v6c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2v-6h3c1.1 0 2-.9 2-2V8"/><path d="M9 14v4"/><path d="M15 14v4"/></svg>
+                            AI Submitted
+                          </span>
+                        }
+                     </div>
                      <p class="text-sm text-zinc-500 mt-1">Submitted on {{ submission.timestamp | date:'full' }}</p>
                   </div>
                   <div class="text-right">

@@ -30,15 +30,16 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
         @switch (field.fieldtype) {
           <!-- ... switches ... -->
           @case ('Check') {
-            <div class="flex items-center gap-3 py-2 px-1">
+            <label class="flex items-center gap-2 py-1.5 cursor-pointer">
               <input type="checkbox"
-                class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer"
-                (click)="onInputClick($event)"
-                [ngModel]="value === 1"
+                class="ui-checkbox"
+                [ngModel]="value === 1 || value === true"
                 (ngModelChange)="onValueChange($event ? 1 : 0)"
                 [disabled]="disabled">
-              <span class="text-[13px] text-zinc-600 font-medium select-none">{{ label }}</span>
-            </div>
+              @if (!compact) {
+                <span class="text-xs text-zinc-600 font-medium">{{ field.label }}</span>
+              }
+            </label>
           }
           @case ('Text') {
             @if (compact) {

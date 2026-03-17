@@ -5,7 +5,7 @@ Form builder designed to bridge the gap between static JSON schemas and complex 
 
 ## 🖋️ A Note on Inspiration
 
-**Vant Flow** is a specialized, lightweight subset of the immensely powerful and mature [Frappe Framework](https://frappeframework.com/). We are huge fans of the open-source revolution Frappe started—proving that metadata-driven applications are the future of rapid development. While Frappe is an all-encompassing Python/JS monolith, **Vant Flow** brings its core philosophy of "Logic-in-Data" to the modern Angular ecosystem.
+This is a specialized, lightweight subset heavily inspired by the immensely powerful and mature [Frappe Framework](https://frappeframework.com/).
 
 ---
 
@@ -26,11 +26,13 @@ In traditional enterprise apps, a simple change (like hiding a field based on a 
 
 ## 🌟 Features
 
-* **Visual IDE**: Drag-and-drop builder for complex form layouts.
-* **High-Performance Renderer**: JSON-driven rendering with sub-second initialization.
+* **Visual IDE**: Drag-and-drop builder for complex form layouts with collapsible property management.
+* **Stepper Flow**: Native support for multi-step onboarding and wizard-style forms with global validation.
+* **High-Performance Renderer**: JSON-driven rendering with sub-second initialization and reactive column visibility.
 * **Client Scripting**: Powerful JavaScript API (`frm`) with Monaco Editor intellisense, executed in a secure Proxy-based sandbox.
 * **Modern Stack**: Built with Angular Signals, Standalone Components, and Tailwind CSS.
-* **Rich Components**: Signature pads, file attachments, recursive tables, and more.
+* **Rich Components**: Signature pads, file attachments, recursive tables, and text editors.
+* **Enhanced Tables**: Support for any field type as a column with specialized compact rendering (previews for attachments, text editors, and signatures).
 
 ---
 
@@ -126,6 +128,26 @@ frm.on('quality_score', (val, frm) => {
 });
 
 ```
+
+---
+
+### Enhanced Table Interaction
+The `set_df_property` method now supports targeting columns within a table by providing a fourth argument:
+
+```javascript
+// Target a top-level field
+frm.set_df_property('email', 'read_only', true);
+
+// Target a column within a table
+frm.set_df_property('items_table', 'options', '.pdf,.jpg', 'attachment_col');
+frm.set_df_property('items_table', 'hidden', true, 'rate_col');
+```
+
+Tables also feature **Smart Compact Rendering**:
+- **Text Editor**: Automatic HTML stripping for table cell previews.
+- **Attach**: Visual file counters and icons.
+- **Signature**: High-density "Signed" status badges.
+- **Check**: Minimal checkbox-only display (hides label for vertical spacing).
 
 ---
 

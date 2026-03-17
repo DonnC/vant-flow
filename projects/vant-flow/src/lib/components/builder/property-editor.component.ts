@@ -278,70 +278,86 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
 
         <!-- Table Column Configurator (only for Table) -->
         @if (field()!.fieldtype === 'Table') {
-          <div class="space-y-3">
-            <div class="flex items-center justify-between">
-              <label class="ui-label !mb-0">Table Columns</label>
-              <button (click)="state.addTableColumn(field()!.id)" class="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded hover:bg-indigo-100">+ Add Column</button>
-            </div>
-
-            <div class="space-y-2">
+          <div class="ui-sep"></div>
+          <details class="group/table-main border border-zinc-200 rounded-lg overflow-hidden shadow-sm" open>
+            <summary class="flex items-center justify-between px-3 py-2 bg-zinc-50 cursor-pointer hover:bg-zinc-100 transition-colors list-none">
+              <span class="text-xs font-black text-zinc-500 uppercase tracking-tighter">Table Columns ({{ field()!.table_fields?.length || 0 }})</span>
+              <div class="flex items-center gap-2">
+                <button (click)="$event.preventDefault(); $event.stopPropagation(); state.addTableColumn(field()!.id)" 
+                        class="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded hover:bg-indigo-100 border border-indigo-100/50">+ Add Column</button>
+                <svg class="w-3.5 h-3.5 text-zinc-400 group-open/table-main:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 9l-7 7-7-7" /></svg>
+              </div>
+            </summary>
+            
+            <div class="p-2 bg-white space-y-1.5">
               @for (col of field()!.table_fields; track col.id) {
-                <div class="p-3 bg-zinc-50 border border-zinc-200 rounded-lg space-y-2 relative group/col">
-                  <button (click)="state.removeTableColumn(field()!.id, col.id)" 
-                    class="absolute right-2 top-2 opacity-0 group-hover/col:opacity-100 text-zinc-400 hover:text-red-500">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                  </button>
+                <details class="group/col border border-zinc-100 rounded-md overflow-hidden shadow-sm">
+                  <summary class="flex items-center justify-between px-2 py-1.5 bg-zinc-50/50 cursor-pointer hover:bg-zinc-100/50 transition-colors list-none">
+                    <div class="flex items-center gap-2 min-w-0 pr-2">
+                       <span class="px-1.5 py-0.5 rounded bg-zinc-100 text-zinc-400 text-[8px] font-bold uppercase shrink-0">{{ col.fieldtype }}</span>
+                       <span class="text-[11px] font-bold text-zinc-600 truncate">{{ col.label || 'Unnamed Column' }}</span>
+                    </div>
+                    <div class="flex items-center gap-1.5 opacity-60 group-hover/col:opacity-100">
+                      <button (click)="$event.preventDefault(); $event.stopPropagation(); state.removeTableColumn(field()!.id, col.id)" 
+                        class="p-1 rounded text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                      </button>
+                      <svg class="w-3 h-3 text-zinc-300 group-open/col:rotate-180 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M19 9l-7 7-7-7" /></svg>
+                    </div>
+                  </summary>
+                  
+                  <div class="p-2 border-t border-zinc-100 bg-white space-y-2.5">
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="space-y-1">
+                        <label class="text-[9px] font-bold text-zinc-400 uppercase">Label</label>
+                        <input class="ui-input !p-1.5 !text-[11px]" 
+                          [ngModel]="col.label" 
+                          (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { label: $event, fieldname: slugify($event) })"
+                          placeholder="Column Name">
+                      </div>
+                      <div class="space-y-1">
+                        <label class="text-[9px] font-bold text-zinc-400 uppercase">Fieldname</label>
+                        <input class="ui-input !p-1.5 !text-[11px] font-mono" [ngModel]="col.fieldname" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { fieldname: $event })">
+                      </div>
+                    </div>
 
-                  <div class="grid grid-cols-2 gap-2">
-                    <div class="space-y-1">
-                      <label class="text-[9px] font-bold text-zinc-400 uppercase">Label</label>
-                      <input class="ui-input !p-1.5 !text-[11px]" [ngModel]="col.label" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { label: $event, fieldname: slugify($event) })">
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="space-y-1">
+                        <label class="text-[9px] font-bold text-zinc-400 uppercase">Type</label>
+                        <select class="ui-select !p-1.5 !text-[11px]" [ngModel]="col.fieldtype" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { fieldtype: $any($event) })">
+                          @for (t of tableChildTypes; track t) {
+                            <option [value]="t">{{ t }}</option>
+                          }
+                        </select>
+                      </div>
+                      <div class="space-y-1">
+                        <label class="text-[9px] font-bold text-zinc-400 uppercase">Default</label>
+                        <input class="ui-input !p-1.5 !text-[11px]" [ngModel]="col.default" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { default: $event })">
+                      </div>
                     </div>
-                    <div class="space-y-1">
-                      <label class="text-[9px] font-bold text-zinc-400 uppercase">Fieldname</label>
-                      <input class="ui-input !p-1.5 !text-[11px] font-mono" [ngModel]="col.fieldname" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { fieldname: $event })">
-                    </div>
-                  </div>
 
-                  <div class="grid grid-cols-2 gap-2">
-                    <div class="space-y-1">
-                      <label class="text-[9px] font-bold text-zinc-400 uppercase">Type</label>
-                      <select class="ui-select !p-1.5 !text-[11px]" [ngModel]="col.fieldtype" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { fieldtype: $any($event) })">
-                        @for (t of tableChildTypes; track t) {
-                          <option [value]="t">{{ t }}</option>
-                        }
-                      </select>
-                    </div>
-                    <div class="flex items-center h-full pt-4">
-                      <label class="flex items-center gap-2 cursor-pointer select-none">
-                        <input type="checkbox" class="w-3 h-3 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" [ngModel]="col.mandatory" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { mandatory: $event })">
-                        <span class="text-[10px] font-medium text-zinc-600 uppercase">Mandatory</span>
+                    @if (['Select', 'Link', 'Attach'].includes(col.fieldtype)) {
+                      <div class="space-y-1">
+                        <label class="text-[9px] font-bold text-zinc-400 uppercase">Options / Config</label>
+                        <input class="ui-input !p-1.5 !text-[11px]" [ngModel]="col.options" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { options: $event })" placeholder="config...">
+                      </div>
+                    }
+
+                    <div class="flex items-center gap-4 pt-1">
+                      <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" class="w-3 h-3 rounded" [ngModel]="col.mandatory" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { mandatory: $event })">
+                        <span class="text-[10px] font-medium text-zinc-600">Mandatory</span>
+                      </label>
+                      <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" class="w-3 h-3 rounded" [ngModel]="col.hidden" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { hidden: $event })">
+                        <span class="text-[10px] font-medium text-zinc-600">Hidden</span>
                       </label>
                     </div>
                   </div>
-
-                  <!-- Options for Table Column (Select/Link) -->
-                  @if (col.fieldtype === 'Select' || col.fieldtype === 'Link') {
-                  <div class="space-y-1 pt-1">
-                    <label class="text-[9px] font-bold text-zinc-400 uppercase">
-                      {{ col.fieldtype === 'Select' ? 'Options (one per line)' : 'Linked Document' }}
-                    </label>
-                    @if (col.fieldtype === 'Select') {
-                      <textarea class="ui-textarea !p-1.5 !text-[11px] font-mono" rows="2" 
-                        [ngModel]="col.options" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { options: $event })"
-                        placeholder="Option 1&#10;Option 2">
-                      </textarea>
-                    } @else {
-                      <input class="ui-input !p-1.5 !text-[11px]" [ngModel]="col.options" 
-                        (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { options: $event })" 
-                        placeholder="e.g. Customer">
-                    }
-                  </div>
-                  }
-                </div>
+                </details>
               }
             </div>
-          </div>
+          </details>
         }
 
 
