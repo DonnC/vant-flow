@@ -143,6 +143,42 @@ frm.set_df_property('items_table', 'options', '.pdf,.jpg', 'attachment_col');
 frm.set_df_property('items_table', 'hidden', true, 'rate_col');
 ```
 
+---
+
+### 📦 Injected Metadata
+
+Developers can pass arbitrary data (like an authenticated user object, roles, server responses, configuration options) from the host application seamlessly into client scripts using the `[metadata]` input. 
+
+This empowers scripts to evaluate custom business rules using external domain knowledge context without making a network request or coupling the library to specific dependencies!
+
+**Host Application (`app.component.html`)**:
+
+```html
+<vf-renderer
+  [document]="invoiceSchema"
+  [initialData]="invoiceData"
+  [metadata]="{ 
+    currentUser: { name: 'Alice', role: 'Manager' }, 
+    maxTransactionLimit: 5000 
+  }"
+></vf-renderer>
+```
+
+**Client Script**:
+
+```javascript
+frm.on('amount', (val, frm) => {
+    // Access external references injected via [metadata] using frm.metadata
+    const isManager = frm.metadata?.currentUser?.role === 'Manager';
+    const limit = frm.metadata?.maxTransactionLimit || 1000;
+
+    if (val > limit && !isManager) {
+        frm.msgprint(`Amount exceeds limit of $${limit} for your role!`, 'error');
+        frm.set_value('amount', limit);
+    }
+});
+```
+
 Tables also feature **Smart Compact Rendering**:
 - **Text Editor**: Automatic HTML stripping for table cell previews.
 - **Attach**: Visual file counters and icons.

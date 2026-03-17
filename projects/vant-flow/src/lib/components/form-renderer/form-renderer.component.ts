@@ -506,6 +506,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   @Input() submitLabel?: string;
   @Input() draftLabel?: string;
   @Input() disabled: boolean = false;
+  @Input() metadata?: any;
 
   @Output() formSubmit = new EventEmitter<any>();
   @Output() formDraft = new EventEmitter<any>();
@@ -530,7 +531,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
 
   ngOnInit() {
     this.initForm();
-    this.ctx.initialize(this.document, this.formData);
+    this.ctx.initialize(this.document, this.formData, this.metadata);
     if (this.readonly) {
       this.ctx.set_readonly(true);
     }
@@ -546,6 +547,9 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     if (changes['initialData'] && !changes['initialData'].firstChange && this.initialData) {
       Object.assign(this.formData, this.initialData);
       this.initForm();
+    }
+    if (changes['metadata'] && !changes['metadata'].firstChange) {
+      this.ctx.metadata = this.metadata;
     }
   }
 

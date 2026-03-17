@@ -254,6 +254,9 @@ export class VfScriptEditor {
         /** Global UI freezing */
         freeze(message?: string): void;
         unfreeze(): void;
+
+        /** Injected metadata object from host application */
+        metadata?: any;
       }
 
       /** The main Form Context object */

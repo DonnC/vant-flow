@@ -24,14 +24,17 @@ export class VfFormContext {
     public currentStepIndex = signal<number>(0);
     public stepSignals = new Map<string, WritableSignal<{ id: string; title: string; description?: string; hidden: boolean }>>();
 
+    public metadata?: any;
+
     constructor(
         private appUtility: VfUtilityService,
         private state: VfBuilderState
     ) { }
 
-    initialize(document: DocumentDefinition, formData: any) {
+    initialize(document: DocumentDefinition, formData: any, metadata?: any) {
         this.document = document;
         this.formData = formData;
+        this.metadata = metadata;
 
         // Initialize signals
         this.fieldSignals.clear();
