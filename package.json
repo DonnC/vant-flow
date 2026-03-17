@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "scripts": {
     "ng": "ng",
+    "config:env": "node scripts/set-env.js",
+    "prestart": "npm run config:env",
     "start": "ng serve kai-ng-flow",
-    "build": "ng build vant-flow",
+    "build": "npm run config:env && ng build vant-flow",
     "build:mcp": "cd projects/vant-mcp && npm run build",
     "mcp": "cd projects/vant-mcp && npx @modelcontextprotocol/inspector node dist/index.js",
+    "mcp:sse": "cd projects/vant-mcp && set TRANSPORT=sse&& node dist/index.js",
     "test": "ng test"
   },
   "private": true,
@@ -21,6 +24,7 @@
     "@angular/platform-browser-dynamic": "^17.3.0",
     "@angular/router": "^17.3.0",
     "@google/genai": "^1.45.0",
+    "@modelcontextprotocol/sdk": "^1.27.1",
     "monaco-editor": "^0.55.1",
     "ngx-monaco-editor-v2": "^21.1.4",
     "ngx-quill": "^25.3.3",
@@ -35,7 +39,9 @@
     "@angular/cli": "^17.3.17",
     "@angular/compiler-cli": "^17.3.0",
     "@types/jasmine": "~5.1.0",
+    "@types/node": "^25.5.0",
     "autoprefixer": "^10.4.27",
+    "dotenv": "^17.3.1",
     "jasmine-core": "~5.1.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
@@ -43,8 +49,10 @@
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
     "ng-packagr": "^17.3.0",
+    "openai": "^6.31.0",
     "postcss": "^8.5.8",
     "tailwindcss": "^3.4.19",
+    "ts-node": "^10.9.2",
     "typescript": "~5.4.2"
   }
 }

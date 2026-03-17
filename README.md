@@ -184,16 +184,24 @@ Try testing the AI capabilities with these diverse cross-sector prompts:
 
 ---
 
-#### � Configuration & Tokens
+#### 🤖 AI & LLM Support
 
-Currently, the Vant Flow AI integration uses the **Google Generative AI SDK**, so it natively supports **Gemini** tokens.
+Vant Flow supports both **Google Gemini** and **OpenAI** for form scaffolding and assistance.
 
-*   **How to Set Your Token**: In the demo app, click the **"AI Setup"** button in any header. A standard prompt will appear asking for your `Gemini API Key`. This key is stored in memory for the duration of your session.
-*   **What about OpenAI?**: While the current code is tailored towards Gemini, the `AiFormService` architecture is model-agnostic. To use an OpenAI token, you can simply swap out the `GoogleGenAI` library for the `openai` npm package in `src/app/core/services/ai-form.service.ts` and update the content generation calls to use the Chat Completions API.
-*   **Production Setup**: In a real production application, you should handle these tokens securely via **environment variables** or a **backend proxy service** to avoid exposing keys in client-side code.
+*   **Configuring Tokens (Securely)**:
+    1.  Create a `.env` file in the root directory (use `.env.example` as a template).
+    2.  Add your `GEMINI_API_KEY` or `OPEN_AI_KEY` and `OPEN_AI_MODEL`.
+    3.  Run `npm start` – the configuration is automatically synchronized into the Angular environment via a secure, git-ignored file.
+*   **Switching Models**: By default, the system favors OpenAI if a key is present. You can change the model by updating `OPEN_AI_MODEL` in your `.env` (e.g., `gpt-4o-mini-2024-07-18`).
+*   **MCP Integration**: The AI service uses the exact same tool definitions as the **Vant MCP Server**, ensuring consistent "Magic" form generation across both the MCP Inspector and the built-in UI.
 
 > [!IMPORTANT]
 > To use a live model, ensure your internet connection is active and your API key has sufficient quota.
+
+*   **Live MCP Mode**: For advanced development, you can connect the app to a running MCP server:
+    1.  Start the MCP server in SSE mode: `npm run mcp:sse`
+    2.  Start the app: `npm start`
+    3.  The app will connect to `http://localhost:3001/sse` and fetch dynamic tools and guidance!
 
 ---
 

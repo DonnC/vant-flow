@@ -23,7 +23,7 @@ import { FormsModule } from '@angular/forms';
         </div>
         <div class="flex-1"></div>
         
-        <!-- AI Toggle -->
+        <!-- AI Setup Toggle -->
         <div class="flex items-center gap-2 mr-4 border border-zinc-200 bg-zinc-50 rounded-xl p-1">
            <button (click)="toggleAi()" 
              class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all"
@@ -42,6 +42,10 @@ import { FormsModule } from '@angular/forms';
              [class.text-zinc-400]="ai.isAiEnabled()"
            >
              MOCK AI
+           </button>
+           <div class="h-4 w-px bg-zinc-200 mx-1"></div>
+           <button (click)="setupAi()" class="p-1.5 text-zinc-400 hover:text-violet-600 transition-colors" title="AI Setup">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
            </button>
         </div>
 
@@ -209,13 +213,6 @@ export class FormRunnerComponent implements OnInit {
     }, 800);
   }
 
-  toggleAi() {
-    const key = prompt('Enter your Google Gemini API Key:');
-    if (key) {
-      this.ai.setupRealModel(key);
-    }
-  }
-
   handleEnter(e: Event) {
     e.preventDefault();
     this.sendMessage();
@@ -277,6 +274,22 @@ export class FormRunnerComponent implements OnInit {
     } catch (err) {
       // No valid JSON was generated, likely a conversational response
       this.chatMessages.update(m => [...m, { role: 'model', content: rawResponse }]);
+    }
+    this.isAiTyping.set(false);
+  }
+
+  setupAi() {
+    const key = prompt('Enter your Google Gemini API Key:');
+    if (key) {
+      this.ai.setupRealModel(key);
+    }
+  }
+
+  toggleAi() {
+    if (this.ai.isAiEnabled()) {
+      this.ai.disableRealModel();
+    } else {
+      this.setupAi();
     }
   }
 }

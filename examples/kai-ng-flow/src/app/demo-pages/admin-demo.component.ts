@@ -42,7 +42,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
 
         <div class="flex-1"></div>
         
-        <!-- AI Toggle -->
+        <!-- AI Setup Toggle -->
         <div class="flex items-center gap-2 mr-4 border border-zinc-200 bg-zinc-50 rounded-xl p-1">
            <button (click)="toggleAi()" 
              class="px-3 py-1.5 text-[10px] font-bold rounded-lg transition-all"
@@ -61,6 +61,10 @@ import { EXAMPLE_DOCUMENT } from './example-data';
              [class.text-zinc-400]="ai.isAiEnabled()"
            >
              MOCK AI
+           </button>
+           <div class="h-4 w-px bg-zinc-200 mx-1"></div>
+           <button (click)="setupAi()" class="p-1.5 text-zinc-400 hover:text-indigo-600 transition-colors" title="AI Setup">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
            </button>
         </div>
         
@@ -173,18 +177,26 @@ export class AdminDemoComponent implements OnInit {
   }
 
   saveForm() {
-    const id = (this.storage as any).saveForm(this.schema(), this.formId === 'new' ? undefined : this.formId!);
+    this.storage.saveForm(this.schema(), this.formId === 'new' ? undefined : this.formId!);
     this.lastSaved.set(new Date());
 
     if (this.formId === 'new') {
-      this.router.navigate(['/admin/builder', id]);
+      this.router.navigate(['/admin/builder', this.formId]);
+    }
+  }
+
+  setupAi() {
+    const key = prompt('Enter your Google Gemini API Key:', this.ai.apiKey());
+    if (key) {
+      this.ai.setupRealModel(key);
     }
   }
 
   toggleAi() {
-    const key = prompt('Enter your Google Gemini API Key:');
-    if (key) {
-      this.ai.setupRealModel(key);
+    if (this.ai.isAiEnabled()) {
+      this.ai.disableRealModel();
+    } else {
+      this.setupAi();
     }
   }
 }
