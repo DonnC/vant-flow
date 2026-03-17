@@ -79,6 +79,17 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
                     required: ["schema"],
                 },
             },
+            {
+                name: "describe_schema",
+                description: "[REVERSE MAGIC] Generate a natural language explanation of a Vant schema's purpose and functionality.",
+                inputSchema: {
+                    type: "object",
+                    properties: {
+                        schema: { type: "object", description: "The DocumentDefinition to describe" }
+                    },
+                    required: ["schema"],
+                },
+            },
 
             // --- Structural Design (Granular) ---
             {
@@ -240,6 +251,17 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 - Depth: ${steps} Steps, ${sections} Sections
 - Logic: ${scriptLines} lines of client script
 - Key Fields: ${JSON.stringify(s.name)} ${s.module ? 'in module ' + s.module : ''}`
+                    }]
+                };
+            }
+
+            case "describe_schema": {
+                const s = (args as any).schema;
+                const description = builder.generateSummary(s);
+                return {
+                    content: [{
+                        type: "text",
+                        text: description
                     }]
                 };
             }

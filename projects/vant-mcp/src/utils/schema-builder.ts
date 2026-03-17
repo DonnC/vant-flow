@@ -360,6 +360,50 @@ export class VantSchemaBuilder {
         return "id_" + Math.random().toString(36).substring(2, 9);
     }
 
+    generateSummary(schema: DocumentDefinition): string {
+        const parts: string[] = [];
+        const title = this.capitalize(schema.name.replace(/_/g, ' '));
+        parts.push(`This is a ${schema.is_stepper ? 'multi-step' : 'single-page'} form titled "${title}"`);
+
+        if (schema.module !== "General") {
+            parts.push(`managed within the ${schema.module} module.`);
+        } else {
+            parts.push(`for general information collection.`);
+        }
+
+        const sections = this.getAllSections(schema);
+        const fields = sections.flatMap(s => s.columns.flatMap(c => c.fields));
+
+        if (schema.is_stepper && schema.steps) {
+            const stepTitles = schema.steps.map(s => s.title).join(", ");
+            parts.push(`It is organized into ${schema.steps.length} steps: ${stepTitles}.`);
+        } else {
+            parts.push(`It contains ${sections.length} logical sections.`);
+        }
+
+        const typeCounts = fields.reduce((acc, f) => {
+            acc[f.fieldtype] = (acc[f.fieldtype] || 0) + 1;
+            return acc;
+        }, {} as Record<string, number>);
+
+        const importantTypes = Object.entries(typeCounts)
+            .filter(([type]) => type !== 'Data')
+            .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`);
+
+        if (importantTypes.length > 0) {
+            parts.push(`The form collects specialized data including ${importantTypes.join(", ")}.`);
+        }
+
+        const topFields = fields.slice(0, 5).map(f => f.label).join(", ");
+        parts.push(`Primary fields include ${topFields}${fields.length > 5 ? ' among others' : ''}.`);
+
+        if (schema.client_script && schema.client_script.trim().length > 0) {
+            parts.push(`It includes custom client-side logic for dynamic behavior.`);
+        }
+
+        return parts.join(" ");
+    }
+
     private slugify(text: string): string {
         return text.toLowerCase()
             .replace(/[^\w\s-]/g, '')
