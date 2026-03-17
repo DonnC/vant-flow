@@ -105,83 +105,104 @@ export class VantSchemaBuilder {
 
     buildFromPrompt(prompt: string): DocumentDefinition {
         const p = prompt.toLowerCase();
-        let blueprint: FormBlueprint = {
-            title: "New Vant Form",
+        const blueprint: FormBlueprint = {
+            title: this.extractTitle(prompt),
             description: `Generated from: "${prompt}"`,
             is_stepper: p.includes("step") || p.includes("onboarding") || p.includes("stepper"),
             sections: []
         };
 
-        // Smart Template Logic
-        if (p.includes("employee") || p.includes("onboarding") || p.includes("hire")) {
-            blueprint.title = "Employee Onboarding";
-            blueprint.is_stepper = true;
-            blueprint.steps = [
-                {
-                    title: "Personal info",
-                    sections: [{
-                        label: "Basic Details",
-                        fields: [
-                            { label: "Full Name", fieldtype: "Data", mandatory: true },
-                            { label: "Date of Birth", fieldtype: "Date" },
-                            { label: "Personal Email", fieldtype: "Data" }
-                        ]
-                    }]
-                },
-                {
-                    title: "Bank details",
-                    sections: [{
-                        label: "Payment Info",
-                        fields: [
-                            { label: "Bank Name", fieldtype: "Select", options: "Standard Chartered\nFBC Bank\nCABS" },
-                            { label: "Account Number", fieldtype: "Data", regex: "^\\d{10}$" }
-                        ]
-                    }]
-                },
-                {
-                    title: "Documents",
-                    sections: [{
-                        label: "Uploads",
-                        fields: [
-                            { label: "ID Photo", fieldtype: "Attach" },
-                            { label: "Tax Clearance", fieldtype: "Attach" }
-                        ]
-                    }]
-                }
-            ];
-        } else if (p.includes("loan") || p.includes("finance") || p.includes("credit")) {
-            blueprint.title = "Loan Application";
-            blueprint.sections = [
-                {
-                    label: "Applicant Info",
-                    fields: [
-                        { label: "Primary Income", fieldtype: "Float", mandatory: true },
-                        { label: "Employment Status", fieldtype: "Select", options: "Employed\nSelf-Employed\nContractor" }
-                    ]
-                },
-                {
-                    label: "Current Assets",
-                    fields: [
-                        {
-                            label: "Assets Table",
-                            fieldtype: "Table",
-                            table_fields: [
-                                { label: "Asset Name", fieldtype: "Data" },
-                                { label: "Est. Value", fieldtype: "Float" }
-                            ]
-                        }
-                    ]
-                }
-            ];
+        const parts = prompt.split(/step \d+|section|then/i).filter(s => s.trim().length > 0);
+
+        if (blueprint.is_stepper && parts.length > 1) {
+            blueprint.steps = parts.map((part, i) => ({
+                title: part.split(/with|:|for/i)[0].trim() || `Step ${i + 1}`,
+                sections: [this.parseSection(part)]
+            }));
         } else {
-            // Generic fallback
-            blueprint.sections = [{
-                label: "General Information",
-                fields: [{ label: "Description", fieldtype: "Text Editor" }]
-            }];
+            blueprint.sections = parts.map(part => this.parseSection(part));
         }
 
         return this.buildFromBlueprint(blueprint);
+    }
+
+    private extractTitle(prompt: string): string {
+        const match = prompt.match(/^(?:a|an)?\s*(.*?)\s+(?:form|request|application|with|for)/i);
+        if (match) return this.capitalize(match[1]);
+        return "New Vant Form";
+    }
+
+    private parseSection(text: string): SectionBlueprint {
+        const parts = text.split(/with|:|contains/i);
+        const label = parts[0].trim() || "Information";
+        const fieldsContent = parts[1] || parts[0];
+        const labels = fieldsContent.split(/,|and/).map(s => s.trim().replace(/^a\s+|^an\s+/i, '')).filter(s => s.length > 1);
+
+        return {
+            label: this.capitalize(label),
+            fields: labels.map(l => {
+                // Check for explicit Vant-native type hinting like "Amount:Float" or "Choice:Select"
+                // Support both full names and common shorthand
+                const typeHintPattern = /(Data|Select|Link|Check|Int|Text|Date|Float|Password|Button|Text Editor|Table|Datetime|Time|Signature|Attach)/i;
+                const hintMatch = l.match(new RegExp(`^(.*?)\\s?[:\\[\\(]?(${typeHintPattern.source})[\\)\\]]?$`, 'i'));
+
+                if (hintMatch) {
+                    return {
+                        label: this.capitalize(hintMatch[1].trim()),
+                        fieldtype: this.normalizeFieldType(hintMatch[2].trim())
+                    };
+                }
+
+                return {
+                    label: this.capitalize(l),
+                    fieldtype: this.inferFieldType(l)
+                };
+            })
+        };
+    }
+
+    private normalizeFieldType(type: string): FieldType {
+        const t = type.toLowerCase();
+        if (t === 'text editor') return 'Text Editor';
+        if (t === 'datetime') return 'Datetime';
+        // Capitalize first letter for standard types
+        const normalized = t.charAt(0).toUpperCase() + t.slice(1);
+        // Valid Vant Types as of projects/vant-flow/src/lib/models/document.model.ts
+        const validTypes: FieldType[] = [
+            'Data', 'Select', 'Link', 'Check', 'Int', 'Text', 'Date', 'Float',
+            'Password', 'Button', 'Text Editor', 'Table', 'Datetime', 'Time',
+            'Signature', 'Attach'
+        ];
+        return validTypes.find(vt => vt.toLowerCase() === t) || 'Data';
+    }
+
+    private inferFieldType(label: string): FieldType {
+        const l = label.toLowerCase();
+
+        // Structural & Semantic Vant-native Inference
+        // We look for nouns that ARE Vant types or their direct synonyms
+        if (l.includes("date") && l.includes("time")) return "Datetime";
+        if (l.includes("date") || l.includes("calendar")) return "Date";
+        if (l.includes("time") || l.includes("clock")) return "Time";
+        if (l.includes("select") || l.includes("dropdown") || l.includes("choice") || l.includes("selector")) return "Select";
+        if (l.includes("check") || l.includes("toggle") || l.includes("switch")) return "Check";
+        if (l.includes("float") || l.includes("decimal") || l.includes("amount")) return "Float";
+        if (l.includes("int") || l.includes("integer") || l.includes("count") || l.includes("number")) return "Int";
+        if (l.includes("editor") || l.includes("rich text") || l.includes("html")) return "Text Editor";
+        if (l.includes("attach") || l.includes("upload") || l.includes("file")) return "Attach";
+        if (l.includes("password") || l.includes("secret")) return "Password";
+        if (l.includes("table") || l.includes("grid") || l.includes("list")) return "Table";
+        if (l.includes("sign")) return "Signature";
+        if (l.includes("link") || l.includes("ref")) return "Link";
+        if (l.includes("button") || l.includes("trigger")) return "Button";
+        if (l.includes("text") || l.includes("memo") || l.includes("long")) return "Text";
+
+        return "Data";
+    }
+
+    private capitalize(text: string): string {
+        if (!text) return "";
+        return text.charAt(0).toUpperCase() + text.slice(1);
     }
 
     // --- Granular Operations ---
