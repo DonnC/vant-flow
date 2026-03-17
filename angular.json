@@ -6,23 +6,23 @@
     "kai-ng-flow": {
       "projectType": "application",
       "schematics": {},
-      "root": "",
-      "sourceRoot": "src",
+      "root": "examples/kai-ng-flow",
+      "sourceRoot": "examples/kai-ng-flow/src",
       "prefix": "app",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
             "outputPath": "dist/kai-ng-flow",
-            "index": "src/index.html",
-            "browser": "src/main.ts",
+            "index": "examples/kai-ng-flow/src/index.html",
+            "browser": "examples/kai-ng-flow/src/main.ts",
             "polyfills": [
               "zone.js"
             ],
-            "tsConfig": "tsconfig.app.json",
+            "tsConfig": "examples/kai-ng-flow/tsconfig.app.json",
             "assets": [
-              "src/favicon.ico",
-              "src/assets",
+              "examples/kai-ng-flow/src/favicon.ico",
+              "examples/kai-ng-flow/src/assets",
               {
                 "glob": "**/*",
                 "input": "node_modules/monaco-editor/min",
@@ -30,7 +30,7 @@
               }
             ],
             "styles": [
-              "src/styles.css",
+              "examples/kai-ng-flow/src/styles.css",
               "node_modules/quill/dist/quill.snow.css"
             ],
             "scripts": []
@@ -84,10 +84,10 @@
               "zone.js",
               "zone.js/testing"
             ],
-            "tsConfig": "tsconfig.spec.json",
+            "tsConfig": "examples/kai-ng-flow/tsconfig.spec.json",
             "assets": [
-              "src/favicon.ico",
-              "src/assets",
+              "examples/kai-ng-flow/src/favicon.ico",
+              "examples/kai-ng-flow/src/assets",
               {
                 "glob": "**/*",
                 "input": "node_modules/monaco-editor",
@@ -95,7 +95,7 @@
               }
             ],
             "styles": [
-              "src/styles.css"
+              "examples/kai-ng-flow/src/styles.css"
             ],
             "scripts": []
           }
