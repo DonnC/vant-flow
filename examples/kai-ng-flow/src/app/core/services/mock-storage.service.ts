@@ -1,5 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-import { DocumentDefinition } from '../../../../projects/vant-flow/src/lib/models/document.model';
+import { DocumentDefinition } from 'vant-flow';
 
 export interface FormSubmission {
     id: string;

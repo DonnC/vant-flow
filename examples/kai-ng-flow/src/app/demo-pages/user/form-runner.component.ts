@@ -2,13 +2,13 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MockStorageService, FormDesign } from '../../core/services/mock-storage.service';
-import { VfRenderer, VfToastOutlet } from '../../../../projects/vant-flow/src/public-api';
+import { VfRenderer, VfToastOutlet } from 'vant-flow';
 
 @Component({
-    selector: 'app-form-runner',
-    standalone: true,
-    imports: [CommonModule, RouterLink, VfRenderer, VfToastOutlet],
-    template: `
+  selector: 'app-form-runner',
+  standalone: true,
+  imports: [CommonModule, RouterLink, VfRenderer, VfToastOutlet],
+  template: `
     <div class="min-h-screen bg-zinc-50 flex flex-col">
       <header class="h-14 bg-white border-b border-zinc-200 flex items-center px-6 gap-4 shrink-0 shadow-sm z-50">
         <a routerLink="/user" class="p-2 hover:bg-zinc-100 rounded-lg transition-colors">
@@ -53,32 +53,32 @@ import { VfRenderer, VfToastOutlet } from '../../../../projects/vant-flow/src/pu
   `
 })
 export class FormRunnerComponent implements OnInit {
-    private route = inject(ActivatedRoute);
-    private router = inject(Router);
-    private storage = inject(MockStorageService);
+  private route = inject(ActivatedRoute);
+  private router = inject(Router);
+  private storage = inject(MockStorageService);
 
-    form: FormDesign | null = null;
-    loading = signal(true);
+  form: FormDesign | null = null;
+  loading = signal(true);
 
-    ngOnInit() {
-        this.route.params.subscribe(params => {
-            const id = params['id'];
-            if (id) {
-                this.form = this.storage.getFormById(id) || null;
-                this.loading.set(false);
-            }
-        });
-    }
+  ngOnInit() {
+    this.route.params.subscribe(params => {
+      const id = params['id'];
+      if (id) {
+        this.form = this.storage.getFormById(id) || null;
+        this.loading.set(false);
+      }
+    });
+  }
 
-    onFormSubmit(data: any) {
-        if (!this.form) return;
+  onFormSubmit(data: any) {
+    if (!this.form) return;
 
-        // In a real app, this would be an API call
-        this.storage.saveSubmission(this.form.id, this.form.schema.name, data);
+    // In a real app, this would be an API call
+    this.storage.saveSubmission(this.form.id, this.form.schema.name, data);
 
-        // Simulate some delay for realism
-        setTimeout(() => {
-            this.router.navigate(['/user'], { queryParams: { submitted: '1' } });
-        }, 800);
-    }
+    // Simulate some delay for realism
+    setTimeout(() => {
+      this.router.navigate(['/user'], { queryParams: { submitted: '1' } });
+    }, 800);
+  }
 }

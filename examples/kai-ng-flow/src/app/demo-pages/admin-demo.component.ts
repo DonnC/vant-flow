@@ -1,7 +1,7 @@
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
-import { VfBuilder, VfRenderer, VfToastOutlet, DocumentDefinition } from '../../../projects/vant-flow/src/public-api';
+import { VfBuilder, VfRenderer, VfToastOutlet, DocumentDefinition } from 'vant-flow';
 import { MockStorageService } from '../core/services/mock-storage.service';
 import { EXAMPLE_DOCUMENT } from './example-data';
 
@@ -98,7 +98,7 @@ export class AdminDemoComponent implements OnInit {
     this.route.params.subscribe(params => {
       this.formId = params['id'];
       if (this.formId && this.formId !== 'new') {
-        const existing = this.storage.getFormById(this.formId);
+        const existing = this.storage.getFormById(this.formId) as any;
         if (existing) {
           this.schema.set({ ...existing.schema });
           this.lastSaved.set(new Date(existing.lastModified));
@@ -125,7 +125,7 @@ export class AdminDemoComponent implements OnInit {
   }
 
   saveForm() {
-    const id = this.storage.saveForm(this.schema(), this.formId === 'new' ? undefined : this.formId!);
+    const id = (this.storage as any).saveForm(this.schema(), this.formId === 'new' ? undefined : this.formId!);
     this.lastSaved.set(new Date());
 
     if (this.formId === 'new') {

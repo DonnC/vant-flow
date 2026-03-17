@@ -2,7 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { MockStorageService, FormSubmission, FormDesign } from '../../core/services/mock-storage.service';
-import { VfRenderer } from '../../../../projects/vant-flow/src/public-api';
+import { VfRenderer } from 'vant-flow';
 
 @Component({
    selector: 'app-submission-detail',

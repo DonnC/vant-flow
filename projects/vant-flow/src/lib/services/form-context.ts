@@ -9,6 +9,7 @@ export class VfFormContext {
     public fieldSignals = new Map<string, WritableSignal<DocumentField>>();
     public sectionSignals = new Map<string, WritableSignal<DocumentSection>>();
     public dynamicIntro = signal<{ message: string; color: string } | null>(null);
+    public valueUpdateSignal = signal(0);
 
     private eventListeners = new Map<string, Function[]>();
     private queries = new Map<string, Function>();
@@ -270,6 +271,7 @@ export class VfFormContext {
         this.dynamicIntro.set(null);
         this.customButtons.set([]);
         this.isReadOnly.set(false);
+        this.valueUpdateSignal.update(n => n + 1);
         this.trigger('refresh');
     }
 
@@ -281,6 +283,7 @@ export class VfFormContext {
         const index = table.length - 1;
         this.trigger(`${fieldname}_add`, { row, index });
         this.trigger(fieldname, this.formData[fieldname]);
+        this.valueUpdateSignal.update(n => n + 1);
     }
 
     remove_row(fieldname: string, index: number) {
@@ -289,6 +292,7 @@ export class VfFormContext {
         this.formData[fieldname].splice(index, 1);
         this.trigger(`${fieldname}_remove`, { row, index });
         this.trigger(fieldname, this.formData[fieldname]);
+        this.valueUpdateSignal.update(n => n + 1);
     }
 
     call(opts: { method: string; args?: any; callback?: (r: any) => void; freeze?: boolean; freeze_message?: string }) {
@@ -340,6 +344,7 @@ export class VfFormContext {
             this.formData[fieldnameOrObj] = value;
             this.triggerChange(fieldnameOrObj, value);
         }
+        this.valueUpdateSignal.update(n => n + 1);
     }
 
     // ── Internal Helpers for Renderer ──────────────────────────
@@ -361,6 +366,7 @@ export class VfFormContext {
 
     triggerChange(fieldname: string, value: any) {
         this.trigger(fieldname, value);
+        this.valueUpdateSignal.update(n => n + 1);
     }
 
     public trigger(event: string, data?: any): boolean {

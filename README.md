@@ -160,17 +160,36 @@ Vant Flow shadows dangerous globals to prevent data exfiltration. Inside a clien
 
 ---
 
-## 💻 Local Development & Showcase
+## 💻 Local Development & Workspace
+
+This project is structured as an **Angular Workspace**. The root directory manages shared dependencies and configuration.
 
 1.  **Clone & Install**:
     ```bash
     git clone https://github.com/DonnC/vant-flow.git
     npm install
     ```
-2.  **Build Library**: `ng build vant-flow`
-3.  **Run Showcase**: `npm start`
 
-The showcase application demonstrates:
-- **Landing Page**: Feature overview and navigation.
-- **Admin Side**: Integrated Builder + Renderer side-by-side.
-- **Standalone Demos**: Isolated components for debugging.
+2.  **Build Primary Library**: 
+    ```bash
+    npm run build # ng build vant-flow
+    ```
+
+3.  **Run Example Application**:
+    ```bash
+    npm start # ng serve kai-ng-flow
+    ```
+
+4.  **Run Vant MCP Server**:
+    ```bash
+    npm run build:mcp # Build the server
+    npm run mcp       # Run Inspector for projects/vant-mcp
+    ```
+
+---
+
+## 📂 Repository Structure
+
+- `projects/vant-flow`: Core library source.
+- `projects/vant-mcp`: Model Context Protocol server for AI integration.
+- `examples/kai-ng-flow`: Reference Angular application using the library.

@@ -585,13 +585,13 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
         });
       });
     });
+    this.ctx.valueUpdateSignal.update(n => n + 1);
   }
 
   onFieldChange(fieldname: string, val?: any) {
     if (val !== undefined) {
       this.formData[fieldname] = val;
     }
-    this.evaluateDependsOn();
     this.ctx.triggerChange(fieldname, this.formData[fieldname]);
     this.formChange.emit({
       fieldname,
@@ -749,6 +749,9 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   }
 
   private evaluateDependsOn() {
+    // Read the signal to make this effect reactive to ANY data change
+    this.ctx.valueUpdateSignal();
+
     const allSections: DocumentSection[] = [];
     if (this.document.is_stepper && this.document.steps) {
       this.document.steps.forEach(s => allSections.push(...s.sections));

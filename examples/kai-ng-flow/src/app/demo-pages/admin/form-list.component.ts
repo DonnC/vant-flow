@@ -96,8 +96,8 @@ export class AdminFormListComponent {
   forms = this.storage.forms;
 
   getFieldCount(form: FormDesign): number {
-    return form.schema.sections.reduce((acc, s) =>
-      acc + s.columns.reduce((cc, c) => cc + c.fields.length, 0), 0);
+    return form.schema.sections.reduce((acc: number, s: any) =>
+      acc + s.columns.reduce((cc: number, c: any) => cc + c.fields.length, 0), 0);
   }
 
   createNewForm() {

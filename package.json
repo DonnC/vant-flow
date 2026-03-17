@@ -1,11 +1,12 @@
 {
-  "name": "kai-ng-flow",
+  "name": "vant-flow-workspace",
   "version": "1.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
+    "start": "ng serve kai-ng-flow",
+    "build": "ng build vant-flow",
+    "build:mcp": "cd projects/vant-mcp && npm run build",
+    "mcp": "cd projects/vant-mcp && npx @modelcontextprotocol/inspector node dist/index.js",
     "test": "ng test"
   },
   "private": true,
