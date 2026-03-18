@@ -1,0 +1,227 @@
+{
+    "name": "Vant Employee Onboarding",
+    "is_stepper": true,
+    "intro_text": "Welcome to Vant Flow! Please complete your onboarding details below.",
+    "intro_color": "blue",
+    "client_script": "frm.on('refresh', (val, frm) => {\n  frm.msgprint('Welcome to the Employee Onboarding flow!');\n});\n\nfrm.on('before_step_change', (val, frm) => {\n  if (val.from === 0 && !frm.get_value('email')) {\n    frm.msgprint('Please enter your email before proceeding.', 'error');\n    return false;\n  }\n});\n\nfrm.on('after_step_change', (val, frm) => {\n  console.log('Moved from step ' + val.from + ' to ' + val.to);\n  if (val.to === 2) {\n    frm.set_intro('Almost done! Just a few preferences left.', 'green');\n  }\n});",
+    "steps": [
+      {
+        "id": "personal",
+        "title": "Personal Info",
+        "description": "Basic identity details",
+        "sections": [
+          {
+            "id": "sec_identity",
+            "label": "Identity",
+            "columns": [
+              {
+                "id": "col_1",
+                "fields": [
+                  {
+                    "id": "f1",
+                    "fieldname": "full_name",
+                    "label": "Full Name",
+                    "fieldtype": "Data",
+                    "mandatory": true
+                  },
+                  {
+                    "id": "f2",
+                    "fieldname": "email",
+                    "label": "Email Address",
+                    "fieldtype": "Data",
+                    "mandatory": true,
+                    "regex": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "professional",
+        "title": "Professional",
+        "description": "Work history and skills",
+        "sections": [
+          {
+            "id": "sec_work",
+            "label": "Current Role",
+            "columns": [
+              {
+                "id": "col_2",
+                "fields": [
+                  {
+                    "id": "f3",
+                    "fieldname": "job_title",
+                    "label": "Job Title",
+                    "fieldtype": "Data",
+                    "mandatory": true
+                  },
+                  {
+                    "id": "f4",
+                    "fieldname": "department",
+                    "label": "Department",
+                    "fieldtype": "Select",
+                    "options": "Engineering\nProduct\nDesign\nMarketing",
+                    "mandatory": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "id": "sec_skills",
+            "label": "Expertise",
+            "columns": [
+              {
+                "id": "col_3",
+                "fields": [
+                  {
+                    "id": "f5",
+                    "fieldname": "skills",
+                    "label": "Primary Skills",
+                    "fieldtype": "Table",
+                    "table_fields": [
+                      {
+                        "id": "tf1",
+                        "fieldname": "skill_name",
+                        "label": "Skill",
+                        "fieldtype": "Data",
+                        "mandatory": true
+                      },
+                      {
+                        "id": "tf2",
+                        "fieldname": "level",
+                        "label": "Proficiency",
+                        "fieldtype": "Select",
+                        "options": "Beginner\nIntermediate\nExpert"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "finish",
+        "title": "Preferences",
+        "description": "Workspace settings",
+        "sections": [
+          {
+            "id": "sec_prefs",
+            "label": "Workspace",
+            "columns": [
+              {
+                "id": "col_4",
+                "fields": [
+                  {
+                    "id": "f6",
+                    "fieldname": "prefers_remote",
+                    "label": "Remote Preferred",
+                    "fieldtype": "Check",
+                    "default": 1
+                  },
+                  {
+                    "id": "f7",
+                    "fieldname": "start_date",
+                    "label": "Start Date",
+                    "fieldtype": "Date",
+                    "mandatory": true
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "id": "id_6_7lj02",
+        "title": "Final",
+        "sections": [
+          {
+            "id": "id_7_fd6jt",
+            "label": "Media",
+            "columns": [
+              {
+                "id": "id_8_a44ua",
+                "fields": [
+                  {
+                    "id": "id_12_6furr",
+                    "fieldname": "resume",
+                    "fieldtype": "Attach",
+                    "label": "Resume",
+                    "hidden": false,
+                    "read_only": false,
+                    "mandatory": true,
+                    "data_group": "media"
+                  }
+                ]
+              },
+              {
+                "id": "id_9_76dfw",
+                "fields": [
+                  {
+                    "id": "id_13_cwuof",
+                    "fieldname": "letter",
+                    "fieldtype": "Attach",
+                    "label": "Motivational Letter",
+                    "hidden": false,
+                    "read_only": false,
+                    "mandatory": true,
+                    "data_group": "media"
+                  }
+                ]
+              }
+            ],
+            "columns_count": 2,
+            "collapsible": true,
+            "collapsed": true
+          },
+          {
+            "id": "id_14_mp0n1",
+            "label": "Sign Off",
+            "columns": [
+              {
+                "id": "id_15_gxclr",
+                "fields": [
+                  {
+                    "id": "id_17_w22is",
+                    "fieldname": "signature",
+                    "fieldtype": "Signature",
+                    "label": "Signature",
+                    "hidden": false,
+                    "read_only": false,
+                    "mandatory": false,
+                    "data_group": "kyc"
+                  }
+                ]
+              },
+              {
+                "id": "id_16_s7nln",
+                "fields": []
+              }
+            ],
+            "columns_count": 1
+          }
+        ],
+        "description": "Upload your certificates"
+      }
+    ],
+    "sections": [],
+    "actions": {
+      "save": {
+        "label": "Save Draft",
+        "visible": true,
+        "type": "secondary"
+      },
+      "submit": {
+        "label": "Submit",
+        "visible": true,
+        "type": "primary"
+      }
+    },
+    "description": "Apply with your resume",
+    "version": "1.0.1"
+  }

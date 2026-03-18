@@ -41,7 +41,13 @@ export class VantMockGenerator {
             case 'Text Editor':
                 return field.options || '<p>Default AI-generated content for ' + field.label + '</p>';
             case 'Link':
-                return "LINK-REC-001";
+                return {
+                    [field.link_config?.mapping?.id || 'id']: 'LINK-REC-001',
+                    [field.link_config?.mapping?.title || 'title']: `Sample ${field.label}`,
+                    ...(field.link_config?.mapping?.description
+                        ? { [field.link_config.mapping.description]: `Description for ${field.label}` }
+                        : {})
+                };
             case 'Button':
                 return null;
             default:

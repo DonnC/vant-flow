@@ -1,4 +1,4 @@
-import { Component, computed, inject, HostListener, OnInit, signal, effect, Input, Output, EventEmitter } from '@angular/core';
+import { Component, computed, inject, HostListener, OnInit, OnChanges, SimpleChanges, signal, effect, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CdkDrag, CdkDropList, DragDropModule } from '@angular/cdk/drag-drop';
@@ -348,7 +348,41 @@ type RightTab = 'properties' | 'script';
           <span class="text-xs font-medium text-amber-700">Preview Mode — Client scripts are active. Changes made here won't affect the builder.</span>
         </div>
         
-        <vf-renderer class="w-full" [document]="state.document()" (formSubmit)="onFormSubmit($event)"></vf-renderer>
+        <div class="w-full max-w-6xl px-4 pt-6">
+          <div class="rounded-2xl border border-sky-200 bg-white shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-sky-100 bg-sky-50/80 flex items-start justify-between gap-4">
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700">Test frm.metadata</p>
+                <p class="text-xs text-sky-900/80 mt-1">This JSON feeds <code>frm.metadata</code> in preview so scripts that depend on host metadata can run correctly. It is not saved to the schema or included in export.</p>
+              </div>
+              <span class="px-2 py-1 rounded-full border border-sky-200 bg-white text-[10px] font-bold uppercase tracking-widest text-sky-700">Preview Only</span>
+            </div>
+            <div class="p-5 space-y-3">
+              <textarea
+                class="w-full min-h-44 rounded-xl border bg-zinc-950 text-emerald-300 font-mono text-[11px] leading-relaxed p-4 outline-none transition-all"
+                [class.border-red-300]="previewMetadataError"
+                [class.focus:border-red-400]="previewMetadataError"
+                [class.border-zinc-800]="!previewMetadataError"
+                [class.focus:border-sky-400]="!previewMetadataError"
+                [ngModel]="previewMetadataInput"
+                (ngModelChange)="onPreviewMetadataInput($event)"
+                placeholder="{&#10;  &quot;currentUser&quot;: { &quot;role&quot;: &quot;Manager&quot; }&#10;}">
+              </textarea>
+
+              @if (previewMetadataError) {
+                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                  {{ previewMetadataError }}
+                </div>
+              } @else {
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-700">
+                  Preview is using the JSON above as the current runtime metadata object.
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+
+        <vf-renderer class="w-full" [document]="state.document()" [metadata]="previewMetadataValue" (formSubmit)="onFormSubmit($event)"></vf-renderer>
 
         @if (lastSubmittedData) {
           <div class="w-full max-w-3xl px-4 py-8 border-t border-zinc-200 mt-auto bg-white shadow-inner animate-in slide-in-from-bottom-4 duration-300">
@@ -367,9 +401,11 @@ type RightTab = 'properties' | 'script';
   </div>
   `
 })
-export class VfBuilder implements OnInit {
+export class VfBuilder implements OnInit, OnChanges {
   /** Initial form schema to load into the builder. */
   @Input() initialSchema?: DocumentDefinition;
+  /** Optional runtime-only metadata used while testing scripts in preview mode. */
+  @Input() previewMetadata?: Record<string, any>;
 
   /** Emitted whenever the form schema is modified in the builder. */
   @Output() schemaChange = new EventEmitter<DocumentDefinition>();
@@ -380,6 +416,9 @@ export class VfBuilder implements OnInit {
   showImport = false;
   showExport = false;
   lastSubmittedData: any = null;
+  previewMetadataValue: Record<string, any> = {};
+  previewMetadataInput = this.stringifyPreviewMetadata(this.getDefaultPreviewMetadata());
+  previewMetadataError: string | null = null;
 
   // Sidebar controls
   leftSidebarVisible = signal(true);
@@ -432,13 +471,25 @@ export class VfBuilder implements OnInit {
     if (this.initialSchema) {
       this.state.document.set({ ...this.initialSchema });
     }
+    this.applyPreviewMetadataInput(this.previewMetadata ?? this.getDefaultPreviewMetadata());
     // listen for palette's section add shortcut
     document.addEventListener('add-section', () => this.addSection());
+  }
+
+  ngOnChanges(changes: SimpleChanges) {
+    if (changes['previewMetadata'] && !changes['previewMetadata'].firstChange) {
+      this.applyPreviewMetadataInput(changes['previewMetadata'].currentValue ?? this.getDefaultPreviewMetadata());
+    }
   }
 
   setMode(mode: 'builder' | 'preview') {
     this.state.mode.set(mode);
     if (mode === 'builder') this.lastSubmittedData = null;
+  }
+
+  onPreviewMetadataInput(value: string) {
+    this.previewMetadataInput = value;
+    this.parsePreviewMetadata(value);
   }
 
   addSection() { this.state.addSection(); }
@@ -454,6 +505,45 @@ export class VfBuilder implements OnInit {
   onFormSubmit(data: any) {
     this.lastSubmittedData = data;
     console.log('[Preview Mode] Form Submitted:', data);
+  }
+
+  private applyPreviewMetadataInput(metadata: Record<string, any>) {
+    const value = this.stringifyPreviewMetadata(metadata);
+    this.previewMetadataInput = value;
+    this.parsePreviewMetadata(value);
+  }
+
+  private parsePreviewMetadata(raw: string) {
+    try {
+      const parsed = raw.trim() ? JSON.parse(raw) : {};
+      if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
+        this.previewMetadataError = 'Runtime metadata must be a JSON object.';
+        return;
+      }
+
+      this.previewMetadataValue = parsed;
+      this.previewMetadataError = null;
+    } catch {
+      this.previewMetadataError = 'Invalid JSON. Preview keeps using the last valid metadata object.';
+    }
+  }
+
+  private stringifyPreviewMetadata(metadata: Record<string, any>) {
+    return JSON.stringify(metadata, null, 2);
+  }
+
+  private getDefaultPreviewMetadata(): Record<string, any> {
+    return {
+      currentUser: {
+        name: 'Alice Manager',
+        role: 'Manager'
+      },
+      inspectionMode: 'strict',
+      maxTransactionLimit: 5000,
+      featureFlags: {
+        clearanceOverride: true
+      }
+    };
   }
 
   // Sidebar resizing

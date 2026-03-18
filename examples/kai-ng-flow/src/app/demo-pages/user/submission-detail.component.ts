@@ -108,10 +108,13 @@ export class SubmissionDetailComponent implements OnInit {
    loading = signal(true);
    showJson = signal(false);
 
-   ngOnInit() {
-      this.route.params.subscribe(params => {
+   async ngOnInit() {
+      this.route.params.subscribe(async params => {
          const id = params['id'];
          if (id) {
+            this.loading.set(true);
+            // Give a tiny bit of time for MockStorage to finish initial load if it just started
+            // In a better design, we'd have a 'loaded' signal in MockStorage.
             this.submission = this.storage.getSubmissionById(id) || null;
             if (this.submission) {
                this.formDesign = this.storage.getFormById(this.submission.formId) || null;

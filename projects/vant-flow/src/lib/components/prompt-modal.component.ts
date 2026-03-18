@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, ViewChildren, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DocumentField } from '../models/document.model';
+import { DocumentField, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler } from '../models/document.model';
 import { VfField } from './form-field.component';
 
 @Component({
@@ -21,6 +21,10 @@ import { VfField } from './form-field.component';
               [field]="field" 
               [value]="values[field.fieldname]" 
               [readOnly]="field.read_only || readOnly"
+              [mediaHandler]="mediaHandler"
+              [linkDataSource]="linkDataSource"
+              [linkRequestObserver]="linkRequestObserver"
+              [formMetadata]="formMetadata"
               (valueChange)="updateValue(field.fieldname, $event)">
             </vf-field>
           }
@@ -52,6 +56,10 @@ export class VfPromptModal {
   @Input() title: string = 'Enter Data';
   @Input() values: Record<string, any> = {};
   @Input() readOnly: boolean = false;
+  @Input() mediaHandler?: VfMediaHandler;
+  @Input() linkDataSource?: VfLinkDataSource;
+  @Input() linkRequestObserver?: VfLinkRequestObserver;
+  @Input() formMetadata?: any;
   @Output() result = new EventEmitter<Record<string, any> | null>();
 
   @ViewChildren(VfField) fieldComponents!: QueryList<VfField>;

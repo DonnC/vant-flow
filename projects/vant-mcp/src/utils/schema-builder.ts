@@ -48,6 +48,7 @@ export interface FieldBlueprint {
     placeholder?: string;
     description?: string;
     options?: string;
+    link_config?: DocumentField["link_config"];
     regex?: string;
     default?: any;
     data_group?: string;
@@ -296,6 +297,7 @@ export class VantSchemaBuilder {
             placeholder: blueprint.placeholder,
             description: blueprint.description,
             options: blueprint.options,
+            link_config: blueprint.link_config,
             regex: blueprint.regex,
             default: blueprint.default,
             data_group: blueprint.data_group,
