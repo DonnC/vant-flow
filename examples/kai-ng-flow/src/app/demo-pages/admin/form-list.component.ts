@@ -173,9 +173,13 @@ export class AdminFormListComponent {
     this.router.navigate(['/admin/builder', id]);
   }
 
-  deleteForm(id: string) {
+  async deleteForm(id: string) {
     if (confirm('Are you sure you want to delete this form design? All associated user submissions will also be deleted.')) {
-      this.storage.deleteForm(id);
+      try {
+        await this.storage.deleteForm(id);
+      } catch (err) {
+        console.error('Failed to delete form:', err);
+      }
     }
   }
 }

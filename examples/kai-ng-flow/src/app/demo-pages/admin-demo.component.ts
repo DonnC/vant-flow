@@ -1,15 +1,17 @@
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { VfBuilder, VfRenderer, VfToastOutlet, DocumentDefinition } from 'vant-flow';
 import { MockStorageService } from '../core/services/mock-storage.service';
 import { AiFormService } from '../core/services/ai-form.service';
+import { DemoMediaService } from '../core/services/demo-media.service';
 import { EXAMPLE_DOCUMENT } from './example-data';
 
 @Component({
   selector: 'app-admin-demo',
   standalone: true,
-  imports: [CommonModule, RouterLink, VfBuilder, VfRenderer, VfToastOutlet],
+  imports: [CommonModule, FormsModule, RouterLink, VfBuilder, VfRenderer, VfToastOutlet],
   template: `
     <div class="h-screen flex flex-col bg-zinc-100 overflow-hidden">
       <!-- High-End Header -->
@@ -68,12 +70,43 @@ import { EXAMPLE_DOCUMENT } from './example-data';
         } @else {
           @if (activeTab === 'builder') {
             <div class="h-full animate-in fade-in duration-500">
-              <vf-builder [initialSchema]="schema()" (schemaChange)="onSchemaChange($event)"></vf-builder>
+              <vf-builder [initialSchema]="schema()" [previewMetadata]="runtimeMetadata" (schemaChange)="onSchemaChange($event)"></vf-builder>
             </div>
           } @else {
             <div class="h-full overflow-y-auto bg-zinc-50 p-10 animate-in fade-in duration-500">
                <div class="max-w-4xl mx-auto py-10">
-                  <vf-renderer [document]="schema()"></vf-renderer>
+                  <div class="mb-8 rounded-2xl border border-sky-200 bg-white shadow-sm overflow-hidden">
+                    <div class="px-5 py-4 border-b border-sky-100 bg-sky-50/80 flex items-start justify-between gap-4">
+                      <div>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700">Test frm.metadata</p>
+                        <p class="text-xs text-sky-900/80 mt-1">Use this JSON to feed <code>frm.metadata</code> in preview so client scripts that depend on metadata can run properly. It stays client-side and is never saved with the builder schema.</p>
+                      </div>
+                      <span class="px-2 py-1 rounded-full border border-sky-200 bg-white text-[10px] font-bold uppercase tracking-widest text-sky-700">Not Saved</span>
+                    </div>
+                    <div class="p-5 space-y-3">
+                      <textarea
+                        class="w-full min-h-44 rounded-xl border bg-zinc-950 text-emerald-300 font-mono text-[11px] leading-relaxed p-4 outline-none transition-all"
+                        [class.border-red-300]="metadataError"
+                        [class.focus:border-red-400]="metadataError"
+                        [class.border-zinc-800]="!metadataError"
+                        [class.focus:border-sky-400]="!metadataError"
+                        [ngModel]="metadataInput"
+                        (ngModelChange)="onMetadataInput($event)">
+                      </textarea>
+
+                      @if (metadataError) {
+                        <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                          {{ metadataError }}
+                        </div>
+                      } @else {
+                        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-700">
+                          Preview is currently using the JSON above as runtime metadata.
+                        </div>
+                      }
+                    </div>
+                  </div>
+
+                  <vf-renderer [document]="schema()" [metadata]="runtimeMetadata" [mediaHandler]="demoMedia.mediaHandler"></vf-renderer>
                </div>
             </div>
           }
@@ -88,6 +121,7 @@ export class AdminDemoComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private storage = inject(MockStorageService);
+  demoMedia = inject(DemoMediaService);
   ai = inject(AiFormService);
 
   formId: string | null = null;
@@ -105,6 +139,9 @@ export class AdminDemoComponent implements OnInit {
   lastSaved = signal<Date | null>(null);
   loading = signal(true);
   loadingMessage = signal('Warming Up Designer...');
+  runtimeMetadata = this.getDefaultMetadata();
+  metadataInput = JSON.stringify(this.runtimeMetadata, null, 2);
+  metadataError: string | null = null;
 
   ngOnInit() {
     this.route.params.subscribe(async params => {
@@ -135,7 +172,7 @@ export class AdminDemoComponent implements OnInit {
       }
 
       if (this.formId && this.formId !== 'new') {
-        const existing = this.storage.getFormById(this.formId) as any;
+        const existing = this.storage.getFormById(this.formId);
         if (existing) {
           this.schema.set({ ...existing.schema });
           this.lastSaved.set(new Date(existing.lastModified));
@@ -161,12 +198,34 @@ export class AdminDemoComponent implements OnInit {
     this.schema.set(newSchema);
   }
 
-  saveForm() {
-    this.storage.saveForm(this.schema(), this.formId === 'new' ? undefined : this.formId!);
-    this.lastSaved.set(new Date());
+  onMetadataInput(value: string) {
+    this.metadataInput = value;
 
-    if (this.formId === 'new') {
-      this.router.navigate(['/admin/builder', this.formId]);
+    try {
+      const parsed = value.trim() ? JSON.parse(value) : {};
+      if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
+        this.metadataError = 'Runtime metadata must be a JSON object.';
+        return;
+      }
+
+      this.runtimeMetadata = parsed;
+      this.metadataError = null;
+    } catch {
+      this.metadataError = 'Invalid JSON. Preview keeps using the last valid metadata object.';
+    }
+  }
+
+  async saveForm() {
+    try {
+      const savedId = await this.storage.saveForm(this.schema(), this.formId === 'new' ? undefined : this.formId!);
+      this.lastSaved.set(new Date());
+
+      if (this.formId === 'new') {
+        this.formId = savedId;
+        this.router.navigate(['/admin/builder', savedId], { replaceUrl: true });
+      }
+    } catch (err) {
+      console.error('Failed to save form:', err);
     }
   }
 
@@ -187,5 +246,18 @@ export class AdminDemoComponent implements OnInit {
         columns: [{ id: 'col_' + Math.random().toString(36).substring(2, 9), fields: [] }]
       }]
     });
+  }
+
+  private getDefaultMetadata() {
+    return {
+      currentUser: {
+        name: 'Alice Manager',
+        role: 'Manager'
+      },
+      inspectionMode: 'strict',
+      featureFlags: {
+        clearanceOverride: true
+      }
+    };
   }
 }

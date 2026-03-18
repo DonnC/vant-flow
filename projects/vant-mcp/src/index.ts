@@ -9,6 +9,27 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { VantSchemaBuilder } from "./utils/schema-builder.js";
 import { VantMockGenerator } from "./utils/mock-generator.js";
+import * as fs from 'fs';
+import * as path from 'path';
+
+const LOG_DIR = path.join(process.cwd(), 'logs');
+const LOG_FILE = path.join(LOG_DIR, 'mcp.log');
+
+if (!fs.existsSync(LOG_DIR)) {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+}
+
+function logToFile(message: string, isError: boolean = false) {
+    const timestamp = new Date().toISOString();
+    const type = isError ? '[ERROR]' : '[INFO]';
+    const logMessage = `${timestamp} ${type} ${message}\n`;
+    fs.appendFileSync(LOG_FILE, logMessage);
+    if (isError) {
+        console.error(message);
+    } else {
+        console.log(message);
+    }
+}
 
 const builder = new VantSchemaBuilder();
 const mockGen = new VantMockGenerator();
@@ -27,7 +48,9 @@ Hooks:
 Methods:
 - frm.get_value(fieldname): Get field value.
 - frm.set_value(fieldname, value): Set field value.
-- frm.set_df_property(fieldname, property, value, child_fieldname?): Update field/table column properties (hidden, read_only, label, etc).
+- frm.set_df_property(fieldname, property, value, child_fieldname?): Update field/table column properties (hidden, read_only, mandatory/reqd, label, etc).
+- frm.set_filter(fieldname, filters): Replace runtime filters for a Link field.
+- frm.refresh_link(fieldname): Force a Link field to refetch its data source.
 - frm.msgprint(msg, [type]): Show notification (info, success, warning, danger).
 - frm.set_intro(msg, [color]): Set form-level intro banner.
 - frm.add_custom_button(label, action, [type]): Add a button to the form header.
@@ -113,9 +136,25 @@ Use this when generating a DocumentDefinition to always pick the correct fieldty
     Example: { "fieldtype": "Password" }
 
 12. Link
-    Reference/relation-style selector input.
-    Extra props: options (string, name of the linked doctype or dataset)
-    Example: { "fieldtype": "Link", "options": "Employee" }
+    Reference/relation-style autocomplete selector backed by a remote data source.
+    Stores the full selected object, not just the ID.
+    Extra props: link_config
+    link_config.data_source: string endpoint URL
+    link_config.mapping.id: string source field for the unique identifier
+    link_config.mapping.title: string source field for the main dropdown label
+    link_config.mapping.description?: string source field for the secondary description line
+    link_config.filters?: object runtime filter object
+    link_config.method?: "GET" | "POST"
+    Example:
+    {
+      "fieldtype": "Link",
+      "link_config": {
+        "data_source": "/api/items/search",
+        "mapping": { "id": "id", "title": "item_name", "description": "item_description" },
+        "filters": { "category": "Voucher" },
+        "method": "GET"
+      }
+    }
 
 13. Attach
     File upload widget. Can limit file types, count, and size.
@@ -188,6 +227,67 @@ function createVantServer() {
     return server;
 }
 
+function verifySchemaShape(schema: any): string[] {
+    const issues: string[] = [];
+    if (!schema || typeof schema !== 'object') {
+        return ['Schema must be an object.'];
+    }
+
+    if (!schema.name || typeof schema.name !== 'string') {
+        issues.push('Document name is required.');
+    }
+
+    const sections = schema.steps
+        ? schema.steps.flatMap((step: any) => step.sections || [])
+        : (schema.sections || []);
+
+    if (!Array.isArray(sections) || sections.length === 0) {
+        issues.push('Schema must contain at least one section or step section.');
+        return issues;
+    }
+
+    const fieldnames = new Set<string>();
+    sections.forEach((section: any, sectionIndex: number) => {
+        if (!Array.isArray(section.columns) || section.columns.length === 0) {
+            issues.push(`Section ${section.label || sectionIndex + 1} has no columns.`);
+            return;
+        }
+
+        section.columns.forEach((column: any, colIndex: number) => {
+            (column.fields || []).forEach((field: any, fieldIndex: number) => {
+                if (!field.fieldname) {
+                    issues.push(`Field ${field.label || fieldIndex + 1} in section ${section.label || sectionIndex + 1} is missing fieldname.`);
+                    return;
+                }
+
+                if (fieldnames.has(field.fieldname)) {
+                    issues.push(`Duplicate fieldname detected: ${field.fieldname}`);
+                }
+                fieldnames.add(field.fieldname);
+
+                if ((field.fieldtype === 'Attach' || field.fieldtype === 'Signature') && field.data_group !== 'files') {
+                    issues.push(`Field ${field.fieldname} should use data_group "files".`);
+                }
+
+                if (field.fieldtype === 'Link') {
+                    if (!field.link_config?.data_source) {
+                        issues.push(`Link field ${field.fieldname} should define link_config.data_source.`);
+                    }
+                    if (!field.link_config?.mapping?.id || !field.link_config?.mapping?.title) {
+                        issues.push(`Link field ${field.fieldname} should define link_config.mapping.id and link_config.mapping.title.`);
+                    }
+                }
+
+                if (field.fieldtype === 'Table' && Array.isArray(field.table_fields) && field.table_fields.length === 0) {
+                    issues.push(`Table field ${field.fieldname} has no table_fields.`);
+                }
+            });
+        });
+    });
+
+    return issues;
+}
+
 function registerHandlers(server: Server) {
     server.setRequestHandler(ListToolsRequestSchema, async () => {
         return {
@@ -231,6 +331,17 @@ function registerHandlers(server: Server) {
                         type: "object",
                         properties: {
                             schema: { type: "object", description: "The DocumentDefinition to describe" }
+                        },
+                        required: ["schema"],
+                    },
+                },
+                {
+                    name: "verify_schema",
+                    description: "Check a Vant schema for common structural issues.",
+                    inputSchema: {
+                        type: "object",
+                        properties: {
+                            schema: { type: "object", description: "The DocumentDefinition to verify" }
                         },
                         required: ["schema"],
                     },
@@ -349,16 +460,33 @@ function registerHandlers(server: Server) {
                 case "get_field_types":
                     return { content: [{ type: "text", text: FIELD_TYPE_CATALOG }] };
                 case "create_form_from_prompt": {
-                    const guidance = `Guidance for creating a form from: "${(args as any).prompt}" using:\n${FIELD_TYPE_CATALOG}`;
-                    return { content: [{ type: "text", text: guidance }] };
+                    const schema = builder.buildFromPrompt((args as any).prompt);
+                    return { content: [{ type: "text", text: JSON.stringify(schema, null, 2) }] };
                 }
                 case "analyze_schema": {
                     const s = (args as any).schema;
-                    return { content: [{ type: "text", text: `Schema Analysis for ${s.name}` }] };
+                    const issues = verifySchemaShape(s);
+                    const summary = builder.generateSummary(s);
+                    const text = issues.length > 0
+                        ? `${summary}\n\nPotential issues:\n- ${issues.join('\n- ')}`
+                        : `${summary}\n\nNo obvious structural issues detected.`;
+                    return { content: [{ type: "text", text }] };
                 }
                 case "describe_schema": {
                     const description = builder.generateSummary((args as any).schema);
                     return { content: [{ type: "text", text: description }] };
+                }
+                case "verify_schema": {
+                    const issues = verifySchemaShape((args as any).schema);
+                    return {
+                        content: [{
+                            type: "text",
+                            text: JSON.stringify({
+                                valid: issues.length === 0,
+                                issues
+                            }, null, 2)
+                        }]
+                    };
                 }
                 case "scaffold_from_blueprint": {
                     const schema = builder.buildFromBlueprint((args as any).blueprint);
@@ -412,17 +540,18 @@ let activeAppServer: any = null;
 
 async function main() {
     const transportMode = (process.env.TRANSPORT || "stdio").trim();
-    console.error(`Starting MCP server with TRANSPORT="${transportMode}"`);
+    logToFile(`Starting MCP server with TRANSPORT="${transportMode}"`);
 
     // Trap exits and errors
     process.on('uncaughtException', (err) => {
-        console.error('CRITICAL: Uncaught Exception:', err);
+        logToFile(`CRITICAL: Uncaught Exception: ${err.message}`, true);
+        if (err.stack) logToFile(err.stack, true);
     });
     process.on('unhandledRejection', (reason, promise) => {
-        console.error('CRITICAL: Unhandled Rejection at:', promise, 'reason:', reason);
+        logToFile(`CRITICAL: Unhandled Rejection at: ${promise} reason: ${reason}`, true);
     });
     process.on('exit', (code) => {
-        console.error(`PROCESS EXITING with code: ${code}`);
+        logToFile(`PROCESS EXITING with code: ${code}`);
     });
 
     if (transportMode === "stdio") {
@@ -437,25 +566,25 @@ async function main() {
         const serverTransports = new Map<string, SSEServerTransport>();
 
         app.get("/sse", async (req, res) => {
-            console.error("New SSE connection established");
+            logToFile("New SSE connection established");
             try {
                 const server = createVantServer();
                 const transport = new SSEServerTransport("/messages", res);
                 await server.connect(transport);
 
                 if (transport.sessionId) {
-                    console.error(`Session initialized: ${transport.sessionId}`);
+                    logToFile(`Session initialized: ${transport.sessionId}`);
                     serverTransports.set(transport.sessionId, transport);
 
                     req.on('close', () => {
-                        console.error(`Connection closed for session: ${transport.sessionId}`);
+                        logToFile(`Connection closed for session: ${transport.sessionId}`);
                         serverTransports.delete(transport.sessionId);
                     });
                 } else {
-                    console.error("Warning: Transport connected but no sessionId generated");
+                    logToFile("Warning: Transport connected but no sessionId generated", true);
                 }
             } catch (err: any) {
-                console.error("SSE Connection Error:", err);
+                logToFile(`SSE Connection Error: ${err.message}`, true);
                 res.status(500).send(`SSE Error: ${err.message}`);
             }
         });
@@ -479,9 +608,9 @@ async function main() {
         setInterval(() => {
             const sessions = serverTransports.size;
             if (sessions > 0) {
-                console.error(`MCP Heartbeat: ${sessions} active sessions`);
+                logToFile(`MCP Heartbeat: ${sessions} active sessions`);
             }
-        }, 10000);
+        }, 30000); // Reduce frequency to 30s for file logging
 
         // Keep main from finishing
         return new Promise(() => {

@@ -1,0 +1,11 @@
+{
+    "sqltools.useNodeRuntime": true,
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "driver": "SQLite",
+            "database": "examples/kai-ng-flow/proxy/vant_flow.db",
+            "name": "VANT FLOW DB"
+        }
+    ]
+}

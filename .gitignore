@@ -44,3 +44,8 @@ Thumbs.db
 *.txt
 .env
 environment.ai.ts
+
+# Vant Flow Persistence
+/logs/
+*.db
+*.log
