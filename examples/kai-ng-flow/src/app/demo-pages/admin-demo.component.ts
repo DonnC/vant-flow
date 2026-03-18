@@ -5,6 +5,7 @@ import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { VfBuilder, VfRenderer, VfToastOutlet, DocumentDefinition } from 'vant-flow';
 import { MockStorageService } from '../core/services/mock-storage.service';
 import { AiFormService } from '../core/services/ai-form.service';
+import { DemoMediaService } from '../core/services/demo-media.service';
 import { EXAMPLE_DOCUMENT } from './example-data';
 
 @Component({
@@ -105,7 +106,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
                     </div>
                   </div>
 
-                  <vf-renderer [document]="schema()" [metadata]="runtimeMetadata"></vf-renderer>
+                  <vf-renderer [document]="schema()" [metadata]="runtimeMetadata" [mediaHandler]="demoMedia.mediaHandler"></vf-renderer>
                </div>
             </div>
           }
@@ -120,6 +121,7 @@ export class AdminDemoComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private storage = inject(MockStorageService);
+  demoMedia = inject(DemoMediaService);
   ai = inject(AiFormService);
 
   formId: string | null = null;

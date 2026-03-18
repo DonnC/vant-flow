@@ -48,7 +48,9 @@ Hooks:
 Methods:
 - frm.get_value(fieldname): Get field value.
 - frm.set_value(fieldname, value): Set field value.
-- frm.set_df_property(fieldname, property, value, child_fieldname?): Update field/table column properties (hidden, read_only, label, etc).
+- frm.set_df_property(fieldname, property, value, child_fieldname?): Update field/table column properties (hidden, read_only, mandatory/reqd, label, etc).
+- frm.set_filter(fieldname, filters): Replace runtime filters for a Link field.
+- frm.refresh_link(fieldname): Force a Link field to refetch its data source.
 - frm.msgprint(msg, [type]): Show notification (info, success, warning, danger).
 - frm.set_intro(msg, [color]): Set form-level intro banner.
 - frm.add_custom_button(label, action, [type]): Add a button to the form header.
@@ -134,9 +136,25 @@ Use this when generating a DocumentDefinition to always pick the correct fieldty
     Example: { "fieldtype": "Password" }
 
 12. Link
-    Reference/relation-style selector input.
-    Extra props: options (string, name of the linked doctype or dataset)
-    Example: { "fieldtype": "Link", "options": "Employee" }
+    Reference/relation-style autocomplete selector backed by a remote data source.
+    Stores the full selected object, not just the ID.
+    Extra props: link_config
+    link_config.data_source: string endpoint URL
+    link_config.mapping.id: string source field for the unique identifier
+    link_config.mapping.title: string source field for the main dropdown label
+    link_config.mapping.description?: string source field for the secondary description line
+    link_config.filters?: object runtime filter object
+    link_config.method?: "GET" | "POST"
+    Example:
+    {
+      "fieldtype": "Link",
+      "link_config": {
+        "data_source": "/api/items/search",
+        "mapping": { "id": "id", "title": "item_name", "description": "item_description" },
+        "filters": { "category": "Voucher" },
+        "method": "GET"
+      }
+    }
 
 13. Attach
     File upload widget. Can limit file types, count, and size.
@@ -249,6 +267,15 @@ function verifySchemaShape(schema: any): string[] {
 
                 if ((field.fieldtype === 'Attach' || field.fieldtype === 'Signature') && field.data_group !== 'files') {
                     issues.push(`Field ${field.fieldname} should use data_group "files".`);
+                }
+
+                if (field.fieldtype === 'Link') {
+                    if (!field.link_config?.data_source) {
+                        issues.push(`Link field ${field.fieldname} should define link_config.data_source.`);
+                    }
+                    if (!field.link_config?.mapping?.id || !field.link_config?.mapping?.title) {
+                        issues.push(`Link field ${field.fieldname} should define link_config.mapping.id and link_config.mapping.title.`);
+                    }
                 }
 
                 if (field.fieldtype === 'Table' && Array.isArray(field.table_fields) && field.table_fields.length === 0) {

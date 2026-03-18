@@ -8,15 +8,21 @@ import { fileURLToPath } from 'url';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import fs from 'fs';
+import crypto from 'crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // --- Logging System ---
 const LOG_DIR = path.resolve(__dirname, 'logs');
 const PROXY_LOG_FILE = path.join(LOG_DIR, 'proxy.log');
+const UPLOAD_DIR = path.resolve(__dirname, 'uploads');
 
 if (!fs.existsSync(LOG_DIR)) {
     fs.mkdirSync(LOG_DIR, { recursive: true });
+}
+
+if (!fs.existsSync(UPLOAD_DIR)) {
+    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
 function logToDisk(level, message, data = null) {
@@ -48,7 +54,8 @@ dotenv.config({ path: envPath });
 
 const app = express();
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // --- Database Initialization ---
 const dbPath = path.resolve(__dirname, 'vant_flow.db');
@@ -142,6 +149,190 @@ function buildFieldCatalog() {
 
 function buildFrmApiDocs() {
     return "frm.get_value, frm.set_value, frm.set_df_property, frm.msgprint, frm.set_intro, frm.add_custom_button, frm.prompt, frm.confirm, frm.call, frm.add_row, frm.remove_row, frm.next_step, frm.prev_step, frm.go_to_step";
+}
+
+const DEMO_CUSTOMERS = [
+    {
+        record: {
+            id: 'CUST-0001',
+            profile: {
+                display_name: 'ZimFresh HQ',
+                meta: { search_hint: 'Corporate • Borrowdale • Premium SLA' },
+                city: 'Harare',
+                contact_person: 'Ruvimbo Mhlanga'
+            }
+        },
+        status: 'Active'
+    },
+    {
+        record: {
+            id: 'CUST-0002',
+            profile: {
+                display_name: 'Borrowdale Medical Centre',
+                meta: { search_hint: 'Healthcare • Borrowdale • 24/7 Operations' },
+                city: 'Harare',
+                contact_person: 'Dr. Tatenda Ncube'
+            }
+        },
+        status: 'Active'
+    },
+    {
+        record: {
+            id: 'CUST-0003',
+            profile: {
+                display_name: 'Eastgate Mall Management',
+                meta: { search_hint: 'Retail • CBD • Multi-site connectivity' },
+                city: 'Harare',
+                contact_person: 'Nigel Chari'
+            }
+        },
+        status: 'Active'
+    },
+    {
+        record: {
+            id: 'CUST-0004',
+            profile: {
+                display_name: 'Mutare Agro Exports',
+                meta: { search_hint: 'Manufacturing • Mutare • Warehouse link' },
+                city: 'Mutare',
+                contact_person: 'Chido Mutasa'
+            }
+        },
+        status: 'Active'
+    },
+    {
+        record: {
+            id: 'CUST-0005',
+            profile: {
+                display_name: 'Old Town Hotel',
+                meta: { search_hint: 'Hospitality • Bulawayo • Legacy contract' },
+                city: 'Bulawayo',
+                contact_person: 'Farai Ndlovu'
+            }
+        },
+        status: 'Inactive'
+    }
+];
+
+const DEMO_EQUIPMENT = [
+    {
+        asset: {
+            id: 'ASSET-1001',
+            serial_number: 'FBR-0092',
+            model: { display_name: 'Huawei OptiXstar EG8145X6' }
+        },
+        service_type: 'Fiber Repair'
+    },
+    {
+        asset: {
+            id: 'ASSET-1002',
+            serial_number: 'RTR-1188',
+            model: { display_name: 'MikroTik CCR2004 Core Router' }
+        },
+        service_type: 'Router Replacement'
+    },
+    {
+        asset: {
+            id: 'ASSET-1003',
+            serial_number: 'SIG-4421',
+            model: { display_name: 'Ubiquiti AirFiber Signal Bridge' }
+        },
+        service_type: 'Signal Investigation'
+    },
+    {
+        asset: {
+            id: 'ASSET-1004',
+            serial_number: 'FBR-0197',
+            model: { display_name: 'ZTE ZXHN F670L' }
+        },
+        service_type: 'Fiber Repair'
+    },
+    {
+        asset: {
+            id: 'ASSET-1005',
+            serial_number: 'PM-7710',
+            model: { display_name: 'Cisco Catalyst 9300 Edge Switch' }
+        },
+        service_type: 'Preventive Maintenance'
+    }
+];
+
+function normalizeText(value) {
+    return String(value || '').trim().toLowerCase();
+}
+
+function matchesQuery(fields, query) {
+    const needle = normalizeText(query);
+    if (!needle) return true;
+    return fields.some(field => normalizeText(field).includes(needle));
+}
+
+function applyLimit(items, rawLimit, fallback = 20) {
+    const parsed = Number(rawLimit);
+    const limit = Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+    return items.slice(0, limit);
+}
+
+function extractDemoSearchParams(req) {
+    if (req.method === 'GET') {
+        return {
+            query: req.query.q || '',
+            limit: req.query.limit || 20,
+            filters: Object.entries(req.query)
+                .filter(([key]) => key.startsWith('filters.'))
+                .reduce((acc, [key, value]) => {
+                    acc[key.replace(/^filters\./, '')] = value;
+                    return acc;
+                }, {})
+        };
+    }
+
+    return {
+        query: req.body?.q || '',
+        limit: req.body?.limit || 20,
+        filters: req.body?.filters || {}
+    };
+}
+
+function sanitizeFilenamePart(value) {
+    return String(value || 'file')
+        .replace(/[^a-zA-Z0-9._-]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+        .slice(0, 80) || 'file';
+}
+
+function guessExtensionFromMime(mimeType) {
+    const mime = String(mimeType || '').toLowerCase();
+    if (mime === 'image/jpeg') return 'jpg';
+    if (mime === 'image/png') return 'png';
+    if (mime === 'image/webp') return 'webp';
+    if (mime === 'application/pdf') return 'pdf';
+    if (mime === 'image/svg+xml') return 'svg';
+    return 'bin';
+}
+
+function parseDataUrl(dataUrl) {
+    const match = String(dataUrl || '').match(/^data:(.*?);base64,(.*)$/);
+    if (!match) return null;
+    return {
+        mimeType: match[1] || 'application/octet-stream',
+        base64: match[2] || ''
+    };
+}
+
+async function findStoredUploadByFileId(fileId) {
+    const entries = await fs.promises.readdir(UPLOAD_DIR);
+    const filename = entries.find(entry => entry.startsWith(`${fileId}_`));
+    if (!filename) return null;
+
+    const filePath = path.join(UPLOAD_DIR, filename);
+    const stat = await fs.promises.stat(filePath);
+    return {
+        filename,
+        filePath,
+        stat
+    };
 }
 
 async function callModel({ provider: requestedProvider, model: requestedModel, messages, config = {} }) {
@@ -334,6 +525,139 @@ Rules:
     } catch (err) {
         logger.error('AI Assist Error', { error: err.message, stack: err.stack });
         return res.status(500).json({ error: err.message });
+    }
+});
+
+// --- Demo Link Field Endpoints ---
+app.get('/api/demo/customers/search', (req, res) => {
+    const { query, limit, filters } = extractDemoSearchParams(req);
+    const statusFilter = normalizeText(filters.status);
+
+    const results = DEMO_CUSTOMERS
+        .filter(customer => !statusFilter || normalizeText(customer.status) === statusFilter)
+        .filter(customer => matchesQuery([
+            customer.record.id,
+            customer.record.profile.display_name,
+            customer.record.profile.meta.search_hint,
+            customer.record.profile.city,
+            customer.record.profile.contact_person
+        ], query));
+
+    logger.info('Demo customer search', { query, filters, resultCount: results.length });
+    res.json({
+        payload: {
+            data: {
+                items: applyLimit(results, limit, 15)
+            }
+        }
+    });
+});
+
+app.post('/api/demo/equipment/search', (req, res) => {
+    const { query, limit, filters } = extractDemoSearchParams(req);
+    const serviceTypeFilter = normalizeText(filters.service_type);
+
+    const results = DEMO_EQUIPMENT
+        .filter(item => !serviceTypeFilter || normalizeText(item.service_type) === serviceTypeFilter)
+        .filter(item => matchesQuery([
+            item.asset.id,
+            item.asset.serial_number,
+            item.asset.model.display_name,
+            item.service_type
+        ], query));
+
+    logger.info('Demo equipment search', { query, filters, resultCount: results.length });
+    res.json({
+        results: applyLimit(results, limit)
+    });
+});
+
+app.post('/api/demo/storage/upload', async (req, res) => {
+    try {
+        const {
+            fieldtype = 'Attach',
+            name = 'upload.bin',
+            type,
+            size,
+            dataUrl,
+            metadata = {}
+        } = req.body || {};
+
+        const parsed = parseDataUrl(dataUrl);
+        if (!parsed?.base64) {
+            return res.status(400).json({ error: 'A base64 dataUrl is required.' });
+        }
+
+        const fileId = `file_${crypto.randomUUID()}`;
+        const safeBaseName = sanitizeFilenamePart(path.parse(name).name);
+        const fileExtension = path.extname(name).replace('.', '') || guessExtensionFromMime(type || parsed.mimeType);
+        const storedFilename = `${fileId}_${safeBaseName}.${fileExtension}`;
+        const storedPath = path.join(UPLOAD_DIR, storedFilename);
+        const binary = Buffer.from(parsed.base64, 'base64');
+
+        await fs.promises.writeFile(storedPath, binary);
+
+        const publicUrl = `http://localhost:${PORT}/api/demo/storage/files/${fileId}`;
+        const downloadUrl = `http://localhost:${PORT}/api/demo/storage/files/${fileId}/download`;
+        const response = {
+            fileId,
+            provider: 'mock-cloud-storage',
+            bucket: 'vant-flow-demo',
+            name,
+            type: type || parsed.mimeType,
+            size: Number(size) || binary.length,
+            publicUrl,
+            previewUrl: publicUrl,
+            downloadUrl,
+            metadata: {
+                uploadedAt: new Date().toISOString(),
+                fieldtype,
+                originalName: name,
+                storedFilename,
+                ...metadata
+            }
+        };
+
+        logger.info('Demo storage upload saved', {
+            fileId,
+            fieldtype,
+            name,
+            storedFilename,
+            size: response.size
+        });
+
+        return res.json(response);
+    } catch (err) {
+        logger.error('Demo storage upload failed', { error: err.message, stack: err.stack });
+        return res.status(500).json({ error: 'Failed to store uploaded media.' });
+    }
+});
+
+app.get('/api/demo/storage/files/:fileId', async (req, res) => {
+    try {
+        const match = await findStoredUploadByFileId(req.params.fileId);
+        if (!match) {
+            return res.status(404).json({ error: 'Stored file not found.' });
+        }
+
+        return res.sendFile(match.filePath);
+    } catch (err) {
+        logger.error('Demo storage preview fetch failed', { error: err.message, stack: err.stack, fileId: req.params.fileId });
+        return res.status(500).json({ error: 'Failed to fetch stored file.' });
+    }
+});
+
+app.get('/api/demo/storage/files/:fileId/download', async (req, res) => {
+    try {
+        const match = await findStoredUploadByFileId(req.params.fileId);
+        if (!match) {
+            return res.status(404).json({ error: 'Stored file not found.' });
+        }
+
+        return res.download(match.filePath, match.filename.replace(/^[^_]+_/, ''));
+    } catch (err) {
+        logger.error('Demo storage download failed', { error: err.message, stack: err.stack, fileId: req.params.fileId });
+        return res.status(500).json({ error: 'Failed to download stored file.' });
     }
 });
 

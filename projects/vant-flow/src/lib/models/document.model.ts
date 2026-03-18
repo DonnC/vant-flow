@@ -35,6 +35,45 @@ export type VfMediaHandler = (
   context: VfMediaHandlerContext
 ) => Promise<VfMediaHandlerResult> | VfMediaHandlerResult;
 
+export interface VfLinkFieldMapping {
+  id: string;
+  title: string;
+  description?: string;
+}
+
+export interface VfLinkFieldConfig {
+  data_source: string;
+  mapping: VfLinkFieldMapping;
+  filters?: Record<string, any>;
+  method?: 'GET' | 'POST';
+  search_param?: string;
+  limit_param?: string;
+  results_path?: string;
+  cache?: boolean;
+  min_query_length?: number;
+  page_size?: number;
+}
+
+export interface VfLinkDataSourceRequest {
+  field: DocumentField;
+  query: string;
+  filters: Record<string, any>;
+  config: VfLinkFieldConfig;
+  formMetadata?: any;
+}
+
+export interface VfLinkRequestState {
+  fieldname: string;
+  query: string;
+  filters: Record<string, any>;
+  status: 'idle' | 'loading' | 'success' | 'error';
+  resultCount?: number;
+  error?: string;
+}
+
+export type VfLinkDataSource = (request: VfLinkDataSourceRequest) => Promise<any[]> | any[];
+export type VfLinkRequestObserver = (state: VfLinkRequestState) => void;
+
 /** Column definition for Table field child columns (no nested Table/Button/Text Editor) */
 export interface TableColumnDef {
   id: string;
@@ -66,6 +105,7 @@ export interface DocumentField {
   regex?: string; // Regex validator superpower
   table_fields?: TableColumnDef[]; // Only used by Table fieldtype
   data_group?: string; // Optional: nested object path (e.g. "user.profile")
+  link_config?: VfLinkFieldConfig;
 }
 
 export interface DocumentColumn {

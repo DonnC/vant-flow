@@ -118,6 +118,7 @@ frm.on('refresh', (frm) => {
     // Toggle field visibility dynamically
     if (frm.get_value('status') === 'Approved') {
         frm.set_df_property('batch_id', 'read_only', true);
+        frm.set_df_property('batch_id', 'reqd', true); // alias of mandatory
     }
 });
 
@@ -137,11 +138,55 @@ The `set_df_property` method now supports targeting columns within a table by pr
 ```javascript
 // Target a top-level field
 frm.set_df_property('email', 'read_only', true);
+frm.set_df_property('email', 'reqd', true); // alias of mandatory
 
 // Target a column within a table
 frm.set_df_property('items_table', 'options', '.pdf,.jpg', 'attachment_col');
 frm.set_df_property('items_table', 'hidden', true, 'rate_col');
 ```
+
+### Link Field Data Sources
+
+`Link` fields can now behave like Frappe-style autocomplete lookups backed by a remote endpoint. Unlike `Select`, a `Link` field stores the full selected object in form data.
+
+```json
+{
+  "id": "f_item",
+  "fieldname": "item",
+  "fieldtype": "Link",
+  "label": "Item",
+  "link_config": {
+    "data_source": "/api/items/search",
+    "mapping": {
+      "id": "id",
+      "title": "item_name",
+      "description": "item_description"
+    },
+    "filters": {
+      "category": "Voucher"
+    },
+    "method": "GET",
+    "cache": true,
+    "min_query_length": 1
+  }
+}
+```
+
+```javascript
+frm.on('category', (val, frm) => {
+    frm.set_filter('item', { category: val });
+    frm.refresh_link('item');
+});
+```
+
+Use the renderer `[linkDataSource]` input when the host app needs custom transport, auth, or caching behavior. `Select` remains the right field type for fixed/manual option lists.
+
+**Contract Notes**:
+- The endpoint can return an array directly, or an object containing the array under `results_path`, `results`, `items`, or `data`.
+- `mapping.id`, `mapping.title`, and `mapping.description` support nested dot-paths such as `record.id` or `profile.display_name`.
+- `results_path` also supports nested dot-paths such as `payload.data.items`.
+- Built-in `GET` requests send `q`, `limit`, `fieldname`, `fieldtype`, and filters as `filters.<key>=<value>` by default.
+- Built-in `POST` requests send `{ q, limit, fieldname, fieldtype, filters }` by default.
 
 ### Injected Metadata
 

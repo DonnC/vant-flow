@@ -87,6 +87,26 @@ describe('VfFormContext', () => {
     expect(table?.[0].hidden).toBeTrue();
   });
 
+  it('treats reqd as an alias of mandatory in set_df_property', () => {
+    const document: DocumentDefinition = {
+      name: 'Required Alias Form',
+      sections: [{
+        id: 'section_1',
+        columns: [{
+          id: 'column_1',
+          fields: [
+            { id: 'field_1', fieldname: 'restored_at', fieldtype: 'Datetime', label: 'Restored At', mandatory: false }
+          ]
+        }]
+      }]
+    };
+
+    context.initialize(document, formData);
+    context.set_df_property('restored_at', 'reqd', true);
+
+    expect(context.getFieldSignal('restored_at', 'mandatory')()).toBeTrue();
+  });
+
   it('skips hidden steps when moving to the next step', () => {
     const document: DocumentDefinition = {
       name: 'Stepper Form',
@@ -274,5 +294,39 @@ describe('VfFormContext', () => {
 
     expect(formData['remarks']).toBe('Alice');
     expect(context.getFieldSignal('remarks', 'hidden')()).toBeTrue();
+  });
+
+  it('updates link filters through frm.set_filter and bumps the refresh signal', () => {
+    const document: DocumentDefinition = {
+      name: 'Link Form',
+      sections: [{
+        id: 'section_1',
+        columns: [{
+          id: 'column_1',
+          fields: [{
+            id: 'field_1',
+            fieldname: 'item',
+            fieldtype: 'Link',
+            label: 'Item',
+            link_config: {
+              data_source: '/api/items/search',
+              mapping: { id: 'id', title: 'name' },
+              filters: { category: 'Voucher' }
+            }
+          }]
+        }]
+      }]
+    };
+
+    context.initialize(document, formData);
+    const before = context.getLinkRefreshSignal('item')();
+
+    context.set_filter('item', { category: 'Voucher', brand: 'MTN' });
+
+    expect(context.getFieldSignal('item', 'link_config')()?.filters).toEqual({
+      category: 'Voucher',
+      brand: 'MTN'
+    });
+    expect(context.getLinkRefreshSignal('item')()).toBe(before + 1);
   });
 });

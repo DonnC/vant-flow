@@ -1,6 +1,6 @@
 import { FormGroup, Validators } from '@angular/forms';
 import { WritableSignal, signal, Injectable } from '@angular/core';
-import { DocumentField, DocumentSection, DocumentDefinition, FormActionsConfig, VfMediaHandler } from '../models/document.model';
+import { DocumentField, DocumentSection, DocumentDefinition, FormActionsConfig, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler } from '../models/document.model';
 import { VfUtilityService } from './app-utility.service';
 import { VfBuilderState } from './builder-state.service';
 
@@ -26,6 +26,9 @@ export class VfFormContext {
 
     public metadata?: any;
     public mediaHandler?: VfMediaHandler;
+    public linkDataSource?: VfLinkDataSource;
+    public linkRequestObserver?: VfLinkRequestObserver;
+    public linkRefreshSignals = new Map<string, WritableSignal<number>>();
 
     constructor(
         private appUtility: VfUtilityService,
@@ -41,6 +44,7 @@ export class VfFormContext {
         this.fieldSignals.clear();
         this.sectionSignals.clear();
         this.stepSignals.clear();
+        this.linkRefreshSignals.clear();
         this.dynamicIntro.set(null);
         this.isReadOnly.set(false);
         this.customButtons.set([]);
@@ -71,6 +75,7 @@ export class VfFormContext {
         section.columns.forEach(col => {
             col.fields.forEach(field => {
                 this.fieldSignals.set(field.fieldname, signal({ ...field }));
+                this.linkRefreshSignals.set(field.fieldname, signal(0));
             });
         });
     }
@@ -101,14 +106,23 @@ export class VfFormContext {
     }
 
     prompt(fields: DocumentField[], callback: (values: any) => void, title?: string, read_only: boolean = false) {
-        this.appUtility.prompt(fields, title, read_only, this.mediaHandler, this.metadata).then((values: any) => {
+        this.appUtility.prompt(
+            fields,
+            title,
+            read_only,
+            this.mediaHandler,
+            this.linkDataSource,
+            this.linkRequestObserver,
+            this.metadata
+        ).then((values: any) => {
             if (values) callback(values);
         });
     }
 
-    set_df_property(fieldname: string, prop: keyof DocumentField, val: any, child_fieldname?: string) {
+    set_df_property(fieldname: string, prop: keyof DocumentField | 'reqd', val: any, child_fieldname?: string) {
         const s = this.fieldSignals.get(fieldname);
         if (!s) { console.warn(`[frm] Unknown field: ${fieldname}`); return; }
+        const normalizedProp = prop === 'reqd' ? 'mandatory' : prop;
 
         if (child_fieldname) {
             // Target a column within a table
@@ -116,7 +130,7 @@ export class VfFormContext {
                 if (current.fieldtype !== 'Table' || !current.table_fields) return current;
                 const updatedCols = current.table_fields.map(col => {
                     if (col.fieldname === child_fieldname) {
-                        return { ...col, [prop]: val };
+                        return { ...col, [normalizedProp]: val };
                     }
                     return col;
                 });
@@ -124,7 +138,7 @@ export class VfFormContext {
             });
         } else {
             // Target the field itself
-            s.update(current => ({ ...current, [prop]: val }));
+            s.update(current => ({ ...current, [normalizedProp]: val }));
         }
     }
 
@@ -139,6 +153,32 @@ export class VfFormContext {
 
     set_readonly(readOnly: boolean) {
         this.isReadOnly.set(readOnly);
+    }
+
+    set_filter(fieldname: string, filters: Record<string, any>) {
+        const s = this.fieldSignals.get(fieldname);
+        if (!s) {
+            console.warn(`[frm] Unknown field: ${fieldname}`);
+            return;
+        }
+
+        s.update(current => ({
+            ...current,
+            link_config: {
+                ...(current.link_config || { data_source: '', mapping: { id: 'id', title: 'title' } }),
+                filters: { ...(filters || {}) }
+            }
+        }));
+        this.refresh_link(fieldname);
+    }
+
+    refresh_link(fieldname: string) {
+        const tick = this.linkRefreshSignals.get(fieldname);
+        if (!tick) {
+            console.warn(`[frm] Unknown link field: ${fieldname}`);
+            return;
+        }
+        tick.update(n => n + 1);
     }
 
     // ── Stepper methods ──────────────────────────────────────────
@@ -356,6 +396,11 @@ export class VfFormContext {
     getFieldSignal(fieldname: string, prop: keyof DocumentField) {
         const s = this.fieldSignals.get(fieldname);
         return () => s ? (s() as any)[prop] : undefined;
+    }
+
+    getLinkRefreshSignal(fieldname: string) {
+        const s = this.linkRefreshSignals.get(fieldname);
+        return () => s ? s() : 0;
     }
 
     getSectionSignal(sectionId: string, prop: keyof DocumentSection) {

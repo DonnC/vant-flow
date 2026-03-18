@@ -221,12 +221,11 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
           </select>
         </div>
 
-        <!-- Options (for Select / Link / Attach) -->
-        @if (field()!.fieldtype === 'Select' || field()!.fieldtype === 'Link' || field()!.fieldtype === 'Attach') {
+        <!-- Options (for Select / Attach) -->
+        @if (field()!.fieldtype === 'Select' || field()!.fieldtype === 'Attach') {
           <div>
             <label class="ui-label">
               @if (field()!.fieldtype === 'Select') { Options (one per line) }
-              @else if (field()!.fieldtype === 'Link') { Linked Document }
               @else { Attach Config (extensions | maxSize | maxFiles) }
             </label>
             @if (field()!.fieldtype === 'Select') {
@@ -234,13 +233,55 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
                 [ngModel]="field()!.options" (ngModelChange)="update('options', $event)"
                 placeholder="Option 1&#10;Option 2&#10;Option 3">
               </textarea>
-            } @else if (field()!.fieldtype === 'Link') {
-              <input class="ui-input" [ngModel]="field()!.options" (ngModelChange)="update('options', $event)" 
-                placeholder="e.g. Customer">
             } @else {
               <input class="ui-input" [ngModel]="field()!.options" (ngModelChange)="update('options', $event)" 
                 placeholder=".pdf,.jpg | 5MB | 1">
             }
+          </div>
+        }
+
+        @if (field()!.fieldtype === 'Link') {
+          <div class="space-y-4 p-3 rounded-xl border border-indigo-100 bg-indigo-50/30">
+            <div class="space-y-1">
+              <label class="ui-label">Data Source Endpoint</label>
+              <input class="ui-input font-mono" [ngModel]="field()!.link_config?.data_source" (ngModelChange)="updateLinkConfig({ data_source: $event })" placeholder="/api/items/search">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="space-y-1">
+                <label class="ui-label">ID Field</label>
+                <input class="ui-input font-mono" [ngModel]="field()!.link_config?.mapping?.id" (ngModelChange)="updateLinkConfigMapping({ id: $event })" placeholder="id">
+              </div>
+              <div class="space-y-1">
+                <label class="ui-label">Title Field</label>
+                <input class="ui-input font-mono" [ngModel]="field()!.link_config?.mapping?.title" (ngModelChange)="updateLinkConfigMapping({ title: $event })" placeholder="name">
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <label class="ui-label">Description Field <span class="text-zinc-400">(optional)</span></label>
+              <input class="ui-input font-mono" [ngModel]="field()!.link_config?.mapping?.description" (ngModelChange)="updateLinkConfigMapping({ description: $event })" placeholder="description">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div class="space-y-1">
+                <label class="ui-label">HTTP Method</label>
+                <select class="ui-select" [ngModel]="field()!.link_config?.method || 'GET'" (ngModelChange)="updateLinkConfig({ method: $any($event) })">
+                  <option value="GET">GET</option>
+                  <option value="POST">POST</option>
+                </select>
+              </div>
+              <div class="space-y-1">
+                <label class="ui-label">Min Query Length</label>
+                <input class="ui-input" type="number" [ngModel]="field()!.link_config?.min_query_length ?? 0" (ngModelChange)="updateLinkConfig({ min_query_length: toNumber($event) })" placeholder="0">
+              </div>
+            </div>
+
+            <div class="space-y-1">
+              <label class="ui-label">Filters JSON</label>
+              <textarea #linkFiltersInput class="ui-textarea font-mono text-xs" rows="4" [value]="stringifyJson(field()!.link_config?.filters || {})" (change)="updateLinkFilters(linkFiltersInput.value)" placeholder="{&#10;  &quot;category&quot;: &quot;Voucher&quot;&#10;}"></textarea>
+              <p class="text-[9px] text-zinc-400 italic">Stored as an object and can also be changed at runtime with <code>frm.set_filter()</code>.</p>
+            </div>
           </div>
         }
 
@@ -459,6 +500,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
                   <div><span class="text-zinc-500">// Read Only / Hidden</span></div>
                   <div>frm.set_df_property('fieldname', 'read_only', 1);</div>
                   <div>frm.set_df_property('fieldname', 'hidden', 1);</div>
+                  <div>frm.set_df_property('fieldname', 'reqd', 1);</div>
                   <div><span class="text-zinc-500">// Change Label / Desc</span></div>
                   <div>frm.set_df_property('fieldname', 'label', 'New Name');</div>
                 </div>
@@ -680,6 +722,59 @@ export class VfPropertyEditor {
     }
 
     this.state.updateField(f.id, patches);
+  }
+
+  updateLinkConfig(patch: Record<string, any>) {
+    const f = this.field();
+    if (!f) return;
+
+    this.state.updateField(f.id, {
+      link_config: {
+        data_source: '',
+        mapping: { id: 'id', title: 'title' },
+        ...(f.link_config || {}),
+        ...patch
+      }
+    });
+  }
+
+  updateLinkConfigMapping(patch: Record<string, any>) {
+    const f = this.field();
+    if (!f) return;
+
+    this.state.updateField(f.id, {
+      link_config: {
+        data_source: '',
+        ...(f.link_config || {}),
+        mapping: {
+          id: 'id',
+          title: 'title',
+          ...((f.link_config?.mapping || {}) as any),
+          ...patch
+        }
+      }
+    });
+  }
+
+  updateLinkFilters(raw: string) {
+    const f = this.field();
+    if (!f) return;
+
+    try {
+      const parsed = raw.trim() ? JSON.parse(raw) : {};
+      this.updateLinkConfig({ filters: parsed });
+    } catch {
+      // Ignore invalid JSON while typing; the user can continue editing.
+    }
+  }
+
+  stringifyJson(value: any) {
+    return JSON.stringify(value ?? {}, null, 2);
+  }
+
+  toNumber(value: any) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : 0;
   }
 
   public slugify(text: string): string {

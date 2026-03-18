@@ -14,6 +14,8 @@ The schema model is centered in `projects/vant-flow/src/lib/models/document.mode
 - Sections, columns, and fields
 - Table column definitions
 - Runtime actions and optional metadata
+- Link field data-source configuration
+- Stored media contracts and runtime media hooks
 
 ## High-Level Architecture
 
@@ -71,6 +73,8 @@ The host app supplies:
 - The stored schema
 - Optional initial data
 - Optional metadata for contextual logic
+- Optional `mediaHandler` logic for `Attach` and `Signature`
+- Optional `linkDataSource` and link request observers
 - Event handlers for draft save, submit, and validation errors
 - Backend methods consumed through `frm.call`
 
@@ -107,6 +111,8 @@ Vant Flow is flexible because the host app does not hardcode each workflow scree
 - The host can inject role, policy, or transaction context through `metadata`
 - Nested payloads are supported with `data_group`
 - Rich fields like attachments, signatures, text editors, and tables are first-class
+- Binary-like fields can stay lightweight in form state by using the renderer media hook
+- Remote autocomplete fields can query backend endpoints without hardcoding them into the renderer
 
 ## Customization Surfaces
 
@@ -115,10 +121,47 @@ Developers can customize Vant Flow at several layers:
 - UI editor stack through `provideVfFlow()` for Monaco and Quill configuration
 - Runtime form behavior through `client_script`
 - Backend integration through `frm.call`
+- Binary upload and storage integration through renderer `mediaHandler`
+- Remote autocomplete integration through renderer `linkDataSource`
 - Runtime action buttons through document `actions` and `frm.add_custom_button`
 - Visibility and required logic through `depends_on` and `mandatory_depends_on`
 - Data shape through `data_group`
 - Role and environment awareness through renderer `metadata`
+
+## Media Hook Architecture
+
+`Attach` and `Signature` now support a renderer-level media hook so storage integration can live in host Angular code instead of in `frm` scripts.
+
+- `VfRenderer` can receive a `mediaHandler`
+- `VfField` calls that handler before finalizing the field value
+- the handler receives the raw browser payload plus field context
+- the handler returns either a lightweight stored-media object, a string, or `null`
+
+This matters because many real deployments upload to a CDN, object store, or media API and want the final form state to contain a compact reference instead of a large in-memory data URL.
+
+The stored-media contract is intentionally open enough for backend references:
+
+- `name`
+- `url`
+- optional `downloadUrl`
+- optional `size`
+- optional `type`
+- optional `fileId`
+- optional arbitrary `metadata`
+
+That lets the UI continue to render the uploaded asset normally while the host controls how it is actually stored and downloaded.
+
+## Link Field Architecture
+
+The `Link` field is modeled as a remote autocomplete field rather than a static option list.
+
+- configuration lives on `field.link_config`
+- the field can use the built-in HTTP loader or a host-provided `linkDataSource`
+- `mapping.id`, `mapping.title`, and `mapping.description` define how dropdown rows are displayed
+- `filters` can be updated at runtime through `frm.set_filter(...)`
+- `frm.refresh_link(...)` can force a reload when script logic changes the backend query context
+
+The selected value is the full selected object, not just the ID. That keeps downstream scripts and submissions richer and closer to the original business payload.
 
 ## Security and Control Model
 

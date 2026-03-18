@@ -1,8 +1,10 @@
-import { Component, Input, Output, EventEmitter, inject, ViewChild, ElementRef, AfterViewInit } from '@angular/core';
+import { Component, Input, Output, EventEmitter, inject, ViewChild, ElementRef, AfterViewInit, OnInit, DoCheck } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { QuillModule } from 'ngx-quill';
-import { DocumentField, VfMediaHandler, VfStoredMedia } from '../models/document.model';
+import { firstValueFrom } from 'rxjs';
+import { DocumentField, VfLinkDataSource, VfLinkFieldConfig, VfLinkRequestObserver, VfMediaHandler, VfStoredMedia } from '../models/document.model';
 import { VfFormContext } from '../services/form-context';
 
 import QuillTableBetter from 'quill-table-better';
@@ -69,6 +71,90 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
               }
             </select>
           }
+          @case ('Link') {
+            @if (compact) {
+              <div class="ui-input cursor-pointer truncate" (click)="onInputClick($event)">
+                {{ getLinkDisplayValue(value) || placeholder }}
+              </div>
+            } @else if (hasLinkDataSource) {
+              <div class="relative">
+                <input
+                  type="text"
+                  class="ui-input"
+                  autocomplete="off"
+                  [ngModel]="linkInputValue"
+                  (ngModelChange)="onLinkSearchChange($event)"
+                  (focus)="openLinkDropdown()"
+                  (blur)="onLinkBlur()"
+                  [placeholder]="placeholder || 'Search and select...'"
+                  [disabled]="disabled">
+
+                @if (linkLoading) {
+                  <div class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300">
+                    <svg class="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                  </div>
+                } @else if (value && !disabled) {
+                  <button
+                    type="button"
+                    (mousedown)="$event.preventDefault()"
+                    (click)="clearLinkSelection()"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M18 6L6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                }
+
+                @if (showLinkDropdown) {
+                  <div class="absolute z-30 mt-1 w-full rounded-2xl border border-zinc-200 bg-white shadow-2xl overflow-hidden">
+                    @if (linkError) {
+                      <div class="px-4 py-3 text-sm text-red-600 bg-red-50 border-b border-red-100">
+                        {{ linkError }}
+                      </div>
+                    }
+
+                    @if (linkResults.length > 0) {
+                      <div class="max-h-72 overflow-y-auto">
+                        @for (item of linkResults; track getLinkItemTrack(item)) {
+                          <button
+                            type="button"
+                            (mousedown)="$event.preventDefault()"
+                            (click)="selectLinkOption(item)"
+                            class="w-full text-left px-4 py-3 hover:bg-zinc-50 transition-colors border-b border-zinc-100 last:border-b-0">
+                            <div class="text-[14px] font-medium text-zinc-800 leading-tight">{{ getLinkTitle(item) }}</div>
+                            @if (getLinkDescription(item)) {
+                              <div class="text-[12px] text-zinc-500 mt-1 leading-snug">{{ getLinkDescription(item) }}</div>
+                            }
+                          </button>
+                        }
+                      </div>
+                    } @else if (!linkLoading && !linkError) {
+                      <div class="px-4 py-3 text-sm text-zinc-400">
+                        No results found.
+                      </div>
+                    }
+
+                    @if (linkFilterSummary.length > 0) {
+                      <div class="px-4 py-3 text-xs text-zinc-500 bg-zinc-50 border-t border-zinc-100 italic">
+                        Filtered by: {{ linkFilterSummary }}
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            } @else {
+              <input
+                type="text"
+                class="ui-input"
+                (click)="onInputClick($event)"
+                [ngModel]="value"
+                (ngModelChange)="onValueChange($event)"
+                [placeholder]="placeholder"
+                [disabled]="disabled">
+            }
+          }
           @case ('Button') {
             <div class="py-1">
               <button
@@ -87,17 +173,22 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                 {{ stripHtml(value) || placeholder }}
               </div>
             } @else {
-              <div class="rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-50/50 transition-all border border-zinc-200"
-                   [class.editor-readonly]="disabled">
-                <quill-editor
-                  class="ql-frappe-style"
-                  [ngModel]="value"
-                  (onContentChanged)="onValueChange($event.html)"
-                  [readOnly]="disabled"
-                  [placeholder]="disabled ? '' : (field.placeholder || 'Type here...')"
-                  theme="snow"
-                ></quill-editor>
-              </div>
+              @if (disabled) {
+                <div class="editor-preview rounded-lg overflow-hidden bg-white transition-all border border-zinc-200">
+                  <div class="editor-preview__content" [innerHTML]="getReadonlyEditorHtml(value)"></div>
+                </div>
+              } @else {
+                <div class="rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-50/50 transition-all border border-zinc-200">
+                  <quill-editor
+                    class="ql-frappe-style"
+                    [ngModel]="value"
+                    (onContentChanged)="onValueChange($event.html)"
+                    [readOnly]="false"
+                    [placeholder]="field.placeholder || 'Type here...'"
+                    theme="snow"
+                  ></quill-editor>
+                </div>
+              }
             }
           }
           @case ('Date') {
@@ -329,17 +420,6 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
       @apply border-red-500 bg-red-50/30 focus:ring-red-500/10 !important;
     }
 
-    /* Text Editor Specific */
-    .editor-readonly ::ng-deep .ql-toolbar {
-      @apply hidden !important;
-    }
-    .editor-readonly ::ng-deep .ql-frappe-style .ql-container {
-      @apply border-0 min-h-[10px] !important;
-    }
-    .editor-readonly ::ng-deep .ql-editor {
-      @apply px-4 py-2 opacity-90;
-    }
-
     ::ng-deep .ql-frappe-style .ql-toolbar {
       @apply bg-zinc-50 border-0 border-b border-zinc-200 py-2 px-3 !important;
     }
@@ -366,9 +446,66 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
       padding: 8px !important;
       min-width: 50px;
     }
+
+    /* Read-only Text Editor Preview */
+    .editor-preview__content {
+      @apply px-4 py-3 text-zinc-700 leading-relaxed;
+      min-height: 110px;
+      font-size: 13.5px;
+    }
+    .editor-preview__content:empty::before {
+      content: 'No content';
+      @apply text-zinc-400 italic;
+    }
+    .editor-preview__content ::ng-deep p {
+      margin: 0 0 0.75rem;
+    }
+    .editor-preview__content ::ng-deep p:last-child {
+      margin-bottom: 0;
+    }
+    .editor-preview__content ::ng-deep table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 0.75rem 0 1rem;
+      table-layout: auto;
+    }
+    .editor-preview__content ::ng-deep th,
+    .editor-preview__content ::ng-deep td {
+      border: 1px solid #d4d4d8;
+      padding: 0.55rem 0.7rem;
+      vertical-align: top;
+      text-align: left;
+    }
+    .editor-preview__content ::ng-deep th {
+      @apply bg-zinc-50 font-semibold text-zinc-800;
+    }
+    .editor-preview__content ::ng-deep ul,
+    .editor-preview__content ::ng-deep ol {
+      margin: 0.75rem 0 0.75rem 1.25rem;
+      padding-left: 1rem;
+    }
+    .editor-preview__content ::ng-deep blockquote {
+      border-left: 3px solid #cbd5e1;
+      margin: 0.75rem 0;
+      padding-left: 0.9rem;
+      color: #52525b;
+    }
+    .editor-preview__content ::ng-deep pre {
+      @apply bg-zinc-950 text-emerald-300 rounded-xl;
+      padding: 0.85rem 1rem;
+      overflow-x: auto;
+      margin: 0.75rem 0;
+      font-size: 12px;
+    }
+    .editor-preview__content ::ng-deep img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 0.75rem;
+      margin: 0.75rem 0;
+    }
   `]
 })
-export class VfField implements AfterViewInit {
+export class VfField implements AfterViewInit, OnInit, DoCheck {
   @ViewChild('signatureCanvas') canvasRef?: ElementRef<HTMLCanvasElement>;
   @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
 
@@ -378,12 +515,15 @@ export class VfField implements AfterViewInit {
   @Input() hideLabel: boolean = false;
   @Input() compact: boolean = false;
   @Input() mediaHandler?: VfMediaHandler;
+  @Input() linkDataSource?: VfLinkDataSource;
+  @Input() linkRequestObserver?: VfLinkRequestObserver;
   @Input() formMetadata?: any;
   @Output() valueChange = new EventEmitter<any>();
 
   public submitted: boolean = false;
 
   ctx = inject(VfFormContext, { optional: true });
+  http = inject(HttpClient);
 
   get shouldShowLabel() {
     return !this.hideLabel && !this.compact && this.field.fieldtype !== 'Button' && this.field.fieldtype !== 'Check';
@@ -418,6 +558,22 @@ export class VfField implements AfterViewInit {
 
   get regex() {
     return this.ctx?.getFieldSignal(this.field.fieldname, 'regex')() ?? this.field.regex;
+  }
+
+  get resolvedLinkConfig(): VfLinkFieldConfig | undefined {
+    return this.ctx?.getFieldSignal(this.field.fieldname, 'link_config')() ?? this.field.link_config;
+  }
+
+  get hasLinkDataSource() {
+    return this.field.fieldtype === 'Link' && !!this.resolvedLinkConfig?.data_source;
+  }
+
+  get linkFilterSummary() {
+    const filters = this.resolvedLinkConfig?.filters || {};
+    return Object.entries(filters)
+      .filter(([, value]) => value !== undefined && value !== null && value !== '')
+      .map(([key, value]) => `${this.humanizeKey(key)} equals "${value}"`)
+      .join(', ');
   }
 
   get attachConfig() {
@@ -477,6 +633,246 @@ export class VfField implements AfterViewInit {
     return isPrimary
       ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100'
       : 'bg-white border border-zinc-200 text-zinc-600 hover:bg-zinc-50 hover:border-zinc-300';
+  }
+
+  // ── Link Field Logic ─────────────────────────────────────────
+  private static linkCache = new Map<string, any[]>();
+  showLinkDropdown = false;
+  linkLoading = false;
+  linkError = '';
+  linkResults: any[] = [];
+  linkInputValue = '';
+  private linkBlurTimer?: ReturnType<typeof setTimeout>;
+  private activeLinkRequestId = 0;
+  private lastLinkRefreshTick = 0;
+
+  ngOnInit() {
+    if (this.field.fieldtype === 'Link') {
+      this.syncLinkInputWithValue();
+    }
+  }
+
+  ngDoCheck() {
+    if (this.field.fieldtype === 'Link' && !this.showLinkDropdown) {
+      this.syncLinkInputWithValue();
+    }
+
+    if (this.field.fieldtype !== 'Link' || !this.ctx) return;
+    const tick = this.ctx.getLinkRefreshSignal(this.field.fieldname)();
+    if (tick !== this.lastLinkRefreshTick) {
+      this.lastLinkRefreshTick = tick;
+      if (this.showLinkDropdown) {
+        void this.loadLinkOptions(this.linkInputValue);
+      }
+      this.syncLinkInputWithValue();
+    }
+  }
+
+  onLinkSearchChange(value: string) {
+    this.linkInputValue = value;
+    this.showLinkDropdown = true;
+
+    if (!value.trim() && this.value) {
+      this.onValueChange(null);
+    }
+
+    void this.loadLinkOptions(value);
+  }
+
+  openLinkDropdown() {
+    if (this.disabled || !this.hasLinkDataSource) return;
+    if (this.linkBlurTimer) clearTimeout(this.linkBlurTimer);
+    this.showLinkDropdown = true;
+    const initialQuery = this.value ? '' : this.linkInputValue;
+    void this.loadLinkOptions(initialQuery, true);
+  }
+
+  onLinkBlur() {
+    this.linkBlurTimer = setTimeout(() => {
+      this.showLinkDropdown = false;
+      this.syncLinkInputWithValue();
+    }, 180);
+  }
+
+  clearLinkSelection() {
+    this.onValueChange(null);
+    this.linkInputValue = '';
+    this.linkResults = [];
+    this.linkError = '';
+  }
+
+  selectLinkOption(item: any) {
+    this.onValueChange(item);
+    this.linkInputValue = this.getLinkTitle(item);
+    this.showLinkDropdown = false;
+  }
+
+  getLinkDisplayValue(value: any) {
+    if (!value) return '';
+    if (!this.resolvedLinkConfig?.mapping) return typeof value === 'string' ? value : '';
+    return this.getLinkTitle(value);
+  }
+
+  getLinkTitle(item: any) {
+    return String(this.getValueByPath(item, this.resolvedLinkConfig?.mapping?.title) ?? '');
+  }
+
+  getLinkDescription(item: any) {
+    const path = this.resolvedLinkConfig?.mapping?.description;
+    if (!path) return '';
+    const value = this.getValueByPath(item, path);
+    return value === undefined || value === null ? '' : String(value);
+  }
+
+  getLinkItemTrack(item: any) {
+    const idPath = this.resolvedLinkConfig?.mapping?.id;
+    return String(this.getValueByPath(item, idPath) ?? this.getLinkTitle(item));
+  }
+
+  private syncLinkInputWithValue() {
+    if (!this.hasLinkDataSource) return;
+    this.linkInputValue = this.getLinkDisplayValue(this.value);
+  }
+
+  private async loadLinkOptions(query: string, preloadOnEmpty: boolean = false) {
+    const config = this.resolvedLinkConfig;
+    if (!config?.data_source) return;
+
+    const minQueryLength = config.min_query_length ?? 0;
+    const normalizedQuery = (query || '').trim();
+    const shouldBypassMinQueryLength = preloadOnEmpty && normalizedQuery.length === 0;
+
+    if (!shouldBypassMinQueryLength && normalizedQuery.length < minQueryLength) {
+      this.linkResults = [];
+      this.linkError = '';
+      this.emitLinkRequestState(query, 'idle');
+      return;
+    }
+
+    const filters = { ...(config.filters || {}) };
+    const requestId = ++this.activeLinkRequestId;
+    const cacheKey = this.getLinkCacheKey(config, query, filters);
+
+    if (config.cache !== false && VfField.linkCache.has(cacheKey)) {
+      this.linkResults = VfField.linkCache.get(cacheKey) || [];
+      this.linkError = '';
+      this.emitLinkRequestState(query, 'success', this.linkResults.length);
+      return;
+    }
+
+    this.linkLoading = true;
+    this.linkError = '';
+    this.emitLinkRequestState(query, 'loading');
+
+    try {
+      const results = this.linkDataSource
+        ? await this.linkDataSource({
+          field: this.field,
+          query,
+          filters,
+          config,
+          formMetadata: this.formMetadata ?? this.ctx?.metadata
+        })
+        : await this.fetchLinkOptionsFromEndpoint(query, filters, config);
+
+      if (requestId !== this.activeLinkRequestId) return;
+
+      this.linkResults = Array.isArray(results) ? results : [];
+      if (config.cache !== false) {
+        VfField.linkCache.set(cacheKey, this.linkResults);
+      }
+      this.emitLinkRequestState(query, 'success', this.linkResults.length);
+    } catch (error) {
+      if (requestId !== this.activeLinkRequestId) return;
+      this.linkResults = [];
+      this.linkError = error instanceof Error ? error.message : 'Failed to load link options.';
+      this.emitLinkRequestState(query, 'error', 0, this.linkError);
+    } finally {
+      if (requestId === this.activeLinkRequestId) {
+        this.linkLoading = false;
+      }
+    }
+  }
+
+  private async fetchLinkOptionsFromEndpoint(query: string, filters: Record<string, any>, config: VfLinkFieldConfig): Promise<any[]> {
+    const searchParam = config.search_param || 'q';
+    const limitParam = config.limit_param || 'limit';
+    const pageSize = config.page_size ?? 20;
+    const method = config.method || 'GET';
+
+    let response: any;
+    if (method === 'POST') {
+      response = await firstValueFrom(this.http.post<any>(config.data_source, {
+        [searchParam]: query,
+        filters,
+        fieldname: this.field.fieldname,
+        fieldtype: this.field.fieldtype,
+        [limitParam]: pageSize
+      }));
+    } else {
+      let params = new HttpParams()
+        .set(searchParam, query)
+        .set(limitParam, String(pageSize))
+        .set('fieldname', this.field.fieldname)
+        .set('fieldtype', this.field.fieldtype);
+
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          params = params.set(`filters.${key}`, String(value));
+        }
+      });
+
+      response = await firstValueFrom(this.http.get<any>(config.data_source, { params }));
+    }
+
+    const extracted = config.results_path
+      ? this.getValueByPath(response, config.results_path)
+      : (Array.isArray(response) ? response : response?.results || response?.items || response?.data || []);
+
+    return Array.isArray(extracted) ? extracted : [];
+  }
+
+  private emitLinkRequestState(query: string, status: 'idle' | 'loading' | 'success' | 'error', resultCount?: number, error?: string) {
+    this.linkRequestObserver?.({
+      fieldname: this.field.fieldname,
+      query,
+      filters: { ...(this.resolvedLinkConfig?.filters || {}) },
+      status,
+      resultCount,
+      error
+    });
+    this.ctx?.linkRequestObserver?.({
+      fieldname: this.field.fieldname,
+      query,
+      filters: { ...(this.resolvedLinkConfig?.filters || {}) },
+      status,
+      resultCount,
+      error
+    });
+  }
+
+  private getLinkCacheKey(config: VfLinkFieldConfig, query: string, filters: Record<string, any>) {
+    return JSON.stringify({
+      data_source: config.data_source,
+      query,
+      filters
+    });
+  }
+
+  private getValueByPath(obj: any, path?: string) {
+    if (!obj || !path) return undefined;
+    return path.split('.').reduce((prev, curr) => prev != null ? prev[curr] : undefined, obj);
+  }
+
+  getReadonlyEditorHtml(value: any) {
+    if (!value) return '';
+    return String(value)
+      .replace(/<temporary\b[^>]*>[\s\S]*?<\/temporary>/gi, '')
+      .replace(/\sclass="ql-cell-focused"/gi, '');
+  }
+
+  private humanizeKey(key: string) {
+    return key.replace(/[_\.]+/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
   }
 
   // ── Signature Logic ──────────────────────────────────────────

@@ -118,6 +118,7 @@ frm.on('refresh', (frm) => {
     // Toggle field visibility dynamically
     if (frm.get_value('status') === 'Approved') {
         frm.set_df_property('batch_id', 'read_only', true);
+        frm.set_df_property('batch_id', 'reqd', true); // alias of mandatory
     }
 });
 
@@ -137,13 +138,105 @@ The `set_df_property` method now supports targeting columns within a table by pr
 ```javascript
 // Target a top-level field
 frm.set_df_property('email', 'read_only', true);
+frm.set_df_property('email', 'reqd', true); // alias of mandatory
 
 // Target a column within a table
 frm.set_df_property('items_table', 'options', '.pdf,.jpg', 'attachment_col');
 frm.set_df_property('items_table', 'hidden', true, 'rate_col');
 ```
 
----
+### 🔗 Link Field Data Sources
+
+`Link` fields can now behave like Frappe-style autocomplete lookups backed by a remote endpoint. Unlike `Select`, a `Link` field stores the full selected object in form data.
+
+**Field Config Example**:
+
+```json
+{
+  "id": "f_item",
+  "fieldname": "item",
+  "fieldtype": "Link",
+  "label": "Item",
+  "link_config": {
+    "data_source": "/api/items/search",
+    "mapping": {
+      "id": "id",
+      "title": "item_name",
+      "description": "item_description"
+    },
+    "filters": {
+      "category": "Voucher"
+    },
+    "method": "GET",
+    "cache": true,
+    "min_query_length": 1
+  }
+}
+```
+
+**Renderer Integration Example**:
+
+```typescript
+linkDataSource = async ({ query, filters, config }) => {
+  const params = new URLSearchParams({
+    q: query,
+    category: filters.category || ''
+  });
+
+  const res = await fetch(`${config.data_source}?${params.toString()}`);
+  return await res.json();
+};
+```
+
+```html
+<vf-renderer
+  [document]="catalogSchema"
+  [linkDataSource]="linkDataSource"
+></vf-renderer>
+```
+
+**Client Script Example**:
+
+```javascript
+frm.on('category', (val, frm) => {
+    frm.set_filter('item', { category: val });
+    frm.refresh_link('item');
+});
+```
+
+**Behavior Notes**:
+- `Select` remains the right choice for static/manual option lists.
+- `frm.set_df_property('my_select', 'options', 'A\\nB\\nC')` still works for dynamic `Select` choices.
+- `Link` is for remote autocomplete data sources and stores the full object selected by the user.
+- Dropdown rendering uses `link_config.mapping.title` and optional `link_config.mapping.description`.
+- Built-in fetches are cached by query + filters, and you can override transport with `[linkDataSource]`.
+- Response shapes are flexible: the endpoint may return an array directly, or an object containing the result array under `results_path`, `results`, `items`, or `data`.
+- Nested dot-paths are supported for both `results_path` and mapping keys, so paths like `payload.data.items`, `record.id`, `profile.display_name`, and `profile.meta.search_hint` all work.
+
+**Endpoint Contract Notes**:
+- `mapping.id`, `mapping.title`, and `mapping.description` accept flat keys or nested dot-paths.
+- In built-in `GET` mode, Vant sends `q`, `limit`, `fieldname`, `fieldtype`, and filters as `filters.<key>=<value>` by default.
+- In built-in `POST` mode, Vant sends `{ q, limit, fieldname, fieldtype, filters }` by default.
+- `search_param` and `limit_param` let you rename the `q` and `limit` keys.
+- For authenticated, presigned, or app-specific transport, prefer `[linkDataSource]` and return a plain array of result objects.
+
+**Nested Mapping Example**:
+
+```json
+{
+  "link_config": {
+    "data_source": "/api/catalog/search",
+    "results_path": "payload.data.items",
+    "mapping": {
+      "id": "record.id",
+      "title": "record.profile.display_name",
+      "description": "record.profile.meta.search_hint"
+    }
+  }
+}
+```
+
+--- 
 
 ### 🤖 AI Agent Integrations
 
@@ -160,23 +253,50 @@ This unlocks powerful workflows for enterprise data capturing, allowing complex 
 
 #### 💡 Example AI Test Prompts
 
-Try testing the AI capabilities with these diverse cross-sector prompts:
+Try testing the AI capabilities with these richer real-world prompts that push schema generation, stepper flows, tables, scripts, media fields, and data-aware behavior:
 
-**1. Healthcare: Patient Intake**
-* **Admin Builder:** "Create a comprehensive Patient Intake form. Include sections for Personal info, Emergency contacts, robust Medical History, and generic consent checkboxes."
-* **Client Chat:** "My name is John Doe, born Jan 1st 1990. My emergency contact is my wife Jane at 555-0199. I have a history of asthma and I consent to the terms."
+**1. Field Service: Work Order With Parts, Media, and Sign-Off**
+* **Admin Builder:** "Create a multi-step Field Service Work Order form for fiber internet repairs. Step 1 should capture dispatch details, customer, service location, priority, SLA target, and a Link field for equipment with remote search filters. Step 2 should capture diagnostics, outage category, root cause, replaced parts in a child table, before/after photo attachments, and engineer notes. Step 3 should capture customer confirmation, engineer signature, customer signature, and final resolution status. Add client scripts that change required fields based on outage severity, calculate total parts cost from the table, and show an intro message for supervisors using frm.metadata.currentUser.role."
+* **Client Chat:** "This is an urgent fiber break in Borrowdale. Customer is ZimFresh HQ, router serial FBR-0092, outage started at 07:10, we replaced two SFP modules at $85 each, attached before and after photos, and the customer signed off after service was restored at 09:42."
 
-**2. Finance: Expense Claim**
-* **Admin Builder:** "Generate a Corporate Expense Claim report. I need a table for line items (date, description, amount), fields for receipt uploads, and a manager approval step."
-* **Client Chat:** "I need to file an expense for my trip to the Vanguard conference yesterday. The flight was $450 and the hotel was $300."
+**2. Banking: SME Loan Origination With Compliance Checks**
+* **Admin Builder:** "Generate a Commercial Loan Application form for small businesses. Include company profile, directors table, KYC document uploads, financial ratios, collateral details, a guarantor section, compliance declarations, and approval actions. Add scripts to compute debt service coverage, enforce mandatory collateral above a requested amount threshold, and use frm.metadata.user.branch and frm.metadata.user.role to show approval warnings."
+* **Client Chat:** "We are Green Basket Wholesale applying for a $75,000 working capital loan. Two directors are Tawanda Moyo and Chipo Dube, annual revenue is $420,000, monthly debt obligations are $4,500, and we are offering two delivery trucks plus warehouse stock as collateral."
 
-**3. Logistics: Incident Report**
-* **Admin Builder:** "Draft a Delivery Incident Report with fields for tracking number, incident type dropdown (Loss, Damage, Delay), a large description box, and a table for impacted item SKUs."
-* **Client Chat:** "Tracking #1Z9999 was delayed because of the severe snowstorm on Tuesday. The package contains SKU-1234 and SKU-5678."
+**3. Healthcare: Emergency Department Triage and Admission**
+* **Admin Builder:** "Build a hospital Emergency Department triage and admission form with patient demographics, arrival mode, vitals, allergy history, presenting complaint, pain scale, clinician notes, ordered tests, admitted ward selection, and consent signature. Include a stepper flow, a medications table, critical-alert badges, and scripts that flag sepsis risk when temperature, heart rate, and blood pressure thresholds are crossed."
+* **Client Chat:** "Patient is Mary Sibanda, 62, brought in by ambulance with shortness of breath, chest tightness, temperature 38.9, pulse 122, BP 92 over 58, allergic to penicillin, pain score 7, and she consented to emergency treatment."
 
-**4. IT Operations: Asset Request**
-* **Admin Builder:** "Create an IT Asset Request form. It needs a dropdown for equipment type (Laptop, Monitor, Phone), a justification text area, and checkboxes for software licenses required."
-* **Client Chat:** "I'm starting next week and need a new Macbook Pro and an external 4K monitor for my design work. Oh, and include an Adobe Creative Cloud license."
+**4. Insurance: Motor Claim With Assessment Workflow**
+* **Admin Builder:** "Create a motor insurance claim form with policy lookup, driver details, accident timeline, third-party information, police report upload, vehicle damage photo attachments, assessor notes, repair estimate table, and settlement recommendation. Add scripts to require police report details for injury-related claims, calculate total repair estimate, and show different approval guidance based on frm.metadata.currentUser.claimsAuthority."
+* **Client Chat:** "Policy MTR-44291, accident happened yesterday at 6:20 PM near Samora Machel Avenue, rear bumper and tail light were damaged, no injuries, police reference RRB-1120, and the first estimate is $380 for parts and $140 for labor."
+
+**5. Telecom Sales: SIM Registration and KYC**
+* **Admin Builder:** "Design a telecom SIM registration and KYC onboarding form with customer profile, ID verification uploads, plan selection, address details, optional business registration details, selfie capture attachment, and digital consent signature. Add scripts to reveal business fields only for corporate accounts, validate age requirements from date of birth, and use a Link field to search available plans from an endpoint filtered by customer segment."
+* **Client Chat:** "Register a prepaid SIM for Rutendo Ncube, born May 14 1998, national ID 63-198765 B 12, residential customer in Avondale, wants a youth social bundle plan, and I have uploaded her ID front and back."
+
+**6. Supply Chain: Warehouse Receiving Discrepancy Report**
+* **Admin Builder:** "Create a Warehouse Goods Receiving and Discrepancy form with supplier Link lookup, purchase order Link lookup, truck arrival details, received items child table, rejected quantities, damage photo uploads, quarantine decision, and supervisor approval. Add scripts that compare ordered versus received quantities, require reason codes for shortages, and automatically filter the purchase order Link based on the selected supplier."
+* **Client Chat:** "Supplier is Delta Packaging, PO is PO-88421, truck arrived at 08:15, item CARTON-12 ordered 500 received 480 with 20 water-damaged units, item LABEL-77 ordered and received 1200, and the damaged cartons were moved to quarantine."
+
+**7. HR: New Hire Onboarding With Asset Allocation**
+* **Admin Builder:** "Build a multi-step Employee Onboarding form with personal details, emergency contacts, tax info, banking details, department and manager lookup, equipment allocation, software access checklist, policy acknowledgements, and employee signature. Add scripts to make laptop and access fields mandatory for technical roles, calculate relocation benefits eligibility from branch and grade, and display branch-specific onboarding notes from frm.metadata."
+* **Client Chat:** "New hire is Nigel Chari joining as a Senior Backend Engineer in the Digital Banking team on April 1st, manager is Tariro Mlambo, branch is Harare HQ, he needs a laptop, two monitors, GitHub, Jira, VPN, and relocation assistance from Bulawayo."
+
+**8. Construction: Site Inspection With Risk Scoring**
+* **Admin Builder:** "Generate a Construction Site Inspection form with project details, contractor Link lookup, weather conditions, PPE compliance checklist, incident observations, corrective action table, geotag/photo attachments, risk score calculation, and inspector signature. Add scripts to auto-calculate risk level from issue severity, hide closeout fields until all critical findings are addressed, and surface a red intro banner for high-risk projects."
+* **Client Chat:** "Project is Eastgate Mall Extension, contractor is BuildAxis, weather was light rain, three workers were missing eye protection near the cutting area, scaffolding bay 2 lacked toe boards, I added two corrective actions with responsible supervisors, and the inspector signed at 16:35."
+
+**9. Retail Operations: Multi-Branch Stock Transfer Request**
+* **Admin Builder:** "Create a Stock Transfer Request form for retail branches with source branch, destination branch, transfer reason, urgency, item selection via Link field, requested quantities table, attachment for manager note, and approval actions. Add scripts to block same-branch transfers, filter item availability by source branch, and show inventory policy hints from frm.metadata."
+* **Client Chat:** "Transfer 40 units of item Spark 2L and 24 units of item Fresh Milk 500ml from Borrowdale branch to Avondale branch because Avondale is below safety stock and needs replenishment before weekend rush."
+
+**10. Public Sector: Grant Application With Eligibility Rules**
+* **Admin Builder:** "Create a grant application form for youth entrepreneurship funding. Include applicant bio, business summary, funding request, budget breakdown table, milestone plan, supporting document uploads, referee details, declarations, and final signature. Add scripts to compute the total requested budget, validate age eligibility, reveal mentor details for first-time founders, and use frm.metadata.reviewCycle to display the current application window."
+* **Client Chat:** "Applicant is Ashley Muchengeti, 27, applying for $12,000 to expand a solar irrigation startup, budget includes pumps, piping, installation, and training, and the project will create four jobs within six months."
+
+**Importable Showcase JSON**
+* A copyable schema that demonstrates Link data sources, Attach, Signature, tables, and metadata-aware scripts is available at `examples/kai-ng-flow/src/assets/examples/field-service-work-order.json`.
 
 ---
 

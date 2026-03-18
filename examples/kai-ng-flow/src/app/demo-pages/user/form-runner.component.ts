@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MockStorageService, FormDesign } from '../../core/services/mock-storage.service';
 import { AiAssistantResponse, AiFormService } from '../../core/services/ai-form.service';
+import { DemoMediaService } from '../../core/services/demo-media.service';
 import { VfRenderer, VfToastOutlet } from 'vant-flow';
 import { FormsModule } from '@angular/forms';
 import { marked } from 'marked';
@@ -27,11 +28,6 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
         
         <div class="h-6 w-px bg-zinc-200 mx-2"></div>
 
-        <button (click)="openMetadataDialog()" class="flex items-center gap-2 bg-sky-50 text-sky-700 hover:bg-sky-100 px-4 py-2 rounded-xl transition-colors font-bold text-xs">
-           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v18M3 12h18"/></svg>
-           TEST METADATA
-        </button>
-
         <button (click)="isChatOpen.set(!isChatOpen())" class="flex items-center gap-2 bg-violet-50 text-violet-700 hover:bg-violet-100 px-4 py-2 rounded-xl transition-colors font-bold text-xs">
            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
            AI ASSISTANT
@@ -50,7 +46,7 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
                 <vf-renderer 
                   #renderer
                   [document]="form.schema" 
-                  [metadata]="runtimeMetadata"
+                  [mediaHandler]="demoMedia.mediaHandler"
                   (formDraft)="onFormDraft($event)"
                   (formError)="onFormError($event)"
                   (formSubmit)="onFormSubmit($event)"
@@ -179,63 +175,6 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
         }
       </main>
 
-      @if (isMetadataDialogOpen()) {
-        <div class="fixed inset-0 z-[70] bg-zinc-950/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div class="w-full max-w-3xl rounded-3xl bg-white shadow-2xl border border-zinc-200 overflow-hidden">
-            <div class="px-6 py-5 border-b border-zinc-100 flex items-start justify-between gap-4">
-              <div>
-                <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700">Test frm.metadata</p>
-                <h3 class="text-lg font-black text-zinc-900 mt-1">Optional Runtime Metadata</h3>
-                <p class="text-sm text-zinc-500 mt-2">Use this to simulate host-injected data for scripts that read <code>frm.metadata</code>. This is only for client-side testing and is not saved with the form.</p>
-              </div>
-              <button (click)="closeMetadataDialog()" class="p-2 text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg transition-colors">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-              </button>
-            </div>
-
-            <div class="p-6 space-y-4">
-              <div class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
-                Real backends can wire this via the renderer <code>[metadata]</code> input, for example with a logged-in user object or request context.
-              </div>
-
-              <textarea
-                class="w-full min-h-56 rounded-2xl border bg-zinc-950 text-emerald-300 font-mono text-[12px] leading-relaxed p-4 outline-none transition-all"
-                [class.border-red-300]="metadataError"
-                [class.focus:border-red-400]="metadataError"
-                [class.border-zinc-800]="!metadataError"
-                [class.focus:border-sky-400]="!metadataError"
-                [ngModel]="metadataInput"
-                (ngModelChange)="metadataInput = $event">
-              </textarea>
-
-              @if (metadataError) {
-                <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {{ metadataError }}
-                </div>
-              } @else {
-                <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                  Current test metadata is active for this renderer session.
-                </div>
-              }
-            </div>
-
-            <div class="px-6 py-5 border-t border-zinc-100 flex items-center justify-between gap-3 bg-zinc-50">
-              <button (click)="clearMetadata()" class="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-600 hover:bg-zinc-100 transition-colors">
-                Clear Metadata
-              </button>
-              <div class="flex items-center gap-3">
-                <button (click)="closeMetadataDialog()" class="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-600 hover:bg-zinc-100 transition-colors">
-                  Close
-                </button>
-                <button (click)="applyMetadata()" class="px-5 py-2 rounded-xl bg-sky-600 text-sm font-bold text-white hover:bg-sky-700 transition-colors shadow-lg shadow-sky-500/20">
-                  Apply Metadata
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      }
-      
       <vf-toast-outlet></vf-toast-outlet>
     </div>
   `
@@ -244,6 +183,7 @@ export class FormRunnerComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private storage = inject(MockStorageService);
+  demoMedia = inject(DemoMediaService);
   ai = inject(AiFormService);
   private sanitizer = inject(DomSanitizer);
 
@@ -267,10 +207,6 @@ export class FormRunnerComponent implements OnInit {
   ]);
   aiManipulated = false; // Flag to track if AI ever modified the form
   private lastFormErrors: string[] = [];
-  isMetadataDialogOpen = signal(false);
-  runtimeMetadata: Record<string, any> = {};
-  metadataInput = JSON.stringify(this.getDefaultMetadata(), null, 2);
-  metadataError: string | null = null;
 
   // Resizing logic
   private isResizing = false;
@@ -380,38 +316,6 @@ export class FormRunnerComponent implements OnInit {
     } catch (err) {
       console.error('Submission failed', err);
     }
-  }
-
-  openMetadataDialog() {
-    this.isMetadataDialogOpen.set(true);
-    this.metadataInput = JSON.stringify(this.runtimeMetadata || this.getDefaultMetadata(), null, 2);
-    this.metadataError = null;
-  }
-
-  closeMetadataDialog() {
-    this.isMetadataDialogOpen.set(false);
-  }
-
-  applyMetadata() {
-    try {
-      const parsed = this.metadataInput.trim() ? JSON.parse(this.metadataInput) : {};
-      if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
-        this.metadataError = 'Test metadata must be a JSON object.';
-        return;
-      }
-
-      this.runtimeMetadata = parsed;
-      this.metadataError = null;
-      this.closeMetadataDialog();
-    } catch {
-      this.metadataError = 'Invalid JSON. Please fix it before applying the test metadata.';
-    }
-  }
-
-  clearMetadata() {
-    this.runtimeMetadata = {};
-    this.metadataInput = '{}';
-    this.metadataError = null;
   }
 
   async onFormDraft(data: any) {
@@ -571,16 +475,6 @@ export class FormRunnerComponent implements OnInit {
     ].filter(Boolean);
 
     return parts.join('\n\n') || 'No changes were applied.';
-  }
-
-  private getDefaultMetadata() {
-    return {
-      currentUser: {
-        name: 'Test User',
-        role: 'Manager'
-      },
-      inspectionMode: 'strict'
-    };
   }
 
 }

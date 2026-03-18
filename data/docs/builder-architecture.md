@@ -115,6 +115,17 @@ Most behavior is declarative and stored in the schema:
 
 That means teams can change business behavior by editing metadata instead of rebuilding the app.
 
+### Authoring New Runtime Integrations
+
+The builder now exposes configuration for deeper runtime features without requiring hand-edited JSON.
+
+- `Link` fields can define `link_config.data_source`
+- `Link` fields can define mapping for `id`, `title`, and optional `description`
+- `Link` fields can define initial `filters`
+- those mappings can use nested dot-paths such as `record.id` or `profile.display_name`
+
+This is important because the builder is not only editing labels and placeholders anymore. It is authoring how the runtime will talk to backend search endpoints and how returned business objects are interpreted.
+
 ### Embedded Scripting
 
 The script editor turns the builder into a runtime behavior authoring tool, not just a layout editor. Developers can attach `frm` logic to:
@@ -124,9 +135,49 @@ The script editor turns the builder into a runtime behavior authoring tool, not 
 - step transitions
 - custom actions
 
+It also now documents and autocompletes newer runtime APIs such as:
+
+- `frm.set_filter(fieldname, filters)` for Link fields
+- `frm.refresh_link(fieldname)` to reload remote autocomplete results
+- `frm.metadata` access for runtime host context
+
+This keeps script authoring aligned with the live capabilities of the renderer and `VfFormContext`.
+
 ### Live Preview
 
 Builder preview runs the same renderer component used in production. That shortens the gap between authored intent and executed behavior.
+
+Preview also has a dedicated runtime metadata editor. That editor feeds `frm.metadata` into the embedded renderer without mutating the underlying `DocumentDefinition`. Architecturally, that is an important distinction:
+
+- `DocumentDefinition.metadata` is persisted schema metadata
+- builder preview metadata is runtime-only host context for testing scripts
+
+This makes preview suitable for validating role-aware or environment-aware client scripts before a real backend is connected.
+
+## How New Field Features Surface in the Builder
+
+### Link Fields
+
+When a field is configured as `Link`, the property editor becomes the schema authoring surface for a remote autocomplete contract.
+
+- `data_source` points to the endpoint
+- `mapping.id` identifies the stable key
+- `mapping.title` controls the visible label in the autocomplete
+- `mapping.description` controls the optional secondary text
+- `filters` defines initial backend query context
+- request settings such as HTTP method and minimum query length shape runtime loading behavior
+
+The builder does not execute backend fetching itself. It persists the contract that the runtime renderer will use later.
+
+### Attach and Signature
+
+`Attach` and `Signature` remain schema-first fields in the builder, but their storage behavior is intentionally runtime-owned.
+
+- the builder defines the field presence and user-facing constraints
+- the host renderer can later inject a `mediaHandler`
+- the runtime field value can end up as a CDN reference object instead of a raw data URL
+
+That split keeps the schema portable while still allowing projects to plug in cloud storage, object stores, or internal media services.
 
 ## Builder + AI Workflow in Example App
 

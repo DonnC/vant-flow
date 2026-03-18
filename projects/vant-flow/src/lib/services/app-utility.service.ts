@@ -1,7 +1,7 @@
 import { Injectable, signal, inject, ApplicationRef, EnvironmentInjector, createComponent } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { DocumentField, VfMediaHandler } from '../models/document.model';
+import { DocumentField, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler } from '../models/document.model';
 import { VfPromptModal } from '../components/prompt-modal.component';
 
 export type ToastIndicator = 'success' | 'error' | 'info' | 'warning';
@@ -63,6 +63,8 @@ export class VfUtilityService {
     title: string = 'Enter Data',
     readOnly: boolean = false,
     mediaHandler?: VfMediaHandler,
+    linkDataSource?: VfLinkDataSource,
+    linkRequestObserver?: VfLinkRequestObserver,
     formMetadata?: any
   ): Promise<Record<string, any> | null> {
     return new Promise(resolve => {
@@ -78,6 +80,8 @@ export class VfUtilityService {
       componentRef.instance.values = initialValues;
       componentRef.instance.readOnly = readOnly;
       componentRef.instance.mediaHandler = mediaHandler;
+      componentRef.instance.linkDataSource = linkDataSource;
+      componentRef.instance.linkRequestObserver = linkRequestObserver;
       componentRef.instance.formMetadata = formMetadata;
 
       componentRef.instance.result.subscribe(res => {

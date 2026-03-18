@@ -38,6 +38,7 @@ flowchart TD
 Owns the Angular component lifecycle and presentation. It:
 
 - accepts `document`, `initialData`, `metadata`, and flags
+- accepts optional `mediaHandler`, `linkDataSource`, and `linkRequestObserver`
 - initializes `formData`
 - emits `formReady`, `formChange`, `formDraft`, `formSubmit`, and `formError`
 - manages full-form and per-step validation
@@ -55,6 +56,8 @@ This is the `frm` runtime API exposed to client scripts. It manages:
 - readonly state
 - dynamic intro banners
 - metadata access
+- link refresh signals
+- optional media and link integration hooks
 
 ## Context API Capabilities
 
@@ -70,6 +73,8 @@ The current implementation supports patterns like:
 - `frm.next_step()` and `frm.go_to_step(...)`
 - `frm.add_custom_button(...)`
 - `frm.call(...)`
+- `frm.set_filter(...)`
+- `frm.refresh_link(...)`
 - `frm.confirm(...)`, `frm.prompt(...)`, and `frm.msgprint(...)`
 
 ## Data Initialization and Packing
@@ -167,8 +172,161 @@ The renderer is designed to stay host-agnostic.
 
 - The host decides where schemas live
 - The host decides what metadata to inject
+- The host decides how media uploads or signature persistence work
+- The host decides whether link lookups use built-in HTTP fetching or a custom data-source function
 - The host decides how to persist drafts and submissions
 - Runtime network work is funneled through `frm.call`
+
+## Media Field Pipeline
+
+`Attach` and `Signature` now use a richer runtime pipeline so the user experience can stay simple while storage logic remains application-owned.
+
+### Why the Hook Exists
+
+Without a dedicated hook, an attachment flow often has to:
+
+- read a file into memory
+- emit a base64-heavy form value
+- detect that change later from `formChange`
+- upload it in a second pass
+- overwrite the field again with the final backend reference
+
+That works, but it is wasteful for large files and awkward for CDN or cloud-storage workflows.
+
+### Current Media Hook Model
+
+The renderer can receive a `mediaHandler`. `VfField` invokes it before finalizing the value for:
+
+- `Attach`, with the raw `File`
+- `Signature`, with a `Blob` and data URL context
+
+The handler also receives:
+
+- the field definition
+- `fieldname`
+- `fieldtype`
+- the current field value
+- runtime `formMetadata`
+
+The return value can be:
+
+- a string
+- a stored-media object
+- `null`
+
+### Stored Media Contract
+
+The stored-media object supports:
+
+- `name`
+- `url`
+- optional `downloadUrl`
+- optional `size`
+- optional `type`
+- optional `fileId`
+- optional custom `metadata`
+
+This means the end user still interacts with the standard Attach or Signature UI, but the runtime value can become a compact cloud-reference object instead of raw uploaded bytes.
+
+### Download Behavior
+
+The UI resolves downloads using:
+
+- `downloadUrl` first
+- then `url` as a fallback
+
+That allows teams to separate preview URLs from download URLs when the backing storage system needs different endpoints or signed links.
+
+## Link Field Runtime Model
+
+The `Link` field is designed as a Frappe-style remote autocomplete field.
+
+### Configuration Surface
+
+`field.link_config` can define:
+
+- `data_source`
+- `mapping.id`
+- `mapping.title`
+- optional `mapping.description`
+- `filters`
+- `method`
+- `search_param`
+- `limit_param`
+- `results_path`
+- `cache`
+- `min_query_length`
+- `page_size`
+
+### Fetch Timing
+
+The field does not eagerly fetch all configured links during renderer boot. It fetches lazily:
+
+- when the input is focused/opened
+- when the search query changes
+- when filters change and the field is refreshed
+
+This keeps startup cost lower and matches autocomplete behavior better.
+
+### Response Contract
+
+The built-in loader accepts:
+
+- a raw array response
+- or an object containing the results under `results_path`
+- or fallback object keys: `results`, `items`, or `data`
+
+Nested dot-paths are supported for both `results_path` and mapping keys. That means backend responses like `payload.data.items` and nested fields like `record.profile.display_name` work without a custom adapter.
+
+### Built-In Request Shape
+
+In built-in `GET` mode, the renderer sends:
+
+- search term
+- page size
+- `fieldname`
+- `fieldtype`
+- filters as `filters.<key>=value`
+
+In built-in `POST` mode, it sends a body containing:
+
+- search term
+- page size
+- `fieldname`
+- `fieldtype`
+- `filters`
+
+The default parameter names are `q` and `limit`, but they can be renamed with `search_param` and `limit_param`.
+
+### Selection and Submission
+
+Unlike a plain `Select`, the `Link` field stores the full selected object. This is deliberate.
+
+- scripts can inspect richer business data after selection
+- packed form submissions retain the chosen object
+- downstream systems are not forced to immediately re-hydrate an ID back into a record
+
+### Runtime Script Control
+
+Client scripts can influence Link behavior through:
+
+- `frm.set_filter(fieldname, filters)` to change backend query filters
+- `frm.refresh_link(fieldname)` to force a reload using the latest filters
+- `frm.set_value(...)` and `frm.get_value(...)` on the selected object itself
+
+This keeps transport in host code, while still letting business logic shape lookup behavior inside the schema.
+
+### Request State Observation
+
+The renderer can also receive a `linkRequestObserver`. That gives host code visibility into:
+
+- loading
+- success
+- error
+- result count
+- the query and active filters
+
+That makes it possible to add logging, metrics, user feedback, or shared caching strategies outside the form script sandbox.
 
 ## Renderer in the Example App
 

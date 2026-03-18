@@ -2,7 +2,7 @@ import { Component, effect, EventEmitter, inject, Input, OnChanges, OnDestroy, O
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuillModule } from 'ngx-quill';
-import { DocumentDefinition, DocumentField, DocumentSection, VfMediaHandler } from '../../models/document.model';
+import { DocumentDefinition, DocumentField, DocumentSection, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler } from '../../models/document.model';
 import { VfFormContext } from '../../services/form-context';
 import { VfUtilityService } from '../../services/app-utility.service';
 
@@ -296,6 +296,8 @@ import { VfField } from '../form-field.component';
                                                               [(value)]="row[col.fieldname]"
                                                               (valueChange)="onFieldChange(field.fieldname)"
                                                               [mediaHandler]="mediaHandler"
+                                                              [linkDataSource]="linkDataSource"
+                                                              [linkRequestObserver]="linkRequestObserver"
                                                               [formMetadata]="metadata"
                                                               [compact]="true"
                                                               [hideLabel]="true">
@@ -381,6 +383,8 @@ import { VfField } from '../form-field.component';
                                             [field]="field"
                                             [(value)]="formData[field.fieldname]"
                                             [mediaHandler]="mediaHandler"
+                                            [linkDataSource]="linkDataSource"
+                                            [linkRequestObserver]="linkRequestObserver"
                                             [formMetadata]="metadata"
                                             (valueChange)="onFieldChange(field.fieldname)">
                                           </vf-field>
@@ -512,6 +516,8 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   @Input() disabled: boolean = false;
   @Input() metadata?: any;
   @Input() mediaHandler?: VfMediaHandler;
+  @Input() linkDataSource?: VfLinkDataSource;
+  @Input() linkRequestObserver?: VfLinkRequestObserver;
 
   @Output() formSubmit = new EventEmitter<any>();
   @Output() formDraft = new EventEmitter<any>();
@@ -538,6 +544,8 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     this.initForm();
     this.ctx.initialize(this.document, this.formData, this.metadata);
     this.ctx.mediaHandler = this.mediaHandler;
+    this.ctx.linkDataSource = this.linkDataSource;
+    this.ctx.linkRequestObserver = this.linkRequestObserver;
     if (this.readonly) {
       this.ctx.set_readonly(true);
     }
@@ -559,6 +567,12 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     }
     if (changes['mediaHandler'] && !changes['mediaHandler'].firstChange) {
       this.ctx.mediaHandler = this.mediaHandler;
+    }
+    if (changes['linkDataSource'] && !changes['linkDataSource'].firstChange) {
+      this.ctx.linkDataSource = this.linkDataSource;
+    }
+    if (changes['linkRequestObserver'] && !changes['linkRequestObserver'].firstChange) {
+      this.ctx.linkRequestObserver = this.linkRequestObserver;
     }
   }
 

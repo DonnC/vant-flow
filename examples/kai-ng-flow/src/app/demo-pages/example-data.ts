@@ -215,3 +215,58 @@ frm.on('btn_request_clearance', (val, frm) => {
     }, 'Manager Clearance');
 });`
 };
+
+export const LINK_DATASOURCE_EXAMPLE_DOCUMENT: DocumentDefinition = {
+    name: 'Voucher Catalog Request',
+    module: 'Sales',
+    version: '1.0.0',
+    description: 'Example schema showing a Frappe-style Link field backed by a remote data source.',
+    sections: [
+        {
+            id: 'sec_catalog',
+            label: 'Catalog Lookup',
+            columns_count: 1,
+            columns: [
+                {
+                    id: 'col_catalog',
+                    fields: [
+                        {
+                            id: 'f_category',
+                            fieldname: 'category',
+                            fieldtype: 'Select',
+                            label: 'Category/Group',
+                            options: 'Voucher\nData Bundle\nElectricity',
+                            default: 'Voucher'
+                        },
+                        {
+                            id: 'f_item',
+                            fieldname: 'item',
+                            fieldtype: 'Link',
+                            label: 'Item',
+                            mandatory: true,
+                            placeholder: 'Search items...',
+                            link_config: {
+                                data_source: '/api/items/search',
+                                mapping: {
+                                    id: 'id',
+                                    title: 'item_name',
+                                    description: 'item_description'
+                                },
+                                filters: {
+                                    category: 'Voucher'
+                                },
+                                method: 'GET',
+                                cache: true,
+                                min_query_length: 1
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    client_script: `frm.on('category', (val, frm) => {
+    frm.set_filter('item', { category: val });
+    frm.refresh_link('item');
+});`
+};
