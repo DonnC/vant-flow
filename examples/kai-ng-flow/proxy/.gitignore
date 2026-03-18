@@ -44,3 +44,4 @@ Thumbs.db
 *.txt
 .env
 environment.ai.ts
+/uploads
