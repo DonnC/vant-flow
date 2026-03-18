@@ -100,61 +100,240 @@ logger.info(` - Gemini: ${startupGeminiKey ? 'OK (ends with ' + startupGeminiKey
 
 const PORT = 3002;
 
-// --- AI Completion Endpoint ---
-app.post('/ai/completion', async (req, res) => {
-    const { provider: requestedProvider, model: requestedModel, messages, config } = req.body;
-    const provider = requestedProvider || process.env.AI_PROVIDER || 'openai';
+function getOpenAiKey() {
+    return process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim() || null;
+}
 
-    let key, keySource;
-    if (provider === 'openai') {
-        if (process.env.OPENAI_API_KEY) {
-            key = process.env.OPENAI_API_KEY.trim();
-            keySource = 'OPENAI_API_KEY';
-        } else if (process.env.OPEN_AI_KEY) {
-            key = process.env.OPEN_AI_KEY.trim();
-            keySource = 'OPEN_AI_KEY';
-        }
-    } else {
-        key = process.env.GEMINI_API_KEY?.trim();
-        keySource = 'GEMINI_API_KEY';
+function getGeminiKey() {
+    return process.env.GEMINI_API_KEY?.trim() || null;
+}
+
+function getDefaultModel(provider, requestedModel) {
+    if (provider === 'openai') return requestedModel || process.env.OPEN_AI_MODEL || 'gpt-4o-mini-2024-07-18';
+    return requestedModel || 'gemini-1.5-flash';
+}
+
+function normalizeProvider(provider) {
+    return provider || process.env.AI_PROVIDER || 'openai';
+}
+
+function extractJsonObject(content) {
+    if (!content) return null;
+    const fenced = content.match(/```json\s*([\s\S]*?)\s*```/i);
+    if (fenced?.[1]) return fenced[1];
+    const firstBrace = content.indexOf('{');
+    const lastBrace = content.lastIndexOf('}');
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) return null;
+    return content.slice(firstBrace, lastBrace + 1);
+}
+
+function parseJsonSafely(content) {
+    const candidate = extractJsonObject(content) || content;
+    try {
+        return JSON.parse(candidate.trim());
+    } catch {
+        return null;
     }
+}
+
+function buildFieldCatalog() {
+    return "Data, Text, Text Editor, Int, Float, Select, Check, Date, Datetime, Time, Password, Link, Attach, Signature, Button, Table.";
+}
+
+function buildFrmApiDocs() {
+    return "frm.get_value, frm.set_value, frm.set_df_property, frm.msgprint, frm.set_intro, frm.add_custom_button, frm.prompt, frm.confirm, frm.call, frm.add_row, frm.remove_row, frm.next_step, frm.prev_step, frm.go_to_step";
+}
+
+async function callModel({ provider: requestedProvider, model: requestedModel, messages, config = {} }) {
+    const provider = normalizeProvider(requestedProvider);
+    const key = provider === 'openai' ? getOpenAiKey() : getGeminiKey();
 
     if (!key) {
-        return res.status(401).json({ error: `API Key for ${provider} is missing in .env` });
+        throw new Error(`API Key for ${provider} is missing in .env`);
     }
 
-    try {
-        logger.info(`Incoming completion request`, { provider, messagesCount: messages.length });
+    logger.info(`Incoming completion request`, { provider, messagesCount: messages.length });
 
-        if (provider === 'openai') {
-            const client = new OpenAI({ apiKey: key });
-            const completion = await client.chat.completions.create({
-                model: requestedModel || process.env.OPEN_AI_MODEL || 'gpt-4o-mini-2024-07-18',
-                messages: messages,
-                ...config
-            });
-            const content = completion.choices[0].message.content;
-            logger.info(`OpenAI completion successful`, { responseSnippet: content ? content.substring(0, 100) + '...' : 'EMPTY' });
-            return res.json(completion);
-        } else if (provider === 'gemini') {
-            const genAI = new GoogleGenerativeAI(key);
-            const geminiModel = genAI.getGenerativeModel({ model: requestedModel || 'gemini-1.5-flash' });
-            const prompt = messages[messages.length - 1].content;
-            const result = await geminiModel.generateContent(prompt);
-            const response = await result.response;
-            const content = response.text();
-            logger.info(`Gemini completion successful`, { responseSnippet: content ? content.substring(0, 100) + '...' : 'EMPTY' });
-            return res.json({
-                choices: [{
-                    message: {
-                        content: content
-                    }
-                }]
-            });
+    if (provider === 'openai') {
+        const client = new OpenAI({ apiKey: key });
+        const completion = await client.chat.completions.create({
+            model: getDefaultModel(provider, requestedModel),
+            messages,
+            ...config
+        });
+        const content = completion.choices[0].message.content;
+        logger.info(`OpenAI completion successful`, { responseSnippet: content ? content.substring(0, 100) + '...' : 'EMPTY' });
+        return {
+            provider,
+            content: content || '',
+            raw: completion
+        };
+    }
+
+    const genAI = new GoogleGenerativeAI(key);
+    const geminiModel = genAI.getGenerativeModel({ model: getDefaultModel(provider, requestedModel) });
+    const prompt = messages.map(m => `${String(m.role || 'user').toUpperCase()}:\n${m.content}`).join('\n\n');
+    const result = await geminiModel.generateContent(prompt);
+    const response = await result.response;
+    const content = response.text();
+    logger.info(`Gemini completion successful`, { responseSnippet: content ? content.substring(0, 100) + '...' : 'EMPTY' });
+    return {
+        provider,
+        content: content || '',
+        raw: {
+            choices: [{ message: { content } }]
         }
+    };
+}
+
+// --- AI Completion Endpoint ---
+app.post('/ai/completion', async (req, res) => {
+    try {
+        const { provider, model, messages, config } = req.body;
+        const result = await callModel({ provider, model, messages, config });
+        return res.json(result.raw);
     } catch (err) {
         logger.error('AI Proxy Error', { error: err.message, stack: err.stack });
         res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/ai/scaffold', async (req, res) => {
+    const { prompt, provider, model } = req.body;
+
+    if (!prompt || typeof prompt !== 'string') {
+        return res.status(400).json({ error: 'Prompt is required.' });
+    }
+
+    const systemInstruction = `You are an expert Vant Flow architect.
+Field Types:
+${buildFieldCatalog()}
+
+Available frm API:
+${buildFrmApiDocs()}
+
+Generate forms that match what Vant Flow actually supports today:
+- Use stepper flows for onboarding, approvals, and multi-stage capture.
+- Use Table for line items, checklists, defect logs, votes, and approval matrices.
+- Use Signature for explicit sign-off steps, approver acknowledgment, or auditor confirmation.
+- Use Attach for evidence and supporting documents.
+- Do not invent nested tables or unsupported widgets.
+- If a prompt mentions approval, review, sign-off, committee, or authorization, include a clear review/signature area.
+
+Task: Create a JSON DocumentDefinition for: "${prompt}".
+Only return the JSON. No Markdown.`;
+
+    try {
+        const result = await callModel({
+            provider,
+            model,
+            messages: [
+                { role: 'system', content: systemInstruction },
+                { role: 'user', content: `Create a complete, rich Vant Flow form schema for: "${prompt}"` }
+            ],
+            config: { temperature: 0.2 }
+        });
+
+        const parsed = parseJsonSafely(result.content);
+        if (!parsed || typeof parsed !== 'object' || typeof parsed.name !== 'string') {
+            return res.status(502).json({ error: 'Model did not return a valid DocumentDefinition JSON payload.' });
+        }
+
+        parsed.metadata = {
+            ...(parsed.metadata || {}),
+            is_ai_generated: true,
+            generated_from: prompt,
+            generated_via: 'proxy'
+        };
+
+        return res.json(parsed);
+    } catch (err) {
+        logger.error('AI Scaffold Error', { error: err.message, stack: err.stack });
+        return res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/ai/assist', async (req, res) => {
+    const { provider, model, messages, schema, currentData } = req.body;
+
+    if (!schema || !messages || !Array.isArray(messages)) {
+        return res.status(400).json({ error: 'messages and schema are required.' });
+    }
+
+    const normalizedMessages = messages.map(m => ({
+        role: m.role === 'user' ? 'user' : 'assistant',
+        content: m.content
+    }));
+
+    const systemInstruction = `You are an expert Vant Flow AI Assistant.
+You are helping a user fill a live Vant Flow form.
+
+Schema JSON Structure: ${JSON.stringify(schema)}
+CURRENT USER DATA STATE: ${JSON.stringify(currentData || {})}
+
+You must only return valid JSON. No Markdown.
+
+Return an object with this exact shape:
+{
+  "assistant_message": "short helpful explanation written in Markdown",
+  "field_updates": { "fieldname": "value" },
+  "table_updates": [
+    { "fieldname": "table_fieldname", "mode": "append", "rows": [{ "column_fieldname": "value" }] }
+  ],
+  "actions": [
+    { "type": "validate" },
+    { "type": "save" },
+    { "type": "submit" },
+    { "type": "next_step" },
+    { "type": "prev_step" },
+    { "type": "goto_step", "step": 1 }
+  ],
+  "requires_manual_input": ["reason manual input is needed"]
+}
+
+Rules:
+- Use exact schema fieldnames only.
+- Use "field_updates" for normal fields.
+- Use "table_updates" for Table rows.
+- Use "append" to add rows and "replace" to overwrite a whole table.
+- Only include "save" or "submit" if the user explicitly asks for it.
+- Use "validate" if the user asks you to check or verify the form.
+- If the user asks to attach a file or provide a real signature, do not fabricate it. Explain it in "requires_manual_input".
+- The user-facing UI will render "assistant_message" as Markdown.
+- If there is not enough information, leave updates empty and ask a concise follow-up question in "assistant_message".`;
+
+    try {
+        const result = await callModel({
+            provider,
+            model,
+            messages: [
+                { role: 'system', content: systemInstruction },
+                ...normalizedMessages
+            ],
+            config: { temperature: 0.1 }
+        });
+
+        const parsed = parseJsonSafely(result.content);
+        if (!parsed || typeof parsed.assistant_message !== 'string') {
+            return res.json({
+                assistant_message: result.content || 'I am sorry, I am unable to respond at this time.',
+                field_updates: {},
+                table_updates: [],
+                actions: [],
+                requires_manual_input: []
+            });
+        }
+
+        return res.json({
+            assistant_message: parsed.assistant_message,
+            field_updates: parsed.field_updates || {},
+            table_updates: parsed.table_updates || [],
+            actions: parsed.actions || [],
+            requires_manual_input: parsed.requires_manual_input || []
+        });
+    } catch (err) {
+        logger.error('AI Assist Error', { error: err.message, stack: err.stack });
+        return res.status(500).json({ error: err.message });
     }
 });
 

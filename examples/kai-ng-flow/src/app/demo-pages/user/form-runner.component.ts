@@ -2,8 +2,8 @@ import { Component, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MockStorageService, FormDesign } from '../../core/services/mock-storage.service';
-import { AiFormService } from '../../core/services/ai-form.service';
-import { VfRenderer, VfToastOutlet, DocumentDefinition } from 'vant-flow';
+import { AiAssistantResponse, AiFormService } from '../../core/services/ai-form.service';
+import { VfRenderer, VfToastOutlet } from 'vant-flow';
 import { FormsModule } from '@angular/forms';
 import { marked } from 'marked';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -27,6 +27,11 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
         
         <div class="h-6 w-px bg-zinc-200 mx-2"></div>
 
+        <button (click)="openMetadataDialog()" class="flex items-center gap-2 bg-sky-50 text-sky-700 hover:bg-sky-100 px-4 py-2 rounded-xl transition-colors font-bold text-xs">
+           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v18M3 12h18"/></svg>
+           TEST METADATA
+        </button>
+
         <button (click)="isChatOpen.set(!isChatOpen())" class="flex items-center gap-2 bg-violet-50 text-violet-700 hover:bg-violet-100 px-4 py-2 rounded-xl transition-colors font-bold text-xs">
            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
            AI ASSISTANT
@@ -45,6 +50,9 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
                 <vf-renderer 
                   #renderer
                   [document]="form.schema" 
+                  [metadata]="runtimeMetadata"
+                  (formDraft)="onFormDraft($event)"
+                  (formError)="onFormError($event)"
                   (formSubmit)="onFormSubmit($event)"
                 ></vf-renderer>
              </div>
@@ -170,6 +178,63 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
            </div>
         }
       </main>
+
+      @if (isMetadataDialogOpen()) {
+        <div class="fixed inset-0 z-[70] bg-zinc-950/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div class="w-full max-w-3xl rounded-3xl bg-white shadow-2xl border border-zinc-200 overflow-hidden">
+            <div class="px-6 py-5 border-b border-zinc-100 flex items-start justify-between gap-4">
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700">Test frm.metadata</p>
+                <h3 class="text-lg font-black text-zinc-900 mt-1">Optional Runtime Metadata</h3>
+                <p class="text-sm text-zinc-500 mt-2">Use this to simulate host-injected data for scripts that read <code>frm.metadata</code>. This is only for client-side testing and is not saved with the form.</p>
+              </div>
+              <button (click)="closeMetadataDialog()" class="p-2 text-zinc-400 hover:text-zinc-800 hover:bg-zinc-100 rounded-lg transition-colors">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+
+            <div class="p-6 space-y-4">
+              <div class="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+                Real backends can wire this via the renderer <code>[metadata]</code> input, for example with a logged-in user object or request context.
+              </div>
+
+              <textarea
+                class="w-full min-h-56 rounded-2xl border bg-zinc-950 text-emerald-300 font-mono text-[12px] leading-relaxed p-4 outline-none transition-all"
+                [class.border-red-300]="metadataError"
+                [class.focus:border-red-400]="metadataError"
+                [class.border-zinc-800]="!metadataError"
+                [class.focus:border-sky-400]="!metadataError"
+                [ngModel]="metadataInput"
+                (ngModelChange)="metadataInput = $event">
+              </textarea>
+
+              @if (metadataError) {
+                <div class="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {{ metadataError }}
+                </div>
+              } @else {
+                <div class="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  Current test metadata is active for this renderer session.
+                </div>
+              }
+            </div>
+
+            <div class="px-6 py-5 border-t border-zinc-100 flex items-center justify-between gap-3 bg-zinc-50">
+              <button (click)="clearMetadata()" class="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-600 hover:bg-zinc-100 transition-colors">
+                Clear Metadata
+              </button>
+              <div class="flex items-center gap-3">
+                <button (click)="closeMetadataDialog()" class="px-4 py-2 rounded-xl border border-zinc-200 bg-white text-sm font-bold text-zinc-600 hover:bg-zinc-100 transition-colors">
+                  Close
+                </button>
+                <button (click)="applyMetadata()" class="px-5 py-2 rounded-xl bg-sky-600 text-sm font-bold text-white hover:bg-sky-700 transition-colors shadow-lg shadow-sky-500/20">
+                  Apply Metadata
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      }
       
       <vf-toast-outlet></vf-toast-outlet>
     </div>
@@ -201,6 +266,11 @@ export class FormRunnerComponent implements OnInit {
     }
   ]);
   aiManipulated = false; // Flag to track if AI ever modified the form
+  private lastFormErrors: string[] = [];
+  isMetadataDialogOpen = signal(false);
+  runtimeMetadata: Record<string, any> = {};
+  metadataInput = JSON.stringify(this.getDefaultMetadata(), null, 2);
+  metadataError: string | null = null;
 
   // Resizing logic
   private isResizing = false;
@@ -312,6 +382,57 @@ export class FormRunnerComponent implements OnInit {
     }
   }
 
+  openMetadataDialog() {
+    this.isMetadataDialogOpen.set(true);
+    this.metadataInput = JSON.stringify(this.runtimeMetadata || this.getDefaultMetadata(), null, 2);
+    this.metadataError = null;
+  }
+
+  closeMetadataDialog() {
+    this.isMetadataDialogOpen.set(false);
+  }
+
+  applyMetadata() {
+    try {
+      const parsed = this.metadataInput.trim() ? JSON.parse(this.metadataInput) : {};
+      if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
+        this.metadataError = 'Test metadata must be a JSON object.';
+        return;
+      }
+
+      this.runtimeMetadata = parsed;
+      this.metadataError = null;
+      this.closeMetadataDialog();
+    } catch {
+      this.metadataError = 'Invalid JSON. Please fix it before applying the test metadata.';
+    }
+  }
+
+  clearMetadata() {
+    this.runtimeMetadata = {};
+    this.metadataInput = '{}';
+    this.metadataError = null;
+  }
+
+  async onFormDraft(data: any) {
+    if (!this.form) return;
+
+    const metadata = {
+      ...(this.aiManipulated ? { ai_submitted: true } : {}),
+      draft: true
+    };
+
+    try {
+      await this.storage.saveSubmission(this.form.id, this.form.schema.name, data, metadata);
+    } catch (err) {
+      console.error('Draft save failed', err);
+    }
+  }
+
+  onFormError(errors: string[]) {
+    this.lastFormErrors = errors;
+  }
+
   handleEnter(e: any) {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -353,61 +474,113 @@ export class FormRunnerComponent implements OnInit {
       console.warn("Could not get renderer context state", e);
     }
 
-    const rawResponse = await this.ai.getChatFormAssistance(this.chatMessages(), this.form.schema, currentData);
+    const response = await this.ai.getChatFormAssistance(this.chatMessages(), this.form.schema, currentData);
 
     this.isAiTyping.set(false);
+    const finalMessage = await this.applyAssistantResponse(response);
 
-    // Persist assistant message
     if (this.form) {
-      this.ai.saveChatMessage(this.form.id, 'assistant', rawResponse);
+      this.ai.saveChatMessage(this.form.id, 'assistant', finalMessage);
     }
 
-    // Attempt to strictly parse JSON. If it contains JSON blocks, extract them.
-    let jsonStr = rawResponse;
-    const jsonMatch = rawResponse.match(/```json\n([\s\S]*?)\n```/);
-    if (jsonMatch) {
-      jsonStr = jsonMatch[1];
-    } else {
-      // just try to find curly braces
-      const firstBrace = rawResponse.indexOf('{');
-      const lastBrace = rawResponse.lastIndexOf('}');
-      if (firstBrace !== -1 && lastBrace !== -1) {
-        jsonStr = rawResponse.substring(firstBrace, lastBrace + 1);
+    this.chatMessages.update(m => [...m, {
+      role: 'model',
+      content: finalMessage,
+      timestamp: new Date()
+    }]);
+
+    this.isAiTyping.set(false);
+    this.scrollToBottom();
+  }
+
+  private async applyAssistantResponse(response: AiAssistantResponse): Promise<string> {
+    const renderer = this.renderer;
+    const appliedNotes: string[] = [];
+    let mutated = false;
+
+    const fieldUpdates = response.field_updates || {};
+    const fieldEntries = Object.entries(fieldUpdates);
+    if (fieldEntries.length > 0) {
+      renderer.ctx.set_value(fieldUpdates);
+      mutated = true;
+      appliedNotes.push(`Updated ${fieldEntries.length} field(s).`);
+    }
+
+    for (const tableUpdate of response.table_updates || []) {
+      if (!tableUpdate?.fieldname || !Array.isArray(tableUpdate.rows)) continue;
+      if (tableUpdate.mode === 'replace') {
+        renderer.ctx.set_value(tableUpdate.fieldname, tableUpdate.rows);
+        appliedNotes.push(`Replaced rows in \`${tableUpdate.fieldname}\`.`);
+      } else {
+        tableUpdate.rows.forEach(row => renderer.ctx.add_row(tableUpdate.fieldname, row));
+        appliedNotes.push(`Added ${tableUpdate.rows.length} row(s) to \`${tableUpdate.fieldname}\`.`);
+      }
+      mutated = true;
+    }
+
+    if (mutated) {
+      this.aiManipulated = true;
+    }
+
+    const actionNotes: string[] = [];
+    for (const action of response.actions || []) {
+      switch (action.type) {
+        case 'validate': {
+          this.lastFormErrors = [];
+          const isValid = renderer.validateForm();
+          actionNotes.push(
+            isValid
+              ? 'Validation passed.'
+              : `Validation found issues in: ${this.lastFormErrors.join(', ')}.`
+          );
+          break;
+        }
+        case 'save':
+          renderer.onAction('save');
+          actionNotes.push('Triggered form save.');
+          break;
+        case 'submit':
+          renderer.onAction('submit');
+          actionNotes.push('Triggered form submit.');
+          break;
+        case 'next_step':
+          renderer.ctx.next_step();
+          actionNotes.push('Moved to the next step.');
+          break;
+        case 'prev_step':
+          renderer.ctx.prev_step();
+          actionNotes.push('Moved to the previous step.');
+          break;
+        case 'goto_step':
+          if (action.step !== undefined) {
+            renderer.ctx.go_to_step(action.step);
+            actionNotes.push(`Moved to step ${action.step}.`);
+          }
+          break;
+        default:
+          break;
       }
     }
 
-    try {
-      // If we found JSON, try to apply it to the form
-      const parsed = JSON.parse(jsonStr);
+    const manualNotes = (response.requires_manual_input || []).map((item: string) => `Manual input needed: ${item}`);
+    const parts = [
+      response.assistant_message?.trim(),
+      ...appliedNotes,
+      ...actionNotes,
+      ...manualNotes
+    ].filter(Boolean);
 
-      let updatedFieldsCount = 0;
-      Object.keys(parsed).forEach(key => {
-        this.renderer.ctx.set_value(key, parsed[key]);
-        updatedFieldsCount++;
-      });
+    return parts.join('\n\n') || 'No changes were applied.';
+  }
 
-      this.aiManipulated = true;
-
-      // Form a readable assistant message stripping out the raw JSON since it applied it
-      const messageContent = rawResponse.replace(/```json\n([\s\S]*?)\n```/, '').trim() ||
-        `I have successfully updated ${updatedFieldsCount} field(s) for you!`;
-
-      this.chatMessages.update(m => [...m, {
-        role: 'model',
-        content: messageContent,
-        timestamp: new Date()
-      }]);
-
-    } catch (err) {
-      // No valid JSON was generated, likely a conversational response
-      this.chatMessages.update(m => [...m, {
-        role: 'model',
-        content: rawResponse,
-        timestamp: new Date()
-      }]);
-    }
-    this.isAiTyping.set(false);
-    this.scrollToBottom();
+  private getDefaultMetadata() {
+    return {
+      currentUser: {
+        name: 'Test User',
+        role: 'Manager'
+      },
+      inspectionMode: 'strict'
+    };
   }
 
 }

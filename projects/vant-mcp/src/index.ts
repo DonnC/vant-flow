@@ -209,6 +209,58 @@ function createVantServer() {
     return server;
 }
 
+function verifySchemaShape(schema: any): string[] {
+    const issues: string[] = [];
+    if (!schema || typeof schema !== 'object') {
+        return ['Schema must be an object.'];
+    }
+
+    if (!schema.name || typeof schema.name !== 'string') {
+        issues.push('Document name is required.');
+    }
+
+    const sections = schema.steps
+        ? schema.steps.flatMap((step: any) => step.sections || [])
+        : (schema.sections || []);
+
+    if (!Array.isArray(sections) || sections.length === 0) {
+        issues.push('Schema must contain at least one section or step section.');
+        return issues;
+    }
+
+    const fieldnames = new Set<string>();
+    sections.forEach((section: any, sectionIndex: number) => {
+        if (!Array.isArray(section.columns) || section.columns.length === 0) {
+            issues.push(`Section ${section.label || sectionIndex + 1} has no columns.`);
+            return;
+        }
+
+        section.columns.forEach((column: any, colIndex: number) => {
+            (column.fields || []).forEach((field: any, fieldIndex: number) => {
+                if (!field.fieldname) {
+                    issues.push(`Field ${field.label || fieldIndex + 1} in section ${section.label || sectionIndex + 1} is missing fieldname.`);
+                    return;
+                }
+
+                if (fieldnames.has(field.fieldname)) {
+                    issues.push(`Duplicate fieldname detected: ${field.fieldname}`);
+                }
+                fieldnames.add(field.fieldname);
+
+                if ((field.fieldtype === 'Attach' || field.fieldtype === 'Signature') && field.data_group !== 'files') {
+                    issues.push(`Field ${field.fieldname} should use data_group "files".`);
+                }
+
+                if (field.fieldtype === 'Table' && Array.isArray(field.table_fields) && field.table_fields.length === 0) {
+                    issues.push(`Table field ${field.fieldname} has no table_fields.`);
+                }
+            });
+        });
+    });
+
+    return issues;
+}
+
 function registerHandlers(server: Server) {
     server.setRequestHandler(ListToolsRequestSchema, async () => {
         return {
@@ -252,6 +304,17 @@ function registerHandlers(server: Server) {
                         type: "object",
                         properties: {
                             schema: { type: "object", description: "The DocumentDefinition to describe" }
+                        },
+                        required: ["schema"],
+                    },
+                },
+                {
+                    name: "verify_schema",
+                    description: "Check a Vant schema for common structural issues.",
+                    inputSchema: {
+                        type: "object",
+                        properties: {
+                            schema: { type: "object", description: "The DocumentDefinition to verify" }
                         },
                         required: ["schema"],
                     },
@@ -370,16 +433,33 @@ function registerHandlers(server: Server) {
                 case "get_field_types":
                     return { content: [{ type: "text", text: FIELD_TYPE_CATALOG }] };
                 case "create_form_from_prompt": {
-                    const guidance = `Guidance for creating a form from: "${(args as any).prompt}" using:\n${FIELD_TYPE_CATALOG}`;
-                    return { content: [{ type: "text", text: guidance }] };
+                    const schema = builder.buildFromPrompt((args as any).prompt);
+                    return { content: [{ type: "text", text: JSON.stringify(schema, null, 2) }] };
                 }
                 case "analyze_schema": {
                     const s = (args as any).schema;
-                    return { content: [{ type: "text", text: `Schema Analysis for ${s.name}` }] };
+                    const issues = verifySchemaShape(s);
+                    const summary = builder.generateSummary(s);
+                    const text = issues.length > 0
+                        ? `${summary}\n\nPotential issues:\n- ${issues.join('\n- ')}`
+                        : `${summary}\n\nNo obvious structural issues detected.`;
+                    return { content: [{ type: "text", text }] };
                 }
                 case "describe_schema": {
                     const description = builder.generateSummary((args as any).schema);
                     return { content: [{ type: "text", text: description }] };
+                }
+                case "verify_schema": {
+                    const issues = verifySchemaShape((args as any).schema);
+                    return {
+                        content: [{
+                            type: "text",
+                            text: JSON.stringify({
+                                valid: issues.length === 0,
+                                issues
+                            }, null, 2)
+                        }]
+                    };
                 }
                 case "scaffold_from_blueprint": {
                     const schema = builder.buildFromBlueprint((args as any).blueprint);

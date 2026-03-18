@@ -2,7 +2,7 @@ import { Component, effect, EventEmitter, inject, Input, OnChanges, OnDestroy, O
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuillModule } from 'ngx-quill';
-import { DocumentDefinition, DocumentField, DocumentSection } from '../../models/document.model';
+import { DocumentDefinition, DocumentField, DocumentSection, VfMediaHandler } from '../../models/document.model';
 import { VfFormContext } from '../../services/form-context';
 import { VfUtilityService } from '../../services/app-utility.service';
 
@@ -295,6 +295,8 @@ import { VfField } from '../form-field.component';
                                                               [field]="col"
                                                               [(value)]="row[col.fieldname]"
                                                               (valueChange)="onFieldChange(field.fieldname)"
+                                                              [mediaHandler]="mediaHandler"
+                                                              [formMetadata]="metadata"
                                                               [compact]="true"
                                                               [hideLabel]="true">
                                                             </vf-field>
@@ -378,6 +380,8 @@ import { VfField } from '../form-field.component';
                                           <vf-field
                                             [field]="field"
                                             [(value)]="formData[field.fieldname]"
+                                            [mediaHandler]="mediaHandler"
+                                            [formMetadata]="metadata"
                                             (valueChange)="onFieldChange(field.fieldname)">
                                           </vf-field>
                                         }
@@ -507,6 +511,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   @Input() draftLabel?: string;
   @Input() disabled: boolean = false;
   @Input() metadata?: any;
+  @Input() mediaHandler?: VfMediaHandler;
 
   @Output() formSubmit = new EventEmitter<any>();
   @Output() formDraft = new EventEmitter<any>();
@@ -532,6 +537,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   ngOnInit() {
     this.initForm();
     this.ctx.initialize(this.document, this.formData, this.metadata);
+    this.ctx.mediaHandler = this.mediaHandler;
     if (this.readonly) {
       this.ctx.set_readonly(true);
     }
@@ -550,6 +556,9 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     }
     if (changes['metadata'] && !changes['metadata'].firstChange) {
       this.ctx.metadata = this.metadata;
+    }
+    if (changes['mediaHandler'] && !changes['mediaHandler'].firstChange) {
+      this.ctx.mediaHandler = this.mediaHandler;
     }
   }
 

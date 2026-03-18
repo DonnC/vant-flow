@@ -143,6 +143,34 @@ frm.set_df_property('items_table', 'options', '.pdf,.jpg', 'attachment_col');
 frm.set_df_property('items_table', 'hidden', true, 'rate_col');
 ```
 
+### Injected Metadata
+
+Developers can pass runtime host data into client scripts using the renderer `[metadata]` input. This data is exposed as `frm.metadata`, making it useful for preview/testing, role-based rules, or client-side context that should not be stored in the schema itself.
+
+> [!IMPORTANT]
+> `[metadata]` is runtime-only host data. It is separate from `DocumentDefinition.metadata`, which is persisted with the schema.
+
+```html
+<vf-renderer
+  [document]="invoiceSchema"
+  [metadata]="{
+    currentUser: { name: 'Alice', role: 'Manager' },
+    inspectionMode: 'strict'
+  }"
+></vf-renderer>
+```
+
+```javascript
+frm.on('refresh', (_val, frm) => {
+    const role = frm.metadata?.currentUser?.role;
+    if (role === 'Manager') {
+        frm.set_intro('Manager review mode enabled.', 'blue');
+    }
+});
+```
+
+Builder Preview and the example demo pages also expose a JSON editor for this runtime metadata. It feeds `frm.metadata` so scripts that depend on host/client metadata can run correctly. Invalid JSON keeps the last valid metadata object active, and the runtime metadata is not exported with the form schema.
+
 Tables also feature **Smart Compact Rendering**:
 - **Text Editor**: Automatic HTML stripping for table cell previews.
 - **Attach**: Visual file counters and icons.

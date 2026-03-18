@@ -2,7 +2,7 @@ import { Component, Input, Output, EventEmitter, inject, ViewChild, ElementRef, 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuillModule } from 'ngx-quill';
-import { DocumentField } from '../models/document.model';
+import { DocumentField, VfMediaHandler, VfStoredMedia } from '../models/document.model';
 import { VfFormContext } from '../services/form-context';
 
 import QuillTableBetter from 'quill-table-better';
@@ -246,7 +246,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                           <!-- Preview Icon -->
                           <div class="w-9 h-9 rounded-md bg-zinc-50 flex items-center justify-center shrink-0 overflow-hidden">
                             @if (isImage(file.type)) {
-                              <img [src]="file.url" class="w-full h-full object-cover">
+                              <img [src]="getMediaUrl(file)" class="w-full h-full object-cover">
                             } @else {
                               <svg class="text-zinc-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                             }
@@ -377,6 +377,8 @@ export class VfField implements AfterViewInit {
   @Input() readOnly: boolean = false;
   @Input() hideLabel: boolean = false;
   @Input() compact: boolean = false;
+  @Input() mediaHandler?: VfMediaHandler;
+  @Input() formMetadata?: any;
   @Output() valueChange = new EventEmitter<any>();
 
   public submitted: boolean = false;
@@ -400,7 +402,7 @@ export class VfField implements AfterViewInit {
   }
 
   get disabled() {
-    return this.readOnly || (this.ctx?.isReadOnly() || this.ctx?.getFieldSignal(this.field.fieldname, 'read_only')() || false);
+    return this.isProcessingMedia || this.readOnly || (this.ctx?.isReadOnly() || this.ctx?.getFieldSignal(this.field.fieldname, 'read_only')() || false);
   }
 
   get isEditor() {
@@ -479,6 +481,7 @@ export class VfField implements AfterViewInit {
 
   // ── Signature Logic ──────────────────────────────────────────
   isDrawing = false;
+  isProcessingMedia = false;
   private ctx2d?: CanvasRenderingContext2D;
 
   ngAfterViewInit() {
@@ -507,7 +510,7 @@ export class VfField implements AfterViewInit {
     if (this.value && this.field.fieldtype === 'Signature') {
       const img = new Image();
       img.onload = () => this.ctx2d?.drawImage(img, 0, 0);
-      img.src = this.value;
+      img.src = this.getMediaUrl(this.value);
     }
   }
 
@@ -531,7 +534,7 @@ export class VfField implements AfterViewInit {
   stopDrawing() {
     if (!this.isDrawing) return;
     this.isDrawing = false;
-    this.saveSignature();
+    void this.saveSignature();
   }
 
   clearSignature() {
@@ -542,11 +545,36 @@ export class VfField implements AfterViewInit {
     }
   }
 
-  private saveSignature() {
+  private async saveSignature() {
     const canvas = this.canvasRef?.nativeElement;
     if (canvas) {
       const dataUrl = canvas.toDataURL();
-      this.onValueChange(dataUrl);
+      if (!this.mediaHandler) {
+        this.onValueChange(dataUrl);
+        return;
+      }
+
+      this.isProcessingMedia = true;
+      try {
+        const blob = await this.canvasToBlob(canvas);
+        const result = await this.mediaHandler({
+          fieldtype: 'Signature',
+          blob,
+          dataUrl
+        }, {
+          field: this.field,
+          fieldname: this.field.fieldname,
+          fieldtype: 'Signature',
+          currentValue: this.value,
+          formMetadata: this.formMetadata ?? this.ctx?.metadata
+        });
+
+        this.onValueChange(result ?? '');
+      } catch (error) {
+        this.handleMediaError(error, 'Failed to process signature');
+      } finally {
+        this.isProcessingMedia = false;
+      }
     }
   }
 
@@ -612,13 +640,8 @@ export class VfField implements AfterViewInit {
         continue;
       }
 
-      const dataUrl = await this.readFileAsDataURL(file);
-      const fileObj = {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        url: dataUrl
-      };
+      const fileObj = await this.createAttachValue(file);
+      if (!fileObj) continue;
 
       if (config.maxFiles === 1) {
         current = [fileObj];
@@ -639,9 +662,14 @@ export class VfField implements AfterViewInit {
   }
 
   downloadFile(file: any) {
+    const targetUrl = file?.downloadUrl || this.getMediaUrl(file);
+    if (!targetUrl) {
+      this.ctx?.msgprint('No downloadable URL is available for this file.', 'warning');
+      return;
+    }
     const link = document.createElement('a');
-    link.href = file.url;
-    link.download = file.name;
+    link.href = targetUrl;
+    link.download = file?.name || 'download';
     link.click();
   }
 
@@ -662,6 +690,12 @@ export class VfField implements AfterViewInit {
     return html.replace(/<[^>]*>?/gm, '');
   }
 
+  getMediaUrl(value: any): string {
+    if (!value) return '';
+    if (typeof value === 'string') return value;
+    return value.url || value.downloadUrl || '';
+  }
+
   private isAccepted(file: File, accept: string): boolean {
     const types = accept.split(',').map(t => t.trim().toLowerCase());
     const fileName = file.name.toLowerCase();
@@ -670,6 +704,69 @@ export class VfField implements AfterViewInit {
       if (t.includes('/*')) return file.type.startsWith(t.replace('/*', ''));
       return file.type === t;
     });
+  }
+
+  private async createAttachValue(file: File): Promise<VfStoredMedia | null> {
+    if (!this.mediaHandler) {
+      const dataUrl = await this.readFileAsDataURL(file);
+      return {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        url: dataUrl
+      };
+    }
+
+    this.isProcessingMedia = true;
+    try {
+      const result = await this.mediaHandler({
+        fieldtype: 'Attach',
+        file
+      }, {
+        field: this.field,
+        fieldname: this.field.fieldname,
+        fieldtype: 'Attach',
+        currentValue: this.value,
+        formMetadata: this.formMetadata ?? this.ctx?.metadata
+      });
+
+      if (!result) return null;
+      if (typeof result === 'string') {
+        return {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          url: result
+        };
+      }
+
+      return {
+        name: result.name || file.name,
+        size: result.size ?? file.size,
+        type: result.type || file.type,
+        url: result.url,
+        fileId: result.fileId,
+        metadata: result.metadata,
+        downloadUrl: result.downloadUrl
+      };
+    } catch (error) {
+      this.handleMediaError(error, `Failed to process file ${file.name}`);
+      return null;
+    } finally {
+      this.isProcessingMedia = false;
+    }
+  }
+
+  private async canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob | undefined> {
+    return await new Promise(resolve => {
+      canvas.toBlob(blob => resolve(blob || undefined), 'image/png');
+    });
+  }
+
+  private handleMediaError(error: unknown, fallbackMessage: string) {
+    const message = error instanceof Error ? error.message : fallbackMessage;
+    this.ctx?.msgprint(message || fallbackMessage, 'error');
+    console.error('[VfField] Media handler failed', error);
   }
 
   private parseFileSize(size: string): number {

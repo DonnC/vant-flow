@@ -1,5 +1,40 @@
 export type FieldType = 'Data' | 'Select' | 'Link' | 'Check' | 'Int' | 'Text' | 'Date' | 'Float' | 'Password' | 'Button' | 'Text Editor' | 'Table' | 'Datetime' | 'Time' | 'Signature' | 'Attach';
 
+export interface VfStoredMedia {
+  name: string;
+  url: string;
+  size?: number;
+  type?: string;
+  fileId?: string;
+  metadata?: Record<string, any>;
+  downloadUrl?: string;
+}
+
+export interface VfMediaHandlerContext {
+  field: DocumentField;
+  fieldname: string;
+  fieldtype: 'Attach' | 'Signature';
+  currentValue: any;
+  formMetadata?: any;
+}
+
+export type VfMediaHandlerPayload =
+  | {
+    fieldtype: 'Attach';
+    file: File;
+  }
+  | {
+    fieldtype: 'Signature';
+    blob?: Blob;
+    dataUrl: string;
+  };
+
+export type VfMediaHandlerResult = string | VfStoredMedia | null;
+export type VfMediaHandler = (
+  payload: VfMediaHandlerPayload,
+  context: VfMediaHandlerContext
+) => Promise<VfMediaHandlerResult> | VfMediaHandlerResult;
+
 /** Column definition for Table field child columns (no nested Table/Button/Text Editor) */
 export interface TableColumnDef {
   id: string;

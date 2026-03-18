@@ -1,7 +1,7 @@
 import { Injectable, signal, inject, ApplicationRef, EnvironmentInjector, createComponent } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { DocumentField } from '../models/document.model';
+import { DocumentField, VfMediaHandler } from '../models/document.model';
 import { VfPromptModal } from '../components/prompt-modal.component';
 
 export type ToastIndicator = 'success' | 'error' | 'info' | 'warning';
@@ -58,7 +58,13 @@ export class VfUtilityService {
    * Show a custom dialog built from Document Fields.
    * Centralized via PromptModalComponent.
    */
-  prompt(fields: DocumentField[], title: string = 'Enter Data', readOnly: boolean = false): Promise<Record<string, any> | null> {
+  prompt(
+    fields: DocumentField[],
+    title: string = 'Enter Data',
+    readOnly: boolean = false,
+    mediaHandler?: VfMediaHandler,
+    formMetadata?: any
+  ): Promise<Record<string, any> | null> {
     return new Promise(resolve => {
       const initialValues: Record<string, any> = {};
       fields.forEach(f => { initialValues[f.fieldname] = f.default ?? ''; });
@@ -71,6 +77,8 @@ export class VfUtilityService {
       componentRef.instance.title = title;
       componentRef.instance.values = initialValues;
       componentRef.instance.readOnly = readOnly;
+      componentRef.instance.mediaHandler = mediaHandler;
+      componentRef.instance.formMetadata = formMetadata;
 
       componentRef.instance.result.subscribe(res => {
         this.appRef.detachView(componentRef.hostView);

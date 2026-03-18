@@ -1,45 +1,54 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { FormRendererComponent } from './form-renderer.component';
-import { FormContext } from '../../services/form-context';
-import { AppUtilityService } from '../../services/app-utility.service';
+import { VfRenderer } from './form-renderer.component';
+import { VfFormContext } from '../../services/form-context';
+import { VfUtilityService } from '../../services/app-utility.service';
 import { signal } from '@angular/core';
 
-describe('FormRendererComponent', () => {
-    let component: FormRendererComponent;
-    let fixture: ComponentFixture<FormRendererComponent>;
-    let mockFormContext: jasmine.SpyObj<FormContext>;
-    let mockUtils: jasmine.SpyObj<AppUtilityService>;
+describe('VfRenderer', () => {
+    let component: VfRenderer;
+    let fixture: ComponentFixture<VfRenderer>;
+    let mockFormContext: jasmine.SpyObj<VfFormContext>;
+    let mockUtils: jasmine.SpyObj<VfUtilityService>;
 
     beforeEach(async () => {
-        mockFormContext = jasmine.createSpyObj('FormContext', [
-            'getFieldSignal', 'getSectionSignal', 'isReadOnly', 'set_section_property',
-            'dynamicIntro', 'customButtons', 'actionsConfig', 'initialize', 'execute',
+        mockFormContext = jasmine.createSpyObj('VfFormContext', [
+            'getFieldSignal', 'getSectionSignal', 'set_section_property',
+            'initialize', 'execute',
             'trigger', 'triggerChange', 'destroy', 'set_df_property'
         ]);
 
+        (mockFormContext as any).valueUpdateSignal = signal(0);
+        (mockFormContext as any).isReadOnly = signal(false);
+        (mockFormContext as any).dynamicIntro = signal(null);
+        (mockFormContext as any).customButtons = signal([]);
+        (mockFormContext as any).actionsConfig = signal({ submit: { label: 'Submit', visible: true } });
+        (mockFormContext as any).metadata = undefined;
+        (mockFormContext as any).mediaHandler = undefined;
+
         mockFormContext.getFieldSignal.and.returnValue(signal(false));
         mockFormContext.getSectionSignal.and.returnValue(signal(false));
-        mockFormContext.isReadOnly.and.returnValue(false);
-        mockFormContext.dynamicIntro.and.returnValue(null);
-        mockFormContext.customButtons.and.returnValue([]);
-        mockFormContext.actionsConfig.and.returnValue({ submit: { label: 'Submit', visible: true } });
         mockFormContext.trigger.and.returnValue(true);
         mockFormContext.execute.and.stub();
 
-        mockUtils = jasmine.createSpyObj('AppUtilityService', [
+        mockUtils = jasmine.createSpyObj('VfUtilityService', [
             'show_alert', 'getDeepValue', 'setDeepValue'
         ]);
         mockUtils.getDeepValue.and.returnValue(undefined);
 
         await TestBed.configureTestingModule({
-            imports: [FormRendererComponent],
-            providers: [
-                { provide: FormContext, useValue: mockFormContext },
-                { provide: AppUtilityService, useValue: mockUtils }
-            ]
-        }).compileComponents();
+            imports: [VfRenderer],
+        })
+            .overrideComponent(VfRenderer, {
+                set: {
+                    providers: [
+                        { provide: VfFormContext, useValue: mockFormContext },
+                        { provide: VfUtilityService, useValue: mockUtils }
+                    ]
+                }
+            })
+            .compileComponents();
 
-        fixture = TestBed.createComponent(FormRendererComponent);
+        fixture = TestBed.createComponent(VfRenderer);
         component = fixture.componentInstance;
 
         // Provide a minimal valid document
@@ -55,13 +64,39 @@ describe('FormRendererComponent', () => {
     });
 
     it('should initialize FormContext on ngOnInit', () => {
+        component.metadata = { currentUser: { role: 'Manager' } };
         fixture.detectChanges();
-        expect(mockFormContext.initialize).toHaveBeenCalled();
+        expect(mockFormContext.initialize).toHaveBeenCalledWith(component.document, component.formData, component.metadata);
     });
 
     it('should trigger refresh script on init', () => {
         fixture.detectChanges();
         expect(mockFormContext.trigger).toHaveBeenCalledWith('refresh');
+    });
+
+    it('should assign mediaHandler to the form context', () => {
+        const mediaHandler = jasmine.createSpy('mediaHandler');
+        component.mediaHandler = mediaHandler as any;
+
+        fixture.detectChanges();
+
+        expect((mockFormContext as any).mediaHandler).toBe(mediaHandler as any);
+    });
+
+    it('should update runtime metadata on input changes after init', () => {
+        fixture.detectChanges();
+
+        component.metadata = { featureFlags: { clearanceOverride: true } };
+        component.ngOnChanges({
+            metadata: {
+                currentValue: component.metadata,
+                previousValue: undefined,
+                firstChange: false,
+                isFirstChange: () => false
+            }
+        });
+
+        expect((mockFormContext as any).metadata).toEqual({ featureFlags: { clearanceOverride: true } });
     });
 
     describe('packData() — Data Groups', () => {
@@ -95,8 +130,8 @@ describe('FormRendererComponent', () => {
 
             mockFormContext.trigger.and.returnValue(true);
 
-            let emitted: any;
-            component.formSubmit.subscribe(d => emitted = d);
+            let emitted: unknown;
+            component.formSubmit.subscribe((d: unknown) => emitted = d);
 
             component.submit();
 

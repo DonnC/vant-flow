@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { VfRenderer, VfToastOutlet } from 'vant-flow';
 import { EXAMPLE_DOCUMENT } from './example-data';
@@ -7,7 +8,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
 @Component({
   selector: 'app-renderer-demo',
   standalone: true,
-  imports: [CommonModule, RouterLink, VfRenderer, VfToastOutlet],
+  imports: [CommonModule, FormsModule, RouterLink, VfRenderer, VfToastOutlet],
   template: `
     <div class="min-h-screen bg-zinc-50 flex flex-col">
       <header class="bg-white border-b border-zinc-200 px-4 py-2 flex items-center justify-between z-40 sticky top-0 shadow-sm">
@@ -37,9 +38,41 @@ import { EXAMPLE_DOCUMENT } from './example-data';
               <p>This page demonstrate the <code>&lt;vf-renderer&gt;</code> component loading a complex JSON schema with sections, columns, validation, and custom client-side scripting hooks.</p>
             </div>
           </div>
+
+          <div class="mb-8 rounded-2xl border border-sky-200 bg-white shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-sky-100 bg-sky-50/80 flex items-start justify-between gap-4">
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700">Test frm.metadata</p>
+                <p class="text-xs text-sky-900/80 mt-1">Edit this JSON to feed <code>frm.metadata</code> in the renderer so scripts that depend on metadata can run correctly. It is client-side test data only and is not persisted with the schema.</p>
+              </div>
+              <span class="px-2 py-1 rounded-full border border-sky-200 bg-white text-[10px] font-bold uppercase tracking-widest text-sky-700">Client Side</span>
+            </div>
+            <div class="p-5 space-y-3">
+              <textarea
+                class="w-full min-h-44 rounded-xl border bg-zinc-950 text-emerald-300 font-mono text-[11px] leading-relaxed p-4 outline-none transition-all"
+                [class.border-red-300]="metadataError"
+                [class.focus:border-red-400]="metadataError"
+                [class.border-zinc-800]="!metadataError"
+                [class.focus:border-sky-400]="!metadataError"
+                [ngModel]="metadataInput"
+                (ngModelChange)="onMetadataInput($event)">
+              </textarea>
+
+              @if (metadataError) {
+                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                  {{ metadataError }}
+                </div>
+              } @else {
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-700">
+                  The renderer is currently using the JSON above as <code>frm.metadata</code>.
+                </div>
+              }
+            </div>
+          </div>
           
           <vf-renderer 
             [document]="schema" 
+            [metadata]="runtimeMetadata"
             (formSubmit)="onFormSubmit($event)"
             (formReady)="onFormReady($event)">
           </vf-renderer>
@@ -62,6 +95,26 @@ import { EXAMPLE_DOCUMENT } from './example-data';
 export class RendererDemoComponent {
   schema = EXAMPLE_DOCUMENT;
   submittedData: any = null;
+  runtimeMetadata = this.getDefaultMetadata();
+  metadataInput = JSON.stringify(this.runtimeMetadata, null, 2);
+  metadataError: string | null = null;
+
+  onMetadataInput(value: string) {
+    this.metadataInput = value;
+
+    try {
+      const parsed = value.trim() ? JSON.parse(value) : {};
+      if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
+        this.metadataError = 'Runtime metadata must be a JSON object.';
+        return;
+      }
+
+      this.runtimeMetadata = parsed;
+      this.metadataError = null;
+    } catch {
+      this.metadataError = 'Invalid JSON. The renderer is still using the last valid metadata object.';
+    }
+  }
 
   onFormSubmit(data: any) {
     this.submittedData = data;
@@ -70,5 +123,18 @@ export class RendererDemoComponent {
 
   onFormReady(frm: any) {
     console.log('[Renderer Demo] Form initialized with API context.');
+  }
+
+  private getDefaultMetadata() {
+    return {
+      currentUser: {
+        name: 'Alice Manager',
+        role: 'Manager'
+      },
+      inspectionMode: 'strict',
+      featureFlags: {
+        clearanceOverride: true
+      }
+    };
   }
 }

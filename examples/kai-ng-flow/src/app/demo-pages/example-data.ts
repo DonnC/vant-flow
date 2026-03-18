@@ -186,13 +186,19 @@ export const EXAMPLE_DOCUMENT: DocumentDefinition = {
         "submit": { "label": "Approve Batch", "visible": true, "type": "primary" }
     },
     "client_script": `frm.on('refresh', (val, frm) => {
-    frm.msgprint('Quality Inspection System initialized.', 'info');
+    const inspector = frm.metadata?.currentUser?.name || 'Unknown Inspector';
+    const mode = frm.metadata?.inspectionMode || 'standard';
+    frm.msgprint('Quality Inspection System initialized for ' + inspector + '.', 'info');
+    frm.set_intro('Runtime mode: <b>' + mode + '</b>. Current reviewer: <b>' + inspector + '</b>.', mode === 'strict' ? 'orange' : 'blue');
 });
 
 frm.on('quality_score', (val, frm) => {
+    const strictMode = frm.metadata?.inspectionMode === 'strict';
+    const managerRole = frm.metadata?.currentUser?.role === 'Manager';
+
     if (val < 50) {
         frm.set_intro('CRITICAL QUALITY LEVEL: Batch rejection recommended.', 'red');
-    } else if (val < 80) {
+    } else if (val < 80 || (strictMode && !managerRole && val < 90)) {
         frm.set_intro('CAUTION: Manual clearance required for score < 80.', 'orange');
     } else {
         frm.set_intro(null);

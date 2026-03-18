@@ -207,6 +207,9 @@ Developers can pass arbitrary data (like an authenticated user object, roles, se
 
 This empowers scripts to evaluate custom business rules using external domain knowledge context without making a network request or coupling the library to specific dependencies!
 
+> [!IMPORTANT]
+> The renderer `[metadata]` input is **runtime host data**. It is separate from `DocumentDefinition.metadata`, which is persisted as part of the schema. Use `[metadata]` for preview/testing or client-side context you do not want saved into the form JSON.
+
 **Host Application (`app.component.html`)**:
 
 ```html
@@ -234,6 +237,20 @@ frm.on('amount', (val, frm) => {
     }
 });
 ```
+
+**Preview / Testing Example**:
+
+```html
+<vf-builder
+  [initialSchema]="invoiceSchema"
+  [previewMetadata]="{
+    currentUser: { name: 'Alice', role: 'Manager' },
+    inspectionMode: 'strict'
+  }"
+></vf-builder>
+```
+
+In Builder Preview and the example app, this runtime metadata feeds `frm.metadata` so scripts that depend on host/client metadata can run correctly. Invalid JSON in the preview editor keeps using the last valid metadata object, and the runtime metadata is not exported with the schema.
 
 Tables also feature **Smart Compact Rendering**:
 - **Text Editor**: Automatic HTML stripping for table cell previews.

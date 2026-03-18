@@ -1,6 +1,6 @@
 import { FormGroup, Validators } from '@angular/forms';
 import { WritableSignal, signal, Injectable } from '@angular/core';
-import { DocumentField, DocumentSection, DocumentDefinition, FormActionsConfig } from '../models/document.model';
+import { DocumentField, DocumentSection, DocumentDefinition, FormActionsConfig, VfMediaHandler } from '../models/document.model';
 import { VfUtilityService } from './app-utility.service';
 import { VfBuilderState } from './builder-state.service';
 
@@ -25,6 +25,7 @@ export class VfFormContext {
     public stepSignals = new Map<string, WritableSignal<{ id: string; title: string; description?: string; hidden: boolean }>>();
 
     public metadata?: any;
+    public mediaHandler?: VfMediaHandler;
 
     constructor(
         private appUtility: VfUtilityService,
@@ -100,7 +101,7 @@ export class VfFormContext {
     }
 
     prompt(fields: DocumentField[], callback: (values: any) => void, title?: string, read_only: boolean = false) {
-        this.appUtility.prompt(fields, title, read_only).then((values: any) => {
+        this.appUtility.prompt(fields, title, read_only, this.mediaHandler, this.metadata).then((values: any) => {
             if (values) callback(values);
         });
     }
