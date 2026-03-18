@@ -9,6 +9,27 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { VantSchemaBuilder } from "./utils/schema-builder.js";
 import { VantMockGenerator } from "./utils/mock-generator.js";
+import * as fs from 'fs';
+import * as path from 'path';
+
+const LOG_DIR = path.join(process.cwd(), 'logs');
+const LOG_FILE = path.join(LOG_DIR, 'mcp.log');
+
+if (!fs.existsSync(LOG_DIR)) {
+    fs.mkdirSync(LOG_DIR, { recursive: true });
+}
+
+function logToFile(message: string, isError: boolean = false) {
+    const timestamp = new Date().toISOString();
+    const type = isError ? '[ERROR]' : '[INFO]';
+    const logMessage = `${timestamp} ${type} ${message}\n`;
+    fs.appendFileSync(LOG_FILE, logMessage);
+    if (isError) {
+        console.error(message);
+    } else {
+        console.log(message);
+    }
+}
 
 const builder = new VantSchemaBuilder();
 const mockGen = new VantMockGenerator();
@@ -412,17 +433,18 @@ let activeAppServer: any = null;
 
 async function main() {
     const transportMode = (process.env.TRANSPORT || "stdio").trim();
-    console.error(`Starting MCP server with TRANSPORT="${transportMode}"`);
+    logToFile(`Starting MCP server with TRANSPORT="${transportMode}"`);
 
     // Trap exits and errors
     process.on('uncaughtException', (err) => {
-        console.error('CRITICAL: Uncaught Exception:', err);
+        logToFile(`CRITICAL: Uncaught Exception: ${err.message}`, true);
+        if (err.stack) logToFile(err.stack, true);
     });
     process.on('unhandledRejection', (reason, promise) => {
-        console.error('CRITICAL: Unhandled Rejection at:', promise, 'reason:', reason);
+        logToFile(`CRITICAL: Unhandled Rejection at: ${promise} reason: ${reason}`, true);
     });
     process.on('exit', (code) => {
-        console.error(`PROCESS EXITING with code: ${code}`);
+        logToFile(`PROCESS EXITING with code: ${code}`);
     });
 
     if (transportMode === "stdio") {
@@ -437,25 +459,25 @@ async function main() {
         const serverTransports = new Map<string, SSEServerTransport>();
 
         app.get("/sse", async (req, res) => {
-            console.error("New SSE connection established");
+            logToFile("New SSE connection established");
             try {
                 const server = createVantServer();
                 const transport = new SSEServerTransport("/messages", res);
                 await server.connect(transport);
 
                 if (transport.sessionId) {
-                    console.error(`Session initialized: ${transport.sessionId}`);
+                    logToFile(`Session initialized: ${transport.sessionId}`);
                     serverTransports.set(transport.sessionId, transport);
 
                     req.on('close', () => {
-                        console.error(`Connection closed for session: ${transport.sessionId}`);
+                        logToFile(`Connection closed for session: ${transport.sessionId}`);
                         serverTransports.delete(transport.sessionId);
                     });
                 } else {
-                    console.error("Warning: Transport connected but no sessionId generated");
+                    logToFile("Warning: Transport connected but no sessionId generated", true);
                 }
             } catch (err: any) {
-                console.error("SSE Connection Error:", err);
+                logToFile(`SSE Connection Error: ${err.message}`, true);
                 res.status(500).send(`SSE Error: ${err.message}`);
             }
         });
@@ -479,9 +501,9 @@ async function main() {
         setInterval(() => {
             const sessions = serverTransports.size;
             if (sessions > 0) {
-                console.error(`MCP Heartbeat: ${sessions} active sessions`);
+                logToFile(`MCP Heartbeat: ${sessions} active sessions`);
             }
-        }, 10000);
+        }, 30000); // Reduce frequency to 30s for file logging
 
         // Keep main from finishing
         return new Promise(() => {

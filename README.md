@@ -178,10 +178,6 @@ Try testing the AI capabilities with these diverse cross-sector prompts:
 * **Admin Builder:** "Create an IT Asset Request form. It needs a dropdown for equipment type (Laptop, Monitor, Phone), a justification text area, and checkboxes for software licenses required."
 * **Client Chat:** "I'm starting next week and need a new Macbook Pro and an external 4K monitor for my design work. Oh, and include an Adobe Creative Cloud license."
 
-**5. HR: Employee Evaluation**
-* **Admin Builder:** "Build an Employee Performance Review form. Include an employee select field, rating sliders for teamwork and technical skills, and a large text area for reviewer comments."
-* **Client Chat:** "Fill this out for Alice Smith. I'm rating her teamwork 9/10 and technical skills 8/10. She's exceeding expectations but needs to work on long-term planning."
-
 ---
 
 #### 🤖 AI & LLM Support

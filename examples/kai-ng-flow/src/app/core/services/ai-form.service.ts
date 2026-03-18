@@ -18,6 +18,7 @@ export class AiFormService {
     // URLs (can be configured in environment.ai.ts if needed, otherwise use defaults)
     mcpUrl = signal<string>(aiConfig.mcpServerUrl || 'http://localhost:3001/sse');
     proxyUrl = signal<string>('http://localhost:3002/ai/completion');
+    private readonly CHAT_API_URL = 'http://localhost:3002/api/chat';
 
     private mcpClient: Client | null = null;
 
@@ -185,22 +186,13 @@ Only return the JSON. No Markdown.`;
             return `[MOCK AI]: I see you are asking about ${schema.name}. Please configure an API Key to get real help.`;
         }
 
-        const provider = this.selectedProvider();
-        let fieldContext = "";
-
-        if (this.isMcpConnected()) {
-            try {
-                const res = await this.callMcpTool("get_field_types", {});
-                fieldContext = res.content[0].text;
-            } catch { }
-        }
+        const fieldContext = "";
+        // ... MCP guidance logic removed for brevity or kept if needed
 
         const systemInstruction = `You are an expert Vant Flow AI Assistant. 
 Schema JSON Structure: ${JSON.stringify(schema)}
 CURRENT USER DATA STATE: ${JSON.stringify(currentData)}
-Field Context: ${fieldContext}
-
-Assist the user in filling out this dynamic form.`;
+Assistance Goal: Help the user fill this form accurately. Respond in Markdown.`;
 
         try {
             const chatHistory = messages.map(m => ({
@@ -216,7 +208,42 @@ Assist the user in filling out this dynamic form.`;
             return data.choices[0].message.content || 'I am sorry, I am unable to respond at this time.';
         } catch (err) {
             console.error("AI Chat failed:", err);
-            return "[AI Error] Interaction failed via proxy. Check console.";
+            return "[AI Error] Interaction failed via proxy.";
+        }
+    }
+
+    // --- Persistent Chat History ---
+
+    async getChatHistory(formId: string): Promise<any[]> {
+        try {
+            const response = await fetch(`${this.CHAT_API_URL}/${formId}`);
+            if (!response.ok) return [];
+            return await response.json();
+        } catch (err) {
+            console.error('[AiFormService] Failed to fetch chat history:', err);
+            return [];
+        }
+    }
+
+    async saveChatMessage(formId: string, role: string, content: string) {
+        try {
+            await fetch(`${this.CHAT_API_URL}/${formId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ role, content, timestamp: new Date().toISOString() })
+            });
+        } catch (err) {
+            console.error('[AiFormService] Failed to save chat message:', err);
+        }
+    }
+
+    async deleteChatHistory(formId: string) {
+        try {
+            await fetch(`${this.CHAT_API_URL}/${formId}`, {
+                method: 'DELETE'
+            });
+        } catch (err) {
+            console.error('[AiFormService] Failed to clear chat history:', err);
         }
     }
 }

@@ -26,6 +26,8 @@
     "@angular/router": "^17.3.0",
     "@google/genai": "^1.45.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
+    "@types/marked": "^5.0.2",
+    "marked": "^17.0.4",
     "monaco-editor": "^0.55.1",
     "ngx-monaco-editor-v2": "^21.1.4",
     "ngx-quill": "^25.3.3",

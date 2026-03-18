@@ -135,7 +135,7 @@ export class AdminDemoComponent implements OnInit {
       }
 
       if (this.formId && this.formId !== 'new') {
-        const existing = this.storage.getFormById(this.formId) as any;
+        const existing = this.storage.getFormById(this.formId);
         if (existing) {
           this.schema.set({ ...existing.schema });
           this.lastSaved.set(new Date(existing.lastModified));
@@ -161,12 +161,17 @@ export class AdminDemoComponent implements OnInit {
     this.schema.set(newSchema);
   }
 
-  saveForm() {
-    this.storage.saveForm(this.schema(), this.formId === 'new' ? undefined : this.formId!);
-    this.lastSaved.set(new Date());
+  async saveForm() {
+    try {
+      const savedId = await this.storage.saveForm(this.schema(), this.formId === 'new' ? undefined : this.formId!);
+      this.lastSaved.set(new Date());
 
-    if (this.formId === 'new') {
-      this.router.navigate(['/admin/builder', this.formId]);
+      if (this.formId === 'new') {
+        this.formId = savedId;
+        this.router.navigate(['/admin/builder', savedId], { replaceUrl: true });
+      }
+    } catch (err) {
+      console.error('Failed to save form:', err);
     }
   }
 

@@ -5,13 +5,15 @@ import { MockStorageService, FormDesign } from '../../core/services/mock-storage
 import { AiFormService } from '../../core/services/ai-form.service';
 import { VfRenderer, VfToastOutlet, DocumentDefinition } from 'vant-flow';
 import { FormsModule } from '@angular/forms';
+import { marked } from 'marked';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 
 @Component({
   selector: 'app-form-runner',
   standalone: true,
   imports: [CommonModule, RouterLink, VfRenderer, VfToastOutlet, FormsModule],
   template: `
-    <div class="min-h-screen bg-zinc-50 flex flex-col">
+    <div class="h-screen bg-zinc-50 flex flex-col overflow-hidden">
       <header class="h-14 bg-white border-b border-zinc-200 flex items-center px-6 gap-4 shrink-0 shadow-sm z-50">
         <a routerLink="/user" class="p-2 hover:bg-zinc-100 rounded-lg transition-colors">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
@@ -102,20 +104,21 @@ import { FormsModule } from '@angular/forms';
                              }">
                           
                           <div class="prose prose-sm max-w-none prose-zinc" [innerHTML]="parseMarkdown(msg.content)"></div>
+                        </div>
+
+                        <div class="flex items-center gap-2 px-1">
+                          <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter">
+                            {{ msg.timestamp | date:'shortTime' }}
+                          </span>
                           
-                          <!-- Copy Button -->
+                          <!-- Copy Button - Relocated -->
                           <button (click)="copyToClipboard(msg.content)" 
-                                  class="absolute top-2 right-2 p-1.5 rounded-lg opacity-0 group-hover/bubble:opacity-100 transition-opacity bg-zinc-100/50 hover:bg-zinc-100 text-zinc-500"
-                                  [ngClass]="{
-                                    'bg-violet-500/50 hover:bg-violet-500 text-violet-100': msg.role === 'user'
-                                  }"
+                                  class="p-1 rounded hover:bg-zinc-200 text-zinc-400 transition-colors"
+                                  [ngClass]="{ 'hover:bg-violet-100 text-violet-300': msg.role === 'user' }"
                                   title="Copy message">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
                           </button>
                         </div>
-                        <span class="text-[9px] font-bold text-zinc-400 uppercase tracking-tighter mx-1">
-                          {{ msg.timestamp | date:'shortTime' }}
-                        </span>
                       </div>
                    </div>
                 }
@@ -177,6 +180,7 @@ export class FormRunnerComponent implements OnInit {
   private router = inject(Router);
   private storage = inject(MockStorageService);
   ai = inject(AiFormService);
+  private sanitizer = inject(DomSanitizer);
 
   @ViewChild('renderer') renderer!: VfRenderer;
   @ViewChild('scrollContainer') scrollContainer!: any;
@@ -223,14 +227,19 @@ export class FormRunnerComponent implements OnInit {
     document.addEventListener('mouseup', mouseUp);
   }
 
-  clearChat() {
-    this.chatMessages.set([
-      {
-        role: 'model',
-        content: 'Chat history cleared. How can I help you next?',
-        timestamp: new Date()
+  async clearChat() {
+    if (confirm('Are you sure you want to clear the chat history?')) {
+      if (this.form) {
+        await this.ai.deleteChatHistory(this.form.id);
       }
-    ]);
+      this.chatMessages.set([
+        {
+          role: 'model',
+          content: 'Chat history cleared. How can I help you next?',
+          timestamp: new Date()
+        }
+      ]);
+    }
   }
 
   copyToClipboard(text: string) {
@@ -238,33 +247,16 @@ export class FormRunnerComponent implements OnInit {
     // You could inject VfToastService here for a "Copied!" message
   }
 
-  parseMarkdown(content: string): string {
+  parseMarkdown(content: string): SafeHtml {
     if (!content) return '';
-
-    let html = content
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-
-    // Code blocks
-    html = html.replace(/```([\s\S]*?)```/g, '<pre class="bg-zinc-800 text-zinc-100 p-3 rounded-lg my-2 overflow-x-auto text-[11px] font-mono leading-relaxed">$1</pre>');
-
-    // Inline code
-    html = html.replace(/`([^`]+)`/g, '<code class="bg-zinc-100 text-violet-600 px-1.5 py-0.5 rounded font-mono text-[11px]">$1</code>');
-
-    // Bold
-    html = html.replace(/\*\*([^*]+)\*\*/g, '<strong class="font-black text-zinc-900">$1</strong>');
-
-    // Italics
-    html = html.replace(/\*([^*]+)\*/g, '<em class="italic">$1</em>');
-
-    // Lists
-    html = html.replace(/^\s*-\s+(.*)$/gm, '<li class="ml-4 list-disc">$1</li>');
-
-    // Line breaks
-    html = html.replace(/\n/g, '<br>');
-
-    return html;
+    try {
+      // Configure marked for internal links/security if needed
+      const rawHtml = marked.parse(content) as string;
+      return this.sanitizer.bypassSecurityTrustHtml(rawHtml);
+    } catch (e) {
+      console.error("Markdown parsing error", e);
+      return content;
+    }
   }
 
   private scrollToBottom() {
@@ -282,29 +274,42 @@ export class FormRunnerComponent implements OnInit {
     textarea.style.height = textarea.scrollHeight + 'px';
   }
 
-  ngOnInit() {
-    this.route.params.subscribe(params => {
+  async ngOnInit() {
+    this.route.params.subscribe(async params => {
       const id = params['id'];
       if (id) {
         this.form = this.storage.getFormById(id) || null;
+        if (this.form) {
+          // Load persistent history
+          const history = await this.ai.getChatHistory(id);
+          if (history && history.length > 0) {
+            this.chatMessages.set(history.map(m => ({
+              ...m,
+              timestamp: new Date(m.timestamp)
+            })));
+          }
+        }
         this.loading.set(false);
       }
     });
   }
 
-  onFormSubmit(data: any) {
+  async onFormSubmit(data: any) {
     if (!this.form) return;
 
     // Attach AI Submission marker if the AI Assistant ever touched the form
     const metadata = this.aiManipulated ? { ai_submitted: true } : {};
 
-    // In a real app, this would be an API call
-    this.storage.saveSubmission(this.form.id, this.form.schema.name, data, metadata);
+    try {
+      await this.storage.saveSubmission(this.form.id, this.form.schema.name, data, metadata);
 
-    // Simulate some delay for realism
-    setTimeout(() => {
-      this.router.navigate(['/user'], { queryParams: { submitted: '1' } });
-    }, 800);
+      // Simulate some delay for realism
+      setTimeout(() => {
+        this.router.navigate(['/user'], { queryParams: { submitted: '1' } });
+      }, 800);
+    } catch (err) {
+      console.error('Submission failed', err);
+    }
   }
 
   handleEnter(e: any) {
@@ -331,6 +336,12 @@ export class FormRunnerComponent implements OnInit {
       content: userText,
       timestamp: new Date()
     }]);
+
+    // Persist user message
+    if (this.form) {
+      this.ai.saveChatMessage(this.form.id, 'user', userText);
+    }
+
     this.isAiTyping.set(true);
     this.scrollToBottom();
 
@@ -345,6 +356,11 @@ export class FormRunnerComponent implements OnInit {
     const rawResponse = await this.ai.getChatFormAssistance(this.chatMessages(), this.form.schema, currentData);
 
     this.isAiTyping.set(false);
+
+    // Persist assistant message
+    if (this.form) {
+      this.ai.saveChatMessage(this.form.id, 'assistant', rawResponse);
+    }
 
     // Attempt to strictly parse JSON. If it contains JSON blocks, extract them.
     let jsonStr = rawResponse;
