@@ -382,7 +382,7 @@ type RightTab = 'properties' | 'script';
           </div>
         </div>
 
-        <vf-renderer class="w-full" [document]="state.document()" [metadata]="previewMetadataValue" (formSubmit)="onFormSubmit($event)"></vf-renderer>
+        <vf-renderer class="w-full" [document]="state.document()" [metadata]="previewMetadataValue" (formAction)="onFormAction($event)"></vf-renderer>
 
         @if (lastSubmittedData) {
           <div class="w-full max-w-3xl px-4 py-8 border-t border-zinc-200 mt-auto bg-white shadow-inner animate-in slide-in-from-bottom-4 duration-300">
@@ -502,9 +502,9 @@ export class VfBuilder implements OnInit, OnChanges {
     }
   }
 
-  onFormSubmit(data: any) {
-    this.lastSubmittedData = data;
-    console.log('[Preview Mode] Form Submitted:', data);
+  onFormAction(event: any) {
+    this.lastSubmittedData = event?.data ?? event;
+    console.log('[Preview Mode] Action Triggered:', event);
   }
 
   private applyPreviewMetadataInput(metadata: Record<string, any>) {

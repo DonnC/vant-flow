@@ -161,11 +161,6 @@
         }
     ],
     "actions": {
-        "save": {
-            "label": "Save Draft",
-            "visible": true,
-            "type": "secondary"
-        },
         "submit": {
             "label": "Approve Batch",
             "visible": true,

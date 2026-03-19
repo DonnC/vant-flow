@@ -1,6 +1,6 @@
 import { FormGroup, Validators } from '@angular/forms';
 import { WritableSignal, signal, Injectable } from '@angular/core';
-import { DocumentField, DocumentSection, DocumentDefinition, FormActionsConfig, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler } from '../models/document.model';
+import { DEFAULT_FORM_ACTIONS, DocumentField, DocumentSection, DocumentDefinition, FormActionsConfig, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler } from '../models/document.model';
 import { VfUtilityService } from './app-utility.service';
 import { VfBuilderState } from './builder-state.service';
 
@@ -48,7 +48,10 @@ export class VfFormContext {
         this.dynamicIntro.set(null);
         this.isReadOnly.set(false);
         this.customButtons.set([]);
-        this.actionsConfig.set(document.actions);
+        this.actionsConfig.set({
+            submit: { ...DEFAULT_FORM_ACTIONS.submit! },
+            ...(document.actions || {})
+        });
         this.currentStepIndex.set(0);
 
         // Process flat sections
@@ -354,24 +357,18 @@ export class VfFormContext {
         this.appUtility.unfreeze();
     }
 
-    set_button_action(id: string, action: Function) {
-        const config = this.actionsConfig();
-        if (!config) return;
+    set_button_action(id: string, action: (frm: any) => void) {
+        const config: FormActionsConfig = { submit: { ...DEFAULT_FORM_ACTIONS.submit! }, ...(this.actionsConfig() || {}) };
         const key = id.toLowerCase() as keyof FormActionsConfig;
-        if (config[key]) {
-            (config[key] as any).runtimeAction = action;
-            this.actionsConfig.set({ ...config });
-        }
+        config[key] = { ...(config[key] || { label: id, visible: true }), runtimeAction: action };
+        this.actionsConfig.set({ ...config });
     }
 
     set_button_label(id: string, label: string) {
-        const config = this.actionsConfig();
-        if (!config) return;
+        const config: FormActionsConfig = { submit: { ...DEFAULT_FORM_ACTIONS.submit! }, ...(this.actionsConfig() || {}) };
         const key = id.toLowerCase() as keyof FormActionsConfig;
-        if (config[key]) {
-            config[key]!.label = label;
-            this.actionsConfig.set({ ...config });
-        }
+        config[key] = { ...(config[key] || { label: id, visible: true }), label };
+        this.actionsConfig.set({ ...config });
     }
 
     get_value(fieldname: string): any {

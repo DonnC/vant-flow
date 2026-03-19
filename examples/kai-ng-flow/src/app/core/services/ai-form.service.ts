@@ -28,6 +28,9 @@ export class AiFormService {
     selectedProvider = signal<AiProvider>('openai');
     private readonly CHAT_API_URL = 'http://localhost:3002/api/chat';
     private readonly AI_API_URL = 'http://localhost:3002/api/ai';
+    private readonly MAX_ASSIST_MESSAGES = 8;
+    private readonly MAX_STRING_PREVIEW = 280;
+    private readonly MAX_TABLE_ROWS = 12;
 
     private async postJson<T>(url: string, payload: any): Promise<T> {
         const response = await fetch(url, {
@@ -97,9 +100,9 @@ export class AiFormService {
         try {
             return await this.postJson<AiAssistantResponse>(`${this.AI_API_URL}/assist`, {
                 provider: this.selectedProvider(),
-                messages,
-                schema,
-                currentData
+                messages: this.compactMessages(messages),
+                schema: this.compactSchema(schema),
+                currentData: this.compactValue(currentData)
             });
         } catch (err) {
             console.error("AI Chat failed:", err);
@@ -111,6 +114,120 @@ export class AiFormService {
                 requires_manual_input: []
             };
         }
+    }
+
+    private compactMessages(messages: { role: 'user' | 'model' | 'assistant', content: string }[]) {
+        return messages.slice(-this.MAX_ASSIST_MESSAGES).map(message => ({
+            role: message.role,
+            content: this.compactText(message.content, 1200)
+        }));
+    }
+
+    private compactSchema(schema: DocumentDefinition) {
+        return {
+            name: schema.name,
+            description: schema.description,
+            is_stepper: !!schema.is_stepper,
+            intro_text: schema.intro_text,
+            actions: schema.actions,
+            metadata: schema.metadata,
+            has_client_script: !!schema.client_script,
+            steps: (schema.steps || []).map(step => ({
+                id: step.id,
+                title: step.title,
+                description: step.description,
+                sections: step.sections.map(section => this.compactSection(section))
+            })),
+            sections: (schema.sections || []).map(section => this.compactSection(section))
+        };
+    }
+
+    private compactSection(section: any) {
+        return {
+            id: section.id,
+            label: section.label,
+            description: section.description,
+            depends_on: section.depends_on,
+            fields: (section.columns || []).flatMap((column: any) =>
+                (column.fields || []).map((field: any) => this.compactField(field))
+            )
+        };
+    }
+
+    private compactField(field: any) {
+        return {
+            fieldname: field.fieldname,
+            fieldtype: field.fieldtype,
+            label: field.label,
+            mandatory: !!(field.mandatory || field.reqd),
+            read_only: !!field.read_only,
+            hidden: !!field.hidden,
+            depends_on: field.depends_on,
+            mandatory_depends_on: field.mandatory_depends_on,
+            placeholder: field.placeholder,
+            options: this.compactOptions(field.options),
+            data_group: field.data_group,
+            link_config: field.link_config ? {
+                data_source: field.link_config.data_source,
+                mapping: field.link_config.mapping,
+                filters: field.link_config.filters
+            } : undefined,
+            table_fields: Array.isArray(field.table_fields)
+                ? field.table_fields.map((column: any) => ({
+                    fieldname: column.fieldname,
+                    fieldtype: column.fieldtype,
+                    label: column.label,
+                    mandatory: !!column.mandatory,
+                    options: this.compactOptions(column.options)
+                }))
+                : undefined
+        };
+    }
+
+    private compactOptions(options: any) {
+        if (typeof options !== 'string') return options;
+        if (options.length <= 160) return options;
+        const normalized = options.split('\n').slice(0, 8).join('\n');
+        return `${normalized}\n...`;
+    }
+
+    private compactValue(value: any): any {
+        if (value == null) return value;
+
+        if (typeof value === 'string') {
+            return this.compactScalarString(value);
+        }
+
+        if (Array.isArray(value)) {
+            return value.slice(0, this.MAX_TABLE_ROWS).map(item => this.compactValue(item));
+        }
+
+        if (typeof value === 'object') {
+            const output: Record<string, any> = {};
+            for (const [key, nestedValue] of Object.entries(value)) {
+                output[key] = this.compactValue(nestedValue);
+            }
+            return output;
+        }
+
+        return value;
+    }
+
+    private compactScalarString(value: string, maxLength = this.MAX_STRING_PREVIEW) {
+        if (value.startsWith('data:')) {
+            return '[media payload omitted for AI speed]';
+        }
+
+        if (value.length > maxLength) {
+            return `${value.slice(0, maxLength)}...`;
+        }
+
+        return value;
+    }
+
+    private compactText(value: string, maxLength: number) {
+        if (!value) return value;
+        return value.length > maxLength ? `${value.slice(0, maxLength)}...` : value;
     }
 
     // --- Persistent Chat History ---

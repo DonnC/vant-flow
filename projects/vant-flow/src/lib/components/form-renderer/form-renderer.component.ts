@@ -1,8 +1,8 @@
-import { Component, effect, EventEmitter, inject, Input, OnChanges, OnDestroy, OnInit, Output, SimpleChanges } from '@angular/core';
+import { Component, effect, EventEmitter, inject, Input, OnChanges, OnDestroy, OnInit, Output, QueryList, SimpleChanges, ViewChildren } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuillModule } from 'ngx-quill';
-import { DocumentDefinition, DocumentField, DocumentSection, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler } from '../../models/document.model';
+import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfRendererButtonEvent } from '../../models/document.model';
 import { VfFormContext } from '../../services/form-context';
 import { VfUtilityService } from '../../services/app-utility.service';
 
@@ -47,30 +47,23 @@ import { VfField } from '../form-field.component';
               </div>
             }
           </div>
-          <div class="flex items-center gap-2">
+          <div class="flex flex-wrap items-center justify-end gap-2">
             <!-- Custom Buttons -->
             @for (btn of ctx.customButtons(); track btn.id) {
-              <button (click)="btn.action()"
+              <button (click)="onCustomButtonClick(btn)"
                       [disabled]="disabled || (ctx.isReadOnly() && btn.disable_on_readonly !== false)"
-                      [class]="'px-4 py-2 text-sm font-bold rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ' + getButtonClass(btn.type)">
+                      [class]="'shrink-0 whitespace-nowrap px-4 py-2 text-sm font-bold rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ' + getButtonClass(btn.type)">
                 {{ btn.label }}
               </button>
             }
 
             <!-- Default Actions (shown unless showActions=false) -->
             @if (showActions && (!document.is_stepper || isLastStep)) {
-              @if (ctx.actionsConfig()?.save?.visible !== false) {
-                <button (click)="onAction('save')"
-                        [disabled]="disabled || (ctx.isReadOnly() && ctx.actionsConfig()?.save?.disable_on_readonly !== false)"
-                        class="px-4 py-2 text-sm font-bold text-zinc-600 hover:bg-zinc-100 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                  {{ draftLabel || ctx.actionsConfig()?.save?.label || 'Save' }}
-                </button>
-              }
-              @if (ctx.actionsConfig()?.submit?.visible !== false) {
+              @if (getSubmitActionConfig().visible !== false) {
                 <button (click)="onAction('submit')"
-                        [disabled]="disabled || (ctx.isReadOnly() && ctx.actionsConfig()?.submit?.disable_on_readonly !== false)"
-                        class="ui-btn-primary px-6 py-2 text-sm shadow-indigo-100 shadow-lg active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100">
-                  {{ submitLabel || ctx.actionsConfig()?.submit?.label || 'Submit' }}
+                        [disabled]="disabled || (ctx.isReadOnly() && getSubmitActionConfig().disable_on_readonly !== false)"
+                        [class]="'shrink-0 whitespace-nowrap px-6 py-2 text-sm active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 ' + getButtonClass(submitButtonType())">
+                  {{ submitLabel || getSubmitActionConfig().label || 'Submit' }}
                 </button>
               }
             }
@@ -78,6 +71,43 @@ import { VfField } from '../form-field.component';
         </div>
 
         <div class="p-8">
+          @if (validationErrors.length > 0) {
+            <div class="mb-8 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-red-900 shadow-sm">
+              <div class="flex items-start gap-3">
+                <div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                  </svg>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-start justify-between gap-3">
+                    <div>
+                      <p class="text-sm font-bold">Please review the highlighted fields.</p>
+                      <p class="mt-1 text-xs text-red-700">
+                        Some required values are missing or invalid.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      (click)="clearValidationErrors()"
+                      class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-red-700 transition-colors hover:bg-red-100">
+                      Dismiss
+                    </button>
+                  </div>
+
+                  <div class="mt-3 flex flex-wrap gap-2">
+                    @for (field of validationErrors; track field) {
+                      <span class="rounded-full border border-red-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-red-900">
+                        {{ describeFieldError(field) }}
+                      </span>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+          }
 
           <!-- System Intro (Static) -->
           @if (document.intro_text && !ctx.dynamicIntro()) {
@@ -179,11 +209,11 @@ import { VfField } from '../form-field.component';
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
                     </button>
                   } @else {
-                    @if (showActions && ctx.actionsConfig()?.submit?.visible !== false) {
+                    @if (showActions && getSubmitActionConfig().visible !== false) {
                       <button (click)="onAction('submit')"
-                              [disabled]="disabled || (ctx.isReadOnly() && ctx.actionsConfig()?.submit?.disable_on_readonly !== false)"
-                              class="ui-btn-primary px-10 py-2.5 text-sm shadow-indigo-100 shadow-xl active:scale-95 transition-all">
-                        {{ submitLabel || ctx.actionsConfig()?.submit?.label || 'Complete Submission' }}
+                              [disabled]="disabled || (ctx.isReadOnly() && getSubmitActionConfig().disable_on_readonly !== false)"
+                              [class]="'px-10 py-2.5 text-sm shadow-xl active:scale-95 transition-all ' + getButtonClass(submitButtonType())">
+                        {{ submitLabel || getSubmitActionConfig().label || 'Submit' }}
                       </button>
                     }
                   }
@@ -512,26 +542,37 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   @Input() readonly?: boolean;
   @Input() showActions: boolean = true;
   @Input() submitLabel?: string;
-  @Input() draftLabel?: string;
   @Input() disabled: boolean = false;
   @Input() metadata?: any;
   @Input() mediaHandler?: VfMediaHandler;
   @Input() linkDataSource?: VfLinkDataSource;
   @Input() linkRequestObserver?: VfLinkRequestObserver;
 
-  @Output() formSubmit = new EventEmitter<any>();
-  @Output() formDraft = new EventEmitter<any>();
+  @Output() formAction = new EventEmitter<VfRendererButtonEvent>();
   @Output() formChange = new EventEmitter<{ fieldname: string; value: any; data: Record<string, any> }>();
   @Output() formError = new EventEmitter<string[]>();
   @Output() formReady = new EventEmitter<VfFormContext>();
+  @ViewChildren(VfField) fieldComponents!: QueryList<VfField>;
 
   formData: any = {};
+  validationErrors: string[] = [];
   ctx = inject(VfFormContext);
   utils = inject(VfUtilityService);
 
   get isLastStep(): boolean {
     if (!this.document.is_stepper || !this.document.steps) return true;
     return this.ctx.currentStepIndex() === this.document.steps.length - 1;
+  }
+
+  getSubmitActionConfig() {
+    return {
+      ...DEFAULT_FORM_ACTIONS.submit!,
+      ...(this.ctx.actionsConfig()?.submit || {})
+    };
+  }
+
+  submitButtonType(): string {
+    return this.getSubmitActionConfig().type || 'primary';
   }
 
   constructor() {
@@ -619,6 +660,10 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     if (val !== undefined) {
       this.formData[fieldname] = val;
     }
+    this.validationErrors = this.validationErrors.filter(error => {
+      if (error === fieldname) return false;
+      return !error.startsWith(`${fieldname}.`);
+    });
     this.ctx.triggerChange(fieldname, this.formData[fieldname]);
     this.formChange.emit({
       fieldname,
@@ -671,11 +716,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     });
 
     if (invalidFields.length > 0) {
-      this.utils.show_alert('Please fill in all mandatory fields correctly before staying.', 'error');
-      // console.log('Invalid Fields:', invalidFields);
-      this.formError.emit(invalidFields);
+      this.validationErrors = [...new Set(invalidFields)];
+      this.markFieldsSubmitted();
+      this.utils.show_alert('Please review the highlighted fields and try again.', 'error');
+      this.formError.emit(this.validationErrors);
       return false;
     }
+
+    this.validationErrors = [];
 
     const result = this.ctx.trigger('validate');
     if (result === false) {
@@ -732,24 +780,20 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     });
 
     if (invalidFields.length > 0) {
-      this.utils.show_alert('Please fill in all mandatory fields before proceeding.', 'error');
-      this.formError.emit(invalidFields);
+      this.validationErrors = [...new Set(invalidFields)];
+      this.markFieldsSubmitted();
+      this.utils.show_alert('Please review the highlighted fields and try again.', 'error');
+      this.formError.emit(this.validationErrors);
       return false;
     }
+    this.validationErrors = [];
     return true;
-  }
-
-  saveDraft() {
-    const packed = this.packData();
-    this.formDraft.emit(packed);
-    this.utils.show_alert('Draft saved successfully', 'success');
   }
 
   submit() {
     if (this.validateForm()) {
       const packed = this.packData();
-      this.formSubmit.emit(packed);
-      this.utils.show_alert('Form submitted successfully', 'success');
+      this.emitButtonEvent('submit', this.submitLabel || this.getSubmitActionConfig().label || 'Submit', packed, 'default');
     }
   }
 
@@ -873,6 +917,24 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     return map[style ?? 'secondary'] || map['secondary'];
   }
 
+  private emitButtonEvent(action: string, buttonName: string, packedData: any, source: 'default' | 'custom') {
+    this.formAction.emit({
+      action,
+      buttonName,
+      data: packedData,
+      rawData: { ...this.formData },
+      frm: this.ctx,
+      source
+    });
+  }
+
+  onCustomButtonClick(btn: { id: string; label: string; action: Function }) {
+    if (this.disabled) return;
+
+    btn.action(this.ctx);
+    this.emitButtonEvent(btn.id, btn.label, this.packData(), 'custom');
+  }
+
   onAction(action: string) {
     if (this.disabled) return;
 
@@ -881,12 +943,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       return;
     }
 
-    // Both save and submit require full form validation now
-    if (!this.validateForm()) return;
-
-    if (action === 'save') {
-      this.saveDraft();
-    } else if (action === 'submit') {
+    if (action === 'submit') {
       this.submit();
     } else {
       const config = (this.ctx.actionsConfig() as any)?.[action.toLowerCase()];
@@ -894,9 +951,9 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
         config.runtimeAction(this.ctx);
       } else if (config?.action) {
         this.ctx.execute(config.action, action);
-      } else {
-        this.utils.show_alert(`${action.charAt(0).toUpperCase() + action.slice(1)} action triggered`, 'info');
       }
+
+      this.emitButtonEvent(action, config?.label || action, this.packData(), 'custom');
     }
   }
 
@@ -941,5 +998,50 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
 
   removeTableRow(fieldname: string, index: number) {
     this.ctx.remove_row(fieldname, index);
+  }
+
+  private markFieldsSubmitted() {
+    this.fieldComponents?.forEach(field => {
+      field.submitted = true;
+    });
+  }
+
+  clearValidationErrors() {
+    this.validationErrors = [];
+  }
+
+  describeFieldError(path: string) {
+    const [parentFieldname, childFieldname] = path.split('.');
+    const parentField = this.findField(parentFieldname);
+
+    if (childFieldname && parentField?.fieldtype === 'Table') {
+      const childField = parentField.table_fields?.find(field => field.fieldname === childFieldname);
+      const parentLabel = parentField.label || parentFieldname;
+      const childLabel = childField?.label || childFieldname;
+      return `${parentLabel} -> ${childLabel}`;
+    }
+
+    return parentField?.label || path;
+  }
+
+  private findField(fieldname: string) {
+    const allSections: DocumentSection[] = [];
+    if (this.document.is_stepper && this.document.steps) {
+      this.document.steps.forEach(step => allSections.push(...step.sections));
+    } else {
+      allSections.push(...this.document.sections);
+    }
+
+    for (const section of allSections) {
+      for (const column of section.columns) {
+        for (const field of column.fields) {
+          if (field.fieldname === fieldname) {
+            return field;
+          }
+        }
+      }
+    }
+
+    return null;
   }
 }

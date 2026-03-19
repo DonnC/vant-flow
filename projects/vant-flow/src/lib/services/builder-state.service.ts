@@ -1,5 +1,5 @@
 import { Injectable, signal, computed, WritableSignal } from '@angular/core';
-import { DocumentDefinition, DocumentField, DocumentSection, DocumentColumn, FieldType, TableColumnDef } from '../models/document.model';
+import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, DocumentColumn, FieldType, TableColumnDef } from '../models/document.model';
 
 let _uid = 0;
 function uid() { return `id_${++_uid}_${Math.random().toString(36).slice(2, 7)}`; }
@@ -14,10 +14,7 @@ export class VfBuilderState {
         client_script: '',
         intro_text: '',
         intro_color: 'gray',
-        actions: {
-            save: { label: 'Save as Draft', visible: true, type: 'secondary' },
-            submit: { label: 'Submit', visible: true, type: 'primary' }
-        }
+        actions: { submit: { ...DEFAULT_FORM_ACTIONS.submit! } }
     });
 
     // Selected field or section for property editor
@@ -118,10 +115,7 @@ export class VfBuilderState {
             if (data && typeof data === 'object' && (Array.isArray(data.sections) || Array.isArray(data.steps))) {
                 // Ensure actions exist
                 if (!data.actions) {
-                    data.actions = {
-                        save: { label: 'Save as Draft', visible: true, type: 'secondary' },
-                        submit: { label: 'Submit', visible: true, type: 'primary' }
-                    };
+                    data.actions = { submit: { ...DEFAULT_FORM_ACTIONS.submit! } };
                 }
                 this.document.set(data);
                 this.selectedFieldId.set(null);
@@ -141,10 +135,7 @@ export class VfBuilderState {
         if (!this.document().actions) {
             this.document.update(doc => ({
                 ...doc,
-                actions: {
-                    save: { label: 'Save as Draft', visible: true, type: 'secondary' },
-                    submit: { label: 'Submit', visible: true, type: 'primary' }
-                }
+                actions: { submit: { ...DEFAULT_FORM_ACTIONS.submit! } }
             }));
         }
 

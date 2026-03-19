@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MockStorageService, FormDesign } from '../../core/services/mock-storage.service';
 import { AiAssistantResponse, AiFormService } from '../../core/services/ai-form.service';
 import { DemoMediaService } from '../../core/services/demo-media.service';
-import { VfRenderer, VfToastOutlet } from 'vant-flow';
+import { VfRenderer, VfToastOutlet, VfUtilityService } from 'vant-flow';
 import { FormsModule } from '@angular/forms';
 import { marked } from 'marked';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -47,9 +47,8 @@ import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
                   #renderer
                   [document]="form.schema" 
                   [mediaHandler]="demoMedia.mediaHandler"
-                  (formDraft)="onFormDraft($event)"
                   (formError)="onFormError($event)"
-                  (formSubmit)="onFormSubmit($event)"
+                  (formAction)="onFormAction($event)"
                 ></vf-renderer>
              </div>
           </div>
@@ -186,6 +185,7 @@ export class FormRunnerComponent implements OnInit {
   demoMedia = inject(DemoMediaService);
   ai = inject(AiFormService);
   private sanitizer = inject(DomSanitizer);
+  private utils = inject(VfUtilityService);
 
   @ViewChild('renderer') renderer!: VfRenderer;
   @ViewChild('scrollContainer') scrollContainer!: any;
@@ -300,14 +300,37 @@ export class FormRunnerComponent implements OnInit {
     });
   }
 
-  async onFormSubmit(data: any) {
+  async onFormAction(event: any) {
     if (!this.form) return;
+
+    console.log('[Form Runner] Renderer action triggered:', event);
+
+    const action = event?.action || 'submit';
+    if (action !== 'submit') {
+      this.utils.show_alert(`Action triggered: ${event?.buttonName || action}`, 'info');
+      // TODO: Move non-submit renderer actions into a shared host workflow callback/service
+      // so every form route can handle approve/escalate/custom actions consistently.
+      return;
+    }
+
+    console.log('[Form Runner] Submit action received from vf-renderer:', event);
+    // TODO: This example host-level handler is the place to add app-specific submit logic such as
+    // API calls, analytics, approval workflows, custom routing, or payload transformation.
+    // Keep the renderer generic and put product-specific behavior here or in a shared workflow service.
 
     // Attach AI Submission marker if the AI Assistant ever touched the form
     const metadata = this.aiManipulated ? { ai_submitted: true } : {};
+    const data = event?.data ?? event;
 
     try {
       await this.storage.saveSubmission(this.form.id, this.form.schema.name, data, metadata);
+      console.log('[Form Runner] Submission saved successfully:', {
+        formId: this.form.id,
+        action,
+        metadata,
+        data
+      });
+      this.utils.show_alert('Submission captured. Redirecting to the portal...', 'success');
 
       // Simulate some delay for realism
       setTimeout(() => {
@@ -315,21 +338,6 @@ export class FormRunnerComponent implements OnInit {
       }, 800);
     } catch (err) {
       console.error('Submission failed', err);
-    }
-  }
-
-  async onFormDraft(data: any) {
-    if (!this.form) return;
-
-    const metadata = {
-      ...(this.aiManipulated ? { ai_submitted: true } : {}),
-      draft: true
-    };
-
-    try {
-      await this.storage.saveSubmission(this.form.id, this.form.schema.name, data, metadata);
-    } catch (err) {
-      console.error('Draft save failed', err);
     }
   }
 
@@ -439,10 +447,6 @@ export class FormRunnerComponent implements OnInit {
           );
           break;
         }
-        case 'save':
-          renderer.onAction('save');
-          actionNotes.push('Triggered form save.');
-          break;
         case 'submit':
           renderer.onAction('submit');
           actionNotes.push('Triggered form submit.');

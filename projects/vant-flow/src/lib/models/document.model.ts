@@ -138,6 +138,7 @@ export interface FormActionButton {
   type?: string;
   action?: string; // Custom script event to trigger
   disable_on_readonly?: boolean;
+  runtimeAction?: (frm: any) => void;
 }
 
 export interface FormActionsConfig {
@@ -145,7 +146,25 @@ export interface FormActionsConfig {
   submit?: FormActionButton;
   approve?: FormActionButton;
   decline?: FormActionButton;
+  [key: string]: FormActionButton | undefined;
 }
+
+export interface VfRendererButtonEvent {
+  action: string;
+  buttonName: string;
+  data: any;
+  rawData: Record<string, any>;
+  frm: any;
+  source: 'default' | 'custom';
+}
+
+export const DEFAULT_FORM_ACTIONS: FormActionsConfig = {
+  submit: {
+    label: 'Submit',
+    visible: true,
+    type: 'primary'
+  }
+};
 
 export interface DocumentDefinition {
   name: string;
