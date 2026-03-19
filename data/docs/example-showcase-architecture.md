@@ -119,7 +119,7 @@ sequenceDiagram
     Runner->>Store: load form schema
     Runner->>Renderer: render schema
     User->>Renderer: complete form
-    Renderer-->>Runner: formSubmit(payload)
+    Renderer-->>Runner: formAction(event)
     Runner->>Store: saveSubmission(...)
     Store-->>Portal: updated submissions list
     User->>Portal: open submission history

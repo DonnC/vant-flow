@@ -24,7 +24,6 @@ export interface FormBlueprint {
     sections?: SectionBlueprint[];
     client_script?: string;
     actions?: {
-        save_label?: string;
         submit_label?: string;
     };
 }
@@ -76,11 +75,6 @@ export class VantSchemaBuilder {
             intro_color: blueprint.intro_color || "blue",
             sections: [],
             actions: {
-                save: {
-                    label: blueprint.actions?.save_label || "Save Progress",
-                    visible: true,
-                    type: "secondary"
-                },
                 submit: {
                     label: blueprint.actions?.submit_label || "Submit",
                     visible: true,

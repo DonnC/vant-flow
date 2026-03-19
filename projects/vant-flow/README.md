@@ -94,7 +94,7 @@ provideVfFlow({
 | Component | Selector | Description |
 |-----------|----------|-------------|
 | `VfBuilder` | `vf-builder` | The full visual IDE for designing forms. Supports `[initialSchema]` and `(schemaChange)`. |
-| `VfRenderer` | `vf-renderer` | The form renderer. Supports `[document]`, `(formReady)`, and `(formSubmit)`. |
+| `VfRenderer` | `vf-renderer` | The form renderer. Supports `[document]`, `(formReady)`, and `(formAction)`. |
 | `VfToastOutlet` | `vf-toast-outlet` | Notification host for `VfUtilityService` toasts. |
 
 ### Core Services

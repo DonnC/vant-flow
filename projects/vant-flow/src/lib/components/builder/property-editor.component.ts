@@ -672,7 +672,7 @@ export class VfPropertyEditor {
   step = this.state.selectedStep;
   fieldTypes = FIELD_TYPES;
   tableChildTypes = ['Data', 'Int', 'Float', 'Text', 'Select', 'Link', 'Check', 'Date', 'Datetime', 'Time', 'Password', 'Text Editor', 'Attach', 'Signature'];
-  actionButtonIds: Array<'save' | 'submit'> = ['save', 'submit'];
+  actionButtonIds: Array<'submit'> = ['submit'];
 
   getActionConfig(id: string) {
     return (this.state.document().actions as any)?.[id];

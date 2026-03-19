@@ -23,7 +23,7 @@ describe('VfBuilderState', () => {
 
     expect(result).toBeTrue();
     expect(state.document().name).toBe('Imported Form');
-    expect(state.document().actions?.save?.label).toBe('Save as Draft');
+    expect(state.document().actions?.submit?.label).toBe('Submit');
     expect(state.selectedFieldId()).toBeNull();
     expect(state.selectedSectionId()).toBeNull();
     expect(state.selectedStepId()).toBeNull();

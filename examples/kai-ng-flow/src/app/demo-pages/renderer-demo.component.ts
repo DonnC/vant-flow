@@ -1,8 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { VfRenderer, VfToastOutlet } from 'vant-flow';
+import { VfRenderer, VfToastOutlet, VfUtilityService } from 'vant-flow';
 import { EXAMPLE_DOCUMENT } from './example-data';
 
 @Component({
@@ -73,7 +73,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
           <vf-renderer 
             [document]="schema" 
             [metadata]="runtimeMetadata"
-            (formSubmit)="onFormSubmit($event)"
+            (formAction)="onFormAction($event)"
             (formReady)="onFormReady($event)">
           </vf-renderer>
 
@@ -93,6 +93,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
   `
 })
 export class RendererDemoComponent {
+  private utils = inject(VfUtilityService);
   schema = EXAMPLE_DOCUMENT;
   submittedData: any = null;
   runtimeMetadata = this.getDefaultMetadata();
@@ -116,9 +117,18 @@ export class RendererDemoComponent {
     }
   }
 
-  onFormSubmit(data: any) {
-    this.submittedData = data;
-    console.log('[Renderer Demo] Form Submitted:', data);
+  onFormAction(event: any) {
+    this.submittedData = event?.data ?? event;
+    console.log('[Renderer Demo] Action Triggered:', event);
+
+    if (event?.action === 'submit') {
+      this.utils.show_alert(`Renderer action: ${event.buttonName}`, 'success');
+      return;
+    }
+
+    this.utils.show_alert(`Renderer action: ${event?.buttonName || event?.action}`, 'info');
+    // TODO: Move renderer button handling into a shared host-level workflow callback/service
+    // once the demo app has a centralized action orchestration layer.
   }
 
   onFormReady(frm: any) {

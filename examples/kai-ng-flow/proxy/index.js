@@ -40,7 +40,11 @@ function logToDisk(level, message, data = null) {
     console.log(`${color}[${level}] ${timestamp}: ${message}\x1b[0m`);
     if (data && level === 'ERROR') console.error(data);
 
-    fs.appendFileSync(PROXY_LOG_FILE, logString);
+    fs.appendFile(PROXY_LOG_FILE, logString, (err) => {
+        if (err) {
+            console.error('[ERROR] Failed to write proxy log', err);
+        }
+    });
 }
 
 const logger = {
@@ -149,6 +153,62 @@ function buildFieldCatalog() {
 
 function buildFrmApiDocs() {
     return "frm.get_value, frm.set_value, frm.set_df_property, frm.msgprint, frm.set_intro, frm.add_custom_button, frm.prompt, frm.confirm, frm.call, frm.add_row, frm.remove_row, frm.next_step, frm.prev_step, frm.go_to_step";
+}
+
+function compactAssistSchema(schema) {
+    if (!schema || typeof schema !== 'object') return {};
+
+    const compactField = (field) => ({
+        fieldname: field?.fieldname,
+        fieldtype: field?.fieldtype,
+        label: field?.label,
+        mandatory: !!(field?.mandatory || field?.reqd),
+        read_only: !!field?.read_only,
+        hidden: !!field?.hidden,
+        depends_on: field?.depends_on,
+        mandatory_depends_on: field?.mandatory_depends_on,
+        options: typeof field?.options === 'string' ? field.options.slice(0, 160) : field?.options,
+        data_group: field?.data_group,
+        link_config: field?.link_config ? {
+            data_source: field.link_config.data_source,
+            mapping: field.link_config.mapping,
+            filters: field.link_config.filters
+        } : undefined,
+        table_fields: Array.isArray(field?.table_fields)
+            ? field.table_fields.map((column) => ({
+                fieldname: column?.fieldname,
+                fieldtype: column?.fieldtype,
+                label: column?.label,
+                mandatory: !!column?.mandatory
+            }))
+            : undefined
+    });
+
+    const compactSection = (section) => ({
+        id: section?.id,
+        label: section?.label,
+        description: section?.description,
+        depends_on: section?.depends_on,
+        fields: (section?.columns || []).flatMap(column =>
+            (column?.fields || []).map(compactField)
+        )
+    });
+
+    return {
+        name: schema.name,
+        description: schema.description,
+        is_stepper: !!schema.is_stepper,
+        actions: schema.actions,
+        metadata: schema.metadata,
+        has_client_script: !!schema.client_script,
+        steps: (schema.steps || []).map(step => ({
+            id: step.id,
+            title: step.title,
+            description: step.description,
+            sections: (step.sections || []).map(compactSection)
+        })),
+        sections: (schema.sections || []).map(compactSection)
+    };
 }
 
 const DEMO_CUSTOMERS = [
@@ -456,10 +516,12 @@ app.post('/api/ai/assist', async (req, res) => {
         content: m.content
     }));
 
+    const compactSchema = compactAssistSchema(schema);
+
     const systemInstruction = `You are an expert Vant Flow AI Assistant.
 You are helping a user fill a live Vant Flow form.
 
-Schema JSON Structure: ${JSON.stringify(schema)}
+Schema JSON Structure: ${JSON.stringify(compactSchema)}
 CURRENT USER DATA STATE: ${JSON.stringify(currentData || {})}
 
 You must only return valid JSON. No Markdown.

@@ -211,11 +211,6 @@
     ],
     "sections": [],
     "actions": {
-        "save": {
-            "label": "Save Draft",
-            "visible": true,
-            "type": "secondary"
-        },
         "submit": {
             "label": "Submit",
             "visible": true,

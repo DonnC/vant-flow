@@ -10,7 +10,7 @@
 - enforcing conditional logic
 - validating data
 - handling stepper navigation
-- emitting draft and submission payloads
+- emitting button-click events with the packed payload and runtime context
 
 ## Runtime Flow
 
@@ -28,7 +28,7 @@ flowchart TD
     J --> K[Update hidden and mandatory runtime state]
     H --> L[validate step or form]
     L --> M[packData]
-    M --> N[Emit draft or submit payload]
+    M --> N[Emit button event with payload and frm]
 ```
 
 ## Core Runtime Actors
@@ -40,9 +40,10 @@ Owns the Angular component lifecycle and presentation. It:
 - accepts `document`, `initialData`, `metadata`, and flags
 - accepts optional `mediaHandler`, `linkDataSource`, and `linkRequestObserver`
 - initializes `formData`
-- emits `formReady`, `formChange`, `formDraft`, `formSubmit`, and `formError`
+- emits `formReady`, `formChange`, `formAction`, and `formError`
 - manages full-form and per-step validation
 - packs flat runtime state back into nested output using `data_group`
+- exposes a single default `Submit` button unless teams add more buttons at runtime
 
 ### `VfFormContext`
 
@@ -53,6 +54,7 @@ This is the `frm` runtime API exposed to client scripts. It manages:
 - runtime step signals
 - event listeners
 - custom buttons
+- runtime button labels and button actions
 - readonly state
 - dynamic intro banners
 - metadata access
@@ -72,6 +74,8 @@ The current implementation supports patterns like:
 - `frm.add_row(...)` and `frm.remove_row(...)`
 - `frm.next_step()` and `frm.go_to_step(...)`
 - `frm.add_custom_button(...)`
+- `frm.set_button_label(...)`
+- `frm.set_button_action(...)`
 - `frm.call(...)`
 - `frm.set_filter(...)`
 - `frm.refresh_link(...)`
@@ -97,6 +101,55 @@ Key behavior:
 - `Check` fields normalize to `1` or `0`
 - `Table` fields normalize rows and attach `idx`
 - `data_group` lets developers map flat fields into nested objects at submit time
+
+## Runtime Action Model
+
+The renderer now ships with one default header action:
+
+- `Submit`
+
+That button can still be relabeled or restyled through `document.actions.submit`, but additional workflow buttons are expected to be added intentionally by the host team, not exposed as fixed default schema settings.
+
+In practice, teams now have three action paths:
+
+- keep the default `Submit` button
+- change its label or style with `document.actions.submit`
+- add more buttons at runtime through `frm.add_custom_button(...)` or host code
+
+When any of those renderer-level buttons are clicked, `formAction` emits a general button event instead of a submit-only payload.
+
+The host receives:
+
+- `action`
+- `buttonName`
+- packed `data`
+- `rawData`
+- `frm`
+- `source`
+
+That gives the host one centralized integration point for real business workflows.
+
+### Real-World Example
+
+An insurance claims app might use one global callback like this:
+
+```ts
+onRendererButton(event: VfRendererButtonEvent) {
+  switch (event.action) {
+    case 'submit':
+      return this.claimApi.submit(event.data);
+    case 'approve':
+      return this.claimApi.approve({
+        claim: event.data,
+        reviewer: event.frm.metadata?.currentUser
+      });
+    case 'request_more_info':
+      return this.claimApi.requestMoreInfo(event.rawData);
+  }
+}
+```
+
+That is cleaner than wiring a separate output for each possible workflow action.
 
 ## Conditional Logic Model
 
@@ -150,7 +203,7 @@ Stepper documents use `currentStepIndex` in the form context. The renderer provi
 - previous and next navigation
 - per-step validation
 - visibility-aware skipping of hidden steps
-- final submission on the last step
+- final submit-action triggering on the last step
 
 That makes it suitable for onboarding, KYC, multi-stage approvals, and inspections.
 
@@ -174,7 +227,7 @@ The renderer is designed to stay host-agnostic.
 - The host decides what metadata to inject
 - The host decides how media uploads or signature persistence work
 - The host decides whether link lookups use built-in HTTP fetching or a custom data-source function
-- The host decides how to persist drafts and submissions
+- The host decides what to do when any renderer button is clicked
 - Runtime network work is funneled through `frm.call`
 
 ## Media Field Pipeline

@@ -14,6 +14,7 @@ The schema model is centered in `projects/vant-flow/src/lib/models/document.mode
 - Sections, columns, and fields
 - Table column definitions
 - Runtime actions and optional metadata
+- The default submit action and any additional runtime-defined renderer buttons
 - Link field data-source configuration
 - Stored media contracts and runtime media hooks
 
@@ -42,7 +43,7 @@ The schema is the contract between authoring and runtime. A `DocumentDefinition`
 - `sections` for flat forms
 - `steps` for wizard/stepper flows
 - `client_script` for dynamic behavior
-- `actions` for save/submit/approval patterns
+- `actions` for the default submit button and any host-defined named actions
 - `metadata` for external hints such as AI generation flags
 
 ### 2. Builder Layer
@@ -64,7 +65,7 @@ The renderer:
 - Runs the document client script
 - Reacts to `depends_on` and `mandatory_depends_on`
 - Validates fields, tables, and step transitions
-- Emits packed submission data back to the host app
+- Emits a generalized renderer button event back to the host app
 
 ### 4. Host Application Layer
 
@@ -76,6 +77,7 @@ The host app supplies:
 - Optional `mediaHandler` logic for `Attach` and `Signature`
 - Optional `linkDataSource` and link request observers
 - Event handlers for draft save, submit, and validation errors
+- A centralized button-click handler that can inspect the packed data and `frm`
 - Backend methods consumed through `frm.call`
 
 ## Request-to-Submission Lifecycle
@@ -98,7 +100,7 @@ sequenceDiagram
     User->>Renderer: Enter values / navigate steps
     Renderer->>Frm: trigger field and form events
     Frm->>Renderer: Update field or section runtime state
-    Renderer->>Store: Submit packed payload
+    Renderer->>Store: Host handles packed payload based on clicked action
 ```
 
 ## Why This Gives Developers Freedom
@@ -124,6 +126,7 @@ Developers can customize Vant Flow at several layers:
 - Binary upload and storage integration through renderer `mediaHandler`
 - Remote autocomplete integration through renderer `linkDataSource`
 - Runtime action buttons through document `actions` and `frm.add_custom_button`
+- A single event contract for submit and custom renderer buttons
 - Visibility and required logic through `depends_on` and `mandatory_depends_on`
 - Data shape through `data_group`
 - Role and environment awareness through renderer `metadata`
@@ -181,5 +184,22 @@ The example app shows that Vant Flow can support:
 - Storage-backed submission history
 - AI-assisted schema generation
 - AI-assisted field population in a running form
+
+One practical host pattern is to handle all renderer actions from one callback. For example:
+
+```ts
+onRendererButton(event: VfRendererButtonEvent) {
+  if (event.action === 'submit') {
+    return this.workflowApi.submit(event.data);
+  }
+
+  if (event.action === 'approve') {
+    return this.workflowApi.approve({
+      document: event.data,
+      actor: event.frm.metadata?.currentUser
+    });
+  }
+}
+```
 
 That combination makes Vant Flow useful as both a form engine and a workflow platform foundation.
