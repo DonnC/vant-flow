@@ -1,0 +1,205 @@
+{
+    "name": "Inspection Report",
+    "module": "Quality Management",
+    "version": "1.3.0",
+    "description": "Comprehensive quality control report with Signature and Attachment support.",
+    "intro_text": "<b>Quality Assurance Protocol:</b> Ensure all batches are inspected against the <i>ISO-9001</i> standard. Document any deviations and capture the inspector signature.",
+    "intro_color": "blue",
+    "sections": [
+        {
+            "id": "sec_gen",
+            "label": "General Information",
+            "columns_count": 2,
+            "columns": [
+                {
+                    "id": "c1",
+                    "fields": [
+                        {
+                            "id": "f_inspector",
+                            "fieldname": "inspector_name",
+                            "fieldtype": "Data",
+                            "label": "Lead Inspector",
+                            "mandatory": 1,
+                            "placeholder": "Enter full name"
+                        },
+                        {
+                            "id": "f_batch",
+                            "fieldname": "batch_id",
+                            "fieldtype": "Data",
+                            "label": "Batch ID",
+                            "mandatory": 1,
+                            "regex": "^QC-[A-Z]{2}-[0-9]{4}$",
+                            "description": "Format: QC-XX-0000"
+                        },
+                        {
+                            "id": "id_1_u40w9",
+                            "fieldname": "btn_request_clearance",
+                            "fieldtype": "Button",
+                            "label": "Request Clearance",
+                            "hidden": false,
+                            "read_only": false,
+                            "mandatory": false,
+                            "options": "secondary"
+                        }
+                    ]
+                },
+                {
+                    "id": "c2",
+                    "fields": [
+                        {
+                            "id": "f_datetime",
+                            "fieldname": "inspection_datetime",
+                            "fieldtype": "Datetime",
+                            "label": "Inspection Datetime",
+                            "mandatory": 1
+                        },
+                        {
+                            "id": "f_shift",
+                            "fieldname": "shift",
+                            "fieldtype": "Select",
+                            "label": "Work Shift",
+                            "options": "Morning\nAfternoon\nNight",
+                            "default": "Morning"
+                        },
+                        {
+                            "id": "id_2_ck4gh",
+                            "fieldname": "clearance_result",
+                            "fieldtype": "Data",
+                            "label": "Clearance Result",
+                            "hidden": true,
+                            "read_only": true,
+                            "mandatory": false,
+                            "data_group": "virtual"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "sec_evidence",
+            "label": "Evidence & Documentation",
+            "columns_count": 2,
+            "columns": [
+                {
+                    "id": "c_ev1",
+                    "fields": [
+                        {
+                            "id": "f_attach_docs",
+                            "fieldname": "supporting_docs",
+                            "fieldtype": "Attach",
+                            "label": "Supporting Documents",
+                            "options": ".pdf,.doc,.docx | 10MB | 3",
+                            "description": "Upload up to 3 technical documents.",
+                            "data_group": "files"
+                        }
+                    ]
+                },
+                {
+                    "id": "c_ev2",
+                    "fields": [
+                        {
+                            "id": "f_attach_img",
+                            "fieldname": "inspection_photos",
+                            "fieldtype": "Attach",
+                            "label": "Inspection Photos",
+                            "options": "image/* | 5MB | 5",
+                            "description": "Upload up to 5 photos showing batch condition.",
+                            "data_group": "files"
+                        }
+                    ]
+                }
+            ],
+            "depends_on": "doc.clearance_result === 'Approved'"
+        },
+        {
+            "id": "sec_defects",
+            "label": "Defect Log",
+            "columns_count": 1,
+            "columns": [
+                {
+                    "id": "c41",
+                    "fields": [
+                        {
+                            "id": "f_defect_table",
+                            "fieldname": "defect_log",
+                            "fieldtype": "Table",
+                            "label": "Detected Defects",
+                            "table_fields": [
+                                {
+                                    "id": "tc1",
+                                    "fieldname": "defect_type",
+                                    "label": "Type",
+                                    "fieldtype": "Select",
+                                    "options": "Surface Scratch\nColor Mismatch\nStructural Crack\nFunctional Failure",
+                                    "mandatory": true
+                                },
+                                {
+                                    "id": "tc2",
+                                    "fieldname": "severity",
+                                    "label": "Severity",
+                                    "fieldtype": "Select",
+                                    "options": "Low\nMedium\nHigh\nCritical",
+                                    "default": "Low"
+                                },
+                                {
+                                    "id": "tc3",
+                                    "fieldname": "auto_fix",
+                                    "label": "Auto-Fix?",
+                                    "fieldtype": "Check"
+                                },
+                                {
+                                    "id": "id_6_9mh5t",
+                                    "fieldname": "detected_time",
+                                    "label": "Time Detected",
+                                    "fieldtype": "Time",
+                                    "mandatory": true
+                                },
+                                {
+                                    "id": "id_1_vp4rw",
+                                    "fieldname": "log_file",
+                                    "label": "Log File",
+                                    "fieldtype": "Attach"
+                                },
+                                {
+                                    "id": "id_2_kw1kx",
+                                    "fieldname": "approver",
+                                    "label": "Approver",
+                                    "fieldtype": "Signature"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "sec_signoff",
+            "label": "Sign-off",
+            "columns_count": 1,
+            "columns": [
+                {
+                    "id": "c_sig",
+                    "fields": [
+                        {
+                            "id": "f_signature",
+                            "fieldname": "inspector_signature",
+                            "fieldtype": "Signature",
+                            "label": "Inspector Signature",
+                            "mandatory": 1,
+                            "data_group": "files"
+                        }
+                    ]
+                }
+            ],
+            "collapsible": true
+        }
+    ],
+    "actions": {
+        "submit": {
+            "label": "Approve Batch",
+            "visible": true,
+            "type": "primary"
+        }
+    },
+    "client_script": "frm.on('refresh', (val, frm) => {\n    frm.msgprint('Quality Inspection System initialized with Signature and Attachment support.', 'info');\n\n    frm.on('btn_request_clearance', (_) => {\n        // 1. Perform your business logic\n        frm.msgprint('Clearance granted. Unlocking section...', 'success');\n\n        // 2. Set the hidden/readonly field.\n        // The renderer is now watching this change and will \n        // instantly reveal any dependent sections or fields.\n        frm.set_value('clearance_result', 'Approved');\n    });\n});\n"
+}

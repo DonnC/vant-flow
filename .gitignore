@@ -41,5 +41,11 @@ testem.log
 .DS_Store
 Thumbs.db
 
-build_output.txt
-error.txt
+*.txt
+.env
+environment.ai.ts
+
+# Vant Flow Persistence
+/logs/
+*.db
+*.log

@@ -6,6 +6,12 @@
     "strict": true,
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": true,
+    "baseUrl": "./",
+    "paths": {
+      "vant-flow": [
+        "projects/vant-flow/src/public-api.ts"
+      ]
+    },
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "skipLibCheck": true,
