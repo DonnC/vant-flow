@@ -49,3 +49,6 @@ environment.ai.ts
 /logs/
 *.db
 *.log
+
+# projects
+/projects/baobab
