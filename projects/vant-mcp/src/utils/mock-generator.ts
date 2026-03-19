@@ -1,4 +1,4 @@
-import { DocumentDefinition, DocumentField } from "@vant-flow/models";
+import type { DocumentDefinition, DocumentField, DocumentSection } from "vant-flow";
 
 export class VantMockGenerator {
     generateData(schema: DocumentDefinition): any {
@@ -65,8 +65,8 @@ export class VantMockGenerator {
 
     private getAllFields(schema: DocumentDefinition): DocumentField[] {
         const fields: DocumentField[] = [];
-        const sections = schema.steps
-            ? schema.steps.flatMap(s => s.sections)
+        const sections: DocumentSection[] = schema.steps
+            ? schema.steps.flatMap((s) => s.sections)
             : (schema.sections || []);
 
         for (const section of sections) {

@@ -279,7 +279,8 @@ export class VfBuilderState {
             label,
             hidden: false,
             read_only: false,
-            mandatory: false
+            mandatory: false,
+            indexed: false
         };
 
         this.document.update(doc => {

@@ -680,6 +680,7 @@ export class VfPropertyEditor {
 
   toggles: Array<{ label: string; prop: keyof DocumentField }> = [
     { label: 'Mandatory / Required', prop: 'mandatory' },
+    { label: 'Indexed', prop: 'indexed' },
     { label: 'Hidden', prop: 'hidden' },
     { label: 'Read Only', prop: 'read_only' },
   ];

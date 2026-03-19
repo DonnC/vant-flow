@@ -95,6 +95,7 @@ export interface DocumentField {
   default?: any;
   mandatory?: boolean;
   reqd?: boolean;
+  indexed?: boolean;
   options?: string; // Newline-separated for Select, Link target for Link, button style for Button, content for Markdown
   hidden?: boolean;
   read_only?: boolean;

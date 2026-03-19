@@ -6,7 +6,7 @@ import {
     DocumentStep,
     TableColumnDef,
     DocumentColumn
-} from "@vant-flow/models";
+} from "vant-flow";
 
 export interface FormBlueprint {
     title: string;
@@ -217,7 +217,7 @@ export class VantSchemaBuilder {
     addSection(schema: DocumentDefinition, label: string, stepId?: string, props: Partial<DocumentSection> = {}): DocumentDefinition {
         const section = this.createSection(label, props);
         if (stepId && schema.steps) {
-            const step = schema.steps.find(s => s.id === stepId || s.title === stepId);
+            const step = schema.steps.find((s: DocumentStep) => s.id === stepId || s.title === stepId);
             if (step) step.sections.push(section);
         } else if (schema.steps && schema.steps.length > 0) {
             schema.steps[schema.steps.length - 1].sections.push(section);
@@ -244,7 +244,7 @@ export class VantSchemaBuilder {
         const sections = this.getAllSections(schema);
         for (const sec of sections) {
             for (const col of sec.columns) {
-                const field = col.fields.find(f => f.fieldname === fieldname);
+                const field = col.fields.find((f: DocumentField) => f.fieldname === fieldname);
                 if (field) {
                     Object.assign(field, props);
                     return schema;
@@ -348,7 +348,7 @@ export class VantSchemaBuilder {
     }
 
     private getAllSections(schema: DocumentDefinition): DocumentSection[] {
-        if (schema.steps) return schema.steps.flatMap(s => s.sections);
+        if (schema.steps) return schema.steps.flatMap((s: DocumentStep) => s.sections);
         return schema.sections || [];
     }
 
@@ -368,10 +368,10 @@ export class VantSchemaBuilder {
         }
 
         const sections = this.getAllSections(schema);
-        const fields = sections.flatMap(s => s.columns.flatMap(c => c.fields));
+        const fields = sections.flatMap((s: DocumentSection) => s.columns.flatMap((c: DocumentColumn) => c.fields));
 
         if (schema.is_stepper && schema.steps) {
-            const stepTitles = schema.steps.map(s => s.title).join(", ");
+            const stepTitles = schema.steps.map((s: DocumentStep) => s.title).join(", ");
             parts.push(`It is organized into ${schema.steps.length} steps: ${stepTitles}.`);
         } else {
             parts.push(`It contains ${sections.length} logical sections.`);
@@ -382,7 +382,7 @@ export class VantSchemaBuilder {
             return acc;
         }, {} as Record<string, number>);
 
-        const importantTypes = Object.entries(typeCounts)
+        const importantTypes = (Object.entries(typeCounts) as Array<[string, number]>)
             .filter(([type]) => type !== 'Data')
             .map(([type, count]) => `${count} ${type}${count > 1 ? 's' : ''}`);
 
