@@ -37,7 +37,10 @@ test('generateData returns defaults when provided and generated values for each 
   assert.match(data.bio, /Bio/);
   assert.match(data.attachment, /sample\.pdf/);
   assert.match(data.signature, /^data:image\/png;base64,/);
-  assert.equal(data.identifier, 'LINK-REC-001');
+  assert.deepEqual(data.identifier, {
+    id: 'LINK-REC-001',
+    title: 'Sample Identifier'
+  });
   assert.equal(data.prefilled, 'Existing Value');
   assert.equal(Array.isArray(data.line_items), true);
   assert.equal(data.line_items.length, 1);

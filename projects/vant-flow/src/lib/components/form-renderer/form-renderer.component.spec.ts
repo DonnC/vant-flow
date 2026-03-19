@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { VfRenderer } from './form-renderer.component';
 import { VfFormContext } from '../../services/form-context';
 import { VfUtilityService } from '../../services/app-utility.service';
@@ -21,7 +22,7 @@ describe('VfRenderer', () => {
         (mockFormContext as any).isReadOnly = signal(false);
         (mockFormContext as any).dynamicIntro = signal(null);
         (mockFormContext as any).customButtons = signal([]);
-        (mockFormContext as any).actionsConfig = signal({ submit: { label: 'Submit', visible: true } });
+        (mockFormContext as any).actionsConfig = signal({ submit: { label: 'Submit', visible: true, type: 'primary' } });
         (mockFormContext as any).metadata = undefined;
         (mockFormContext as any).mediaHandler = undefined;
 
@@ -36,7 +37,7 @@ describe('VfRenderer', () => {
         mockUtils.getDeepValue.and.returnValue(undefined);
 
         await TestBed.configureTestingModule({
-            imports: [VfRenderer],
+            imports: [VfRenderer, HttpClientTestingModule],
         })
             .overrideComponent(VfRenderer, {
                 set: {
@@ -130,14 +131,71 @@ describe('VfRenderer', () => {
 
             mockFormContext.trigger.and.returnValue(true);
 
-            let emitted: unknown;
-            component.formSubmit.subscribe((d: unknown) => emitted = d);
+            let emitted: any;
+            component.formAction.subscribe((d: unknown) => emitted = d);
 
             component.submit();
 
             expect(mockUtils.setDeepValue).toHaveBeenCalledWith(jasmine.any(Object), 'user.first_name', 'John');
             expect(mockUtils.setDeepValue).toHaveBeenCalledWith(jasmine.any(Object), 'user.details.age', 30);
             expect(mockUtils.setDeepValue).toHaveBeenCalledWith(jasmine.any(Object), 'city', 'Harare');
+            expect(emitted.action).toBe('submit');
+            expect(emitted.buttonName).toBe('Submit');
+            expect(emitted.data).toEqual({
+                user: {
+                    first_name: 'John',
+                    details: { age: 30 }
+                },
+                city: 'Harare'
+            });
+            expect(emitted.frm).toBe(mockFormContext as any);
+        });
+    });
+
+    describe('formAction output', () => {
+        it('emits a custom action event and runs the configured runtime action', () => {
+            component.document = {
+                name: 'Custom Action Form',
+                sections: [{
+                    id: 's1',
+                    columns: [{
+                        id: 'c1',
+                        fields: [
+                            { id: 'f1', fieldtype: 'Data', fieldname: 'status', label: 'Status' }
+                        ]
+                    }]
+                }]
+            };
+            fixture.detectChanges();
+
+            const runtimeAction = jasmine.createSpy('runtimeAction');
+            (mockFormContext as any).actionsConfig.set({
+                submit: { label: 'Submit', visible: true, type: 'primary' },
+                approve: { label: 'Approve', visible: true, runtimeAction }
+            });
+            mockUtils.setDeepValue.and.callFake((obj: any, path: string, val: any) => {
+                const parts = path.split('.');
+                let cur = obj;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    cur[parts[i]] = cur[parts[i]] || {};
+                    cur = cur[parts[i]];
+                }
+                cur[parts[parts.length - 1]] = val;
+            });
+            component.formData = { status: 'Pending' };
+
+            let emitted: any;
+            component.formAction.subscribe((d: unknown) => emitted = d);
+
+            component.onAction('approve');
+
+            expect(runtimeAction).toHaveBeenCalledWith(mockFormContext as any);
+            expect(emitted.action).toBe('approve');
+            expect(emitted.buttonName).toBe('Approve');
+            expect(emitted.data).toEqual({ status: 'Pending' });
+            expect(emitted.rawData).toEqual({ status: 'Pending' });
+            expect(emitted.source).toBe('custom');
+            expect(emitted.frm).toBe(mockFormContext as any);
         });
     });
 

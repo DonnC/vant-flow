@@ -1,13 +1,13 @@
 {
-  "name": "Field Service Work Order",
+  "name": "README Demo - Field Service Work Order",
   "module": "Operations",
   "version": "1.0.0",
-  "description": "Importable showcase schema for Vant Flow features including stepper flows, Link field data sources, Attach, Signature, tables, and runtime metadata-aware scripts.",
+  "description": "Purpose-built showcase schema for the README and short product demo video. Demonstrates stepper flow, Link lookups, metadata-aware scripts, Attach, Signature, conditional logic, and table calculations in a compact real-world workflow.",
   "is_stepper": true,
-  "intro_text": "Capture dispatch, diagnostics, parts usage, and customer sign-off for a field service job.",
+  "intro_text": "Capture dispatch, diagnostics, proof of work, and customer sign-off in one guided flow.",
   "intro_color": "blue",
   "metadata": {
-    "example_type": "feature_showcase",
+    "example_type": "readme_video_showcase",
     "domain": "field_service"
   },
   "sections": [],
@@ -31,7 +31,7 @@
                   "fieldtype": "Data",
                   "label": "Ticket Number",
                   "mandatory": true,
-                  "placeholder": "WO-2026-0001"
+                  "placeholder": "WO-2026-0042"
                 },
                 {
                   "id": "f_priority",
@@ -39,7 +39,7 @@
                   "fieldtype": "Select",
                   "label": "Priority",
                   "options": "Low\nMedium\nHigh\nCritical",
-                  "default": "Medium",
+                  "default": "High",
                   "mandatory": true
                 },
                 {
@@ -129,7 +129,7 @@
     {
       "id": "step_diagnostics",
       "title": "Diagnostics",
-      "description": "Record findings, media, and replaced parts.",
+      "description": "Record findings, proof of work, and replaced parts.",
       "sections": [
         {
           "id": "sec_diagnostics",
@@ -178,7 +178,7 @@
                   "fieldtype": "Attach",
                   "label": "Before Media",
                   "options": ".jpg,.jpeg,.png,.pdf | 10MB | 3",
-                  "description": "Demo note: the example app hardcodes mock-storage upload handling for this fieldname only. TODO: replace that with your project-specific upload rules."
+                  "description": "The demo app routes this field through the mock storage handler, making it perfect for the README/video showcase."
                 },
                 {
                   "id": "f_after_media",
@@ -254,7 +254,7 @@
     {
       "id": "step_signoff",
       "title": "Sign-Off",
-      "description": "Capture final acceptance and signatures.",
+      "description": "Capture final resolution and acceptance.",
       "sections": [
         {
           "id": "sec_signoff",

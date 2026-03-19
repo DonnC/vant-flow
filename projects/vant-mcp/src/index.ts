@@ -196,7 +196,6 @@ Use this when generating a DocumentDefinition to always pick the correct fieldty
 - intro_color: "blue" | "orange" | "red" | "gray"
 - is_stepper: boolean — Enables multi-step wizard mode (uses 'steps' instead of 'sections')
 - metadata: object — Arbitrary metadata (e.g. { is_ai_generated: true })
-- actions.save: { label, visible, type } — Save draft button
 - actions.submit: { label, visible, type } — Final submit button
 - client_script: string — JavaScript executed in the form context (frm.on(...))
 
@@ -426,7 +425,7 @@ function registerHandlers(server: Server) {
                 },
                 {
                     name: "configure_actions",
-                    description: "Update the form's Save/Submit button behavior.",
+                    description: "Update the form's renderer action configuration, especially the default Submit button.",
                     inputSchema: {
                         type: "object",
                         properties: {

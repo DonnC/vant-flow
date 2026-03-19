@@ -10,7 +10,6 @@ test('buildFromBlueprint creates stepper schemas with configured actions and tab
     is_stepper: true,
     module: 'HR',
     actions: {
-      save_label: 'Save Draft',
       submit_label: 'Complete Onboarding'
     },
     steps: [{
@@ -35,7 +34,6 @@ test('buildFromBlueprint creates stepper schemas with configured actions and tab
 
   assert.equal(schema.is_stepper, true);
   assert.equal(schema.module, 'HR');
-  assert.equal(schema.actions?.save?.label, 'Save Draft');
   assert.equal(schema.actions?.submit?.label, 'Complete Onboarding');
   assert.equal(schema.steps?.length, 1);
   assert.equal(schema.steps?.[0].sections[0].columns.length, 2);
