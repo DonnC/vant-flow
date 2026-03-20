@@ -33,6 +33,7 @@ In traditional enterprise apps, a simple change (like hiding a field based on a 
 * **Modern Stack**: Built with Angular Signals, Standalone Components, and Tailwind CSS.
 * **Rich Components**: Signature pads, file attachments, recursive tables, and text editors.
 * **Enhanced Tables**: Support for any field type as a column with specialized compact rendering (previews for attachments, text editors, and signatures).
+* **Shared UI Primitives**: Reusable Vant-styled buttons, inputs, selects, labels, switches, and badges exposed for internal consistency and host-app extension.
 
 ---
 
@@ -96,6 +97,31 @@ provideVfFlow({
 | `VfBuilder` | `vf-builder` | The full visual IDE for designing forms. Supports `[initialSchema]` and `(schemaChange)`. |
 | `VfRenderer` | `vf-renderer` | The form renderer. Supports `[document]`, `(formReady)`, and `(formAction)`. |
 | `VfToastOutlet` | `vf-toast-outlet` | Notification host for `VfUtilityService` toasts. |
+
+### Shared UI Primitives
+
+Vant Flow now exposes a lightweight internal design-system layer through `VfUiPrimitivesModule`. It keeps the builder, renderer, and prompt surfaces visually aligned and gives host apps a stable way to opt into the same look.
+
+```typescript
+import { VfUiPrimitivesModule } from 'vant-flow';
+```
+
+You can use either the existing `ui-*` class API or the new primitive attributes:
+
+```html
+<button vfButton="primary">Save</button>
+<button vfButton="secondary" vfButtonSize="sm">Cancel</button>
+<input vfInput placeholder="Search..." />
+<textarea vfTextarea></textarea>
+<select vfSelect></select>
+```
+
+Vant also now uses reusable builder-facing components internally for repeated control patterns such as segmented option selection and settings toggles. These are exposed as `VfChoiceGroup` and `VfToggleCard`.
+
+In practice, the current Vant visual language is best described as:
+- A custom Tailwind-based design system
+- Frappe-inspired for enterprise form workflows
+- Soft-surface, high-clarity, modern admin UI rather than a generic component kit
 
 ### Core Services
 

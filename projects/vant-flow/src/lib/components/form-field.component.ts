@@ -6,6 +6,8 @@ import { QuillModule } from 'ngx-quill';
 import { firstValueFrom } from 'rxjs';
 import { DocumentField, VfLinkDataSource, VfLinkFieldConfig, VfLinkRequestObserver, VfMediaHandler, VfStoredMedia } from '../models/document.model';
 import { VfFormContext } from '../services/form-context';
+import { VfUiPrimitivesModule } from '../ui/ui-primitives.module';
+import { VfIconButton } from './shared/icon-button.component';
 
 import QuillTableBetter from 'quill-table-better';
 import Quill from "quill";
@@ -14,7 +16,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
 @Component({
   selector: 'vf-field',
   standalone: true,
-  imports: [CommonModule, FormsModule, QuillModule],
+  imports: [CommonModule, FormsModule, QuillModule, VfUiPrimitivesModule, VfIconButton],
   template: `
     <div class="field-group transition-all duration-200" [class.ui-field-error]="!validate() && (value || submitted)" [class.compact]="compact">
       @if (shouldShowLabel) {
@@ -96,15 +98,15 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                     </svg>
                   </div>
                 } @else if (value && !disabled) {
-                  <button
-                    type="button"
+                  <vf-icon-button
                     (mousedown)="$event.preventDefault()"
                     (click)="clearLinkSelection()"
-                    class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all">
+                    class="absolute right-2 top-1/2 -translate-y-1/2"
+                    tone="danger" [soft]="true">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <path d="M18 6L6 18M6 6l12 12"/>
                     </svg>
-                  </button>
+                  </vf-icon-button>
                 }
 
                 @if (showLinkDropdown) {
@@ -266,10 +268,11 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
   
                   @if (value && !isDrawing) {
                     <div class="absolute top-2 right-2 flex gap-1.5 opacity-0 group-sig:opacity-100 group-hover/sig:opacity-100 transition-opacity">
-                      <button type="button" (click)="clearSignature()" 
-                        class="p-1.5 rounded-lg bg-white shadow-sm border border-zinc-200 text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                      <vf-icon-button (pressed)="clearSignature()" 
+                        class="bg-white shadow-sm border border-zinc-200"
+                        size="md" tone="danger">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                      </button>
+                      </vf-icon-button>
                     </div>
                   }
                 </div>
@@ -349,13 +352,13 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                         </div>
                         <div class="flex items-center gap-1 transition-opacity" 
                             [ngClass]="{'opacity-0': !disabled, 'group-hover/file:opacity-100': !disabled}">
-                          <button type="button" (click)="downloadFile(file)" class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+                          <vf-icon-button (pressed)="downloadFile(file)" tone="brand">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                          </button>
+                          </vf-icon-button>
                           @if (!disabled) {
-                            <button type="button" (click)="removeFile(i)" class="p-1.5 rounded-md text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                            <vf-icon-button (pressed)="removeFile(i)" tone="danger">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                            </button>
+                            </vf-icon-button>
                           }
                         </div>
                       </div>
