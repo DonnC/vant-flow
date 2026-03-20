@@ -12,7 +12,8 @@
         "baseUrl": ".",
         "paths": {
             "vant-flow": [
-                "../../dist/vant-flow/public-api.d.ts"
+                "../../dist/vant-flow",
+                "../../dist/vant-flow/index.d.ts"
             ]
         }
     },

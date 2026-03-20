@@ -66,7 +66,7 @@ export class VantMockGenerator {
     private getAllFields(schema: DocumentDefinition): DocumentField[] {
         const fields: DocumentField[] = [];
         const sections: DocumentSection[] = schema.steps
-            ? schema.steps.flatMap((s) => s.sections)
+            ? schema.steps.flatMap((s: { sections: DocumentSection[] }) => s.sections)
             : (schema.sections || []);
 
         for (const section of sections) {
