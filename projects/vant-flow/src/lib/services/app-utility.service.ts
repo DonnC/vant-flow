@@ -1,4 +1,4 @@
-import { Injectable, signal, inject, ApplicationRef, EnvironmentInjector, createComponent } from '@angular/core';
+import { Injectable, signal, ApplicationRef, EnvironmentInjector, createComponent } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { DocumentField, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler } from '../models/document.model';
@@ -27,7 +27,11 @@ export class VfUtilityService {
   readonly toasts = signal<Toast[]>([]);
   readonly isFreezing = signal<string | null>(null);
 
-  private http = inject(HttpClient);
+  constructor(
+    private http: HttpClient,
+    private appRef: ApplicationRef,
+    private envInjector: EnvironmentInjector,
+  ) {}
 
   show_alert(msg: string, indicator: ToastIndicator = 'info') {
     const id = ++_toastId;
@@ -46,13 +50,6 @@ export class VfUtilityService {
   dismiss(id: number) {
     this.toasts.update(t => t.filter(x => x.id !== id));
   }
-
-  /**
-   * Show a custom dialog built from Document Fields.
-   * Injects a dialog element directly into the DOM to avoid Material dependency.
-   */
-  private appRef = inject(ApplicationRef);
-  private envInjector = inject(EnvironmentInjector);
 
   /**
    * Show a custom dialog built from Document Fields.
