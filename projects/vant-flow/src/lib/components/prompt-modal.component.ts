@@ -1,7 +1,7 @@
 import { Component, Input, Output, EventEmitter, ViewChildren, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DocumentField, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler } from '../models/document.model';
+import { DocumentField, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver } from '../models/document.model';
 import { VfField } from './form-field.component';
 import { VfUiPrimitivesModule } from '../ui/ui-primitives.module';
 import { VfIconButton } from './shared/icon-button.component';
@@ -26,6 +26,7 @@ import { VfIconButton } from './shared/icon-button.component';
               [value]="values[field.fieldname]" 
               [readOnly]="field.read_only || readOnly"
               [mediaHandler]="mediaHandler"
+              [mediaResolver]="mediaResolver"
               [linkDataSource]="linkDataSource"
               [linkRequestObserver]="linkRequestObserver"
               [formMetadata]="formMetadata"
@@ -58,6 +59,7 @@ export class VfPromptModal {
   @Input() values: Record<string, any> = {};
   @Input() readOnly: boolean = false;
   @Input() mediaHandler?: VfMediaHandler;
+  @Input() mediaResolver?: VfMediaResolver;
   @Input() linkDataSource?: VfLinkDataSource;
   @Input() linkRequestObserver?: VfLinkRequestObserver;
   @Input() formMetadata?: any;

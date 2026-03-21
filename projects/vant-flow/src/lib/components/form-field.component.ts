@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { QuillModule } from 'ngx-quill';
 import { firstValueFrom } from 'rxjs';
-import { DocumentField, VfLinkDataSource, VfLinkFieldConfig, VfLinkRequestObserver, VfMediaHandler, VfStoredMedia } from '../models/document.model';
+import { DocumentField, VfLinkDataSource, VfLinkFieldConfig, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver, VfStoredMedia } from '../models/document.model';
 import { VfFormContext } from '../services/form-context';
 import { VfUiPrimitivesModule } from '../ui/ui-primitives.module';
 import { VfIconButton } from './shared/icon-button.component';
@@ -16,6 +16,9 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
 @Component({
   selector: 'vf-field',
   standalone: true,
+  host: {
+    class: 'block',
+  },
   imports: [CommonModule, FormsModule, QuillModule, VfUiPrimitivesModule, VfIconButton],
   template: `
     <div class="field-group transition-all duration-200" [class.ui-field-error]="!validate() && (value || submitted)" [class.compact]="compact">
@@ -518,6 +521,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   @Input() hideLabel: boolean = false;
   @Input() compact: boolean = false;
   @Input() mediaHandler?: VfMediaHandler;
+  @Input() mediaResolver?: VfMediaResolver;
   @Input() linkDataSource?: VfLinkDataSource;
   @Input() linkRequestObserver?: VfLinkRequestObserver;
   @Input() formMetadata?: any;
@@ -878,6 +882,9 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     return key.replace(/[_\.]+/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
   }
 
+  private mediaUrlCache = new Map<string, string>();
+  private mediaUrlInflight = new Map<string, Promise<string>>();
+
   // ── Signature Logic ──────────────────────────────────────────
   isDrawing = false;
   isProcessingMedia = false;
@@ -907,9 +914,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
 
     // Loading existing signature if any
     if (this.value && this.field.fieldtype === 'Signature') {
-      const img = new Image();
-      img.onload = () => this.ctx2d?.drawImage(img, 0, 0);
-      img.src = this.getMediaUrl(this.value);
+      void this.renderSignatureValue(this.value);
     }
   }
 
@@ -1060,8 +1065,8 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     this.onValueChange(this.attachConfig.maxFiles === 1 ? null : current);
   }
 
-  downloadFile(file: any) {
-    const targetUrl = file?.downloadUrl || this.getMediaUrl(file);
+  async downloadFile(file: any) {
+    const targetUrl = await this.resolveMediaUrl(file, 'download');
     if (!targetUrl) {
       this.ctx?.msgprint('No downloadable URL is available for this file.', 'warning');
       return;
@@ -1091,8 +1096,84 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
 
   getMediaUrl(value: any): string {
     if (!value) return '';
+    const directUrl = this.getDirectMediaUrl(value);
+    if (directUrl) return directUrl;
+
+    const cacheKey = this.getMediaCacheKey(value);
+    if (cacheKey && this.mediaUrlCache.has(cacheKey)) {
+      return this.mediaUrlCache.get(cacheKey) || '';
+    }
+
+    void this.resolveMediaUrl(value, 'preview');
+    return '';
+  }
+
+  private getDirectMediaUrl(value: any): string {
+    if (!value) return '';
     if (typeof value === 'string') return value;
     return value.url || value.downloadUrl || '';
+  }
+
+  private getMediaCacheKey(value: any): string | null {
+    if (!value) return null;
+    if (typeof value === 'string') return value;
+    return value.fileId || value.downloadUrl || value.url || value.name || null;
+  }
+
+  private async resolveMediaUrl(value: any, action: 'preview' | 'download'): Promise<string> {
+    const directUrl = this.getDirectMediaUrl(value);
+    if (directUrl) return directUrl;
+    if (!value || !this.mediaResolver) return '';
+
+    const cacheKey = this.getMediaCacheKey(value);
+    if (cacheKey && this.mediaUrlCache.has(cacheKey)) {
+      return this.mediaUrlCache.get(cacheKey) || '';
+    }
+
+    const existing = cacheKey ? this.mediaUrlInflight.get(cacheKey) : undefined;
+    if (existing) return existing;
+
+    const pending = (async () => {
+      try {
+        const result = await this.mediaResolver!(value, {
+          field: this.field,
+          fieldname: this.field.fieldname,
+          fieldtype: this.field.fieldtype === 'Signature' ? 'Signature' : 'Attach',
+          currentValue: this.value,
+          formMetadata: this.formMetadata ?? this.ctx?.metadata,
+          action
+        });
+
+        const resolvedUrl = typeof result === 'string' ? result : this.getDirectMediaUrl(result);
+        if (cacheKey && resolvedUrl) {
+          this.mediaUrlCache.set(cacheKey, resolvedUrl);
+        }
+        return resolvedUrl || '';
+      } catch (error) {
+        this.handleMediaError(error, 'Failed to resolve media URL');
+        return '';
+      } finally {
+        if (cacheKey) this.mediaUrlInflight.delete(cacheKey);
+      }
+    })();
+
+    if (cacheKey) this.mediaUrlInflight.set(cacheKey, pending);
+    return pending;
+  }
+
+  private async renderSignatureValue(value: any) {
+    const canvas = this.canvasRef?.nativeElement;
+    if (!canvas || !this.ctx2d || !value) return;
+
+    const src = await this.resolveMediaUrl(value, 'preview');
+    if (!src) return;
+
+    const img = new Image();
+    img.onload = () => {
+      this.ctx2d?.clearRect(0, 0, canvas.width, canvas.height);
+      this.ctx2d?.drawImage(img, 0, 0);
+    };
+    img.src = src;
   }
 
   private isAccepted(file: File, accept: string): boolean {

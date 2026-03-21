@@ -41,7 +41,7 @@ type RightTab = 'properties' | 'script';
             <path d="M9 9h6M9 12h6M9 15h4"/>
           </svg>
         </div>
-        <span class="text-sm font-semibold text-zinc-800">FormFlow</span>
+        <span class="text-sm font-semibold text-zinc-800">VantFlow</span>
       </div>
 
       <!-- Document Name edit -->

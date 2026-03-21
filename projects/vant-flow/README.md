@@ -242,6 +242,71 @@ frm.on('refresh', (_val, frm) => {
 
 Builder Preview and the example demo pages also expose a JSON editor for this runtime metadata. It feeds `frm.metadata` so scripts that depend on host/client metadata can run correctly. Invalid JSON keeps the last valid metadata object active, and the runtime metadata is not exported with the form schema.
 
+### Media Storage and Secure Signatures
+
+Vant Flow supports both direct media URLs and private file-id-based storage. Keep using `[mediaHandler]` to upload or persist attachments/signatures, and optionally provide `[mediaResolver]` when a stored file must be resolved into a preview or download URL later.
+
+This keeps current behavior fully intact:
+- If your app already stores `url` or `downloadUrl`, the renderer uses them directly.
+- If your backend only returns a `fileId`, the renderer can lazily resolve it when the user previews or downloads the file.
+
+```typescript
+import {
+  VfMediaHandler,
+  VfMediaResolver,
+  VfStoredMedia,
+  VfMediaResolverContext
+} from 'vant-flow';
+
+mediaHandler: VfMediaHandler = async (file, context) => {
+  const uploaded = await this.api.upload(file, {
+    fieldname: context.field.fieldname,
+    filename: file.name || context.field.fieldname + '.bin'
+  });
+
+  return {
+    fileId: uploaded.id,
+    name: uploaded.originalName,
+    contentType: uploaded.contentType,
+    size: uploaded.size,
+    metadata: {
+      capturedAt: new Date().toISOString(),
+      source: context.field.fieldtype
+    }
+  } satisfies VfStoredMedia;
+};
+
+mediaResolver: VfMediaResolver = async (
+  media: VfStoredMedia,
+  context: VfMediaResolverContext
+) => {
+  if (!media.fileId) return null;
+
+  const access = await this.api.resolveFile(media.fileId, {
+    usage: context.usage,
+    fieldname: context.field.fieldname
+  });
+
+  return {
+    url: access.url,
+    downloadUrl: access.downloadUrl ?? access.url
+  };
+};
+```
+
+```html
+<vf-renderer
+  [document]="schema"
+  [mediaHandler]="mediaHandler"
+  [mediaResolver]="mediaResolver"
+></vf-renderer>
+```
+
+For `Signature` fields, the safest production pattern is:
+- Upload the signature blob immediately through `mediaHandler` instead of storing long-lived base64 in saved form data.
+- Persist only `fileId` plus metadata such as `capturedAt`, `contentType`, `sha256`, and signer or audit identifiers.
+- Use `mediaResolver` to request a short-lived signed URL only when the signature needs to be previewed or downloaded.
+- Keep signature files in private object storage or behind an authenticated media endpoint rather than exposing permanent public URLs.
 Tables also feature **Smart Compact Rendering**:
 - **Text Editor**: Automatic HTML stripping for table cell previews.
 - **Attach**: Visual file counters and icons.
@@ -273,3 +338,4 @@ The showcase application demonstrates:
 - **Landing Page**: Feature overview and navigation.
 - **Admin Side**: Integrated Builder + Renderer side-by-side.
 - **Standalone Demos**: Isolated components for debugging.
+

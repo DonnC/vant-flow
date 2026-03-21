@@ -2,7 +2,7 @@ export type FieldType = 'Data' | 'Select' | 'Link' | 'Check' | 'Int' | 'Text' | 
 
 export interface VfStoredMedia {
   name: string;
-  url: string;
+  url?: string;
   size?: number;
   type?: string;
   fileId?: string;
@@ -34,6 +34,16 @@ export type VfMediaHandler = (
   payload: VfMediaHandlerPayload,
   context: VfMediaHandlerContext
 ) => Promise<VfMediaHandlerResult> | VfMediaHandlerResult;
+
+export interface VfMediaResolverContext extends VfMediaHandlerContext {
+  action: 'preview' | 'download';
+}
+
+export type VfMediaResolverResult = string | VfStoredMedia | null;
+export type VfMediaResolver = (
+  media: string | VfStoredMedia,
+  context: VfMediaResolverContext
+) => Promise<VfMediaResolverResult> | VfMediaResolverResult;
 
 export interface VfLinkFieldMapping {
   id: string;

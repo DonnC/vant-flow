@@ -4,6 +4,9 @@ import { Component, EventEmitter, Input, Output } from '@angular/core';
 @Component({
   selector: 'vf-section-shell',
   standalone: true,
+  host: {
+    class: 'block',
+  },
   imports: [CommonModule],
   template: `
     <div class="bg-white border border-zinc-200 shadow-sm rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">

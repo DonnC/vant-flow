@@ -129,7 +129,7 @@ export class VfScriptEditor {
         { label: 'frm.throw', code: "frm.throw('Error message');" },
         { label: 'frm.confirm', code: "frm.confirm('Proceed?', () => {\n  frm.msgprint('Confirmed');\n});" },
         { label: 'frm.prompt', code: "frm.prompt([\n  { label: 'Reason', fieldname: 'reason', fieldtype: 'Data', mandatory: 1 }\n], (vals) => {\n  console.log(vals);\n}, 'Provide Reason');" },
-        { label: 'frm.set_intro', code: "frm.set_intro('Welcome to FormFlow', 'blue');" },
+        { label: 'frm.set_intro', code: "frm.set_intro('Welcome to VantFlow', 'blue');" },
       ]
     },
     {

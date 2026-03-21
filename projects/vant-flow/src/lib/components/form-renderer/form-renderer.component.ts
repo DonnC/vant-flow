@@ -2,7 +2,7 @@ import { Component, effect, EventEmitter, inject, Input, OnChanges, OnDestroy, O
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuillModule } from 'ngx-quill';
-import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfRendererButtonEvent } from '../../models/document.model';
+import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver, VfRendererButtonEvent } from '../../models/document.model';
 import { VfFormContext } from '../../services/form-context';
 import { VfUtilityService } from '../../services/app-utility.service';
 
@@ -281,6 +281,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                               [(value)]="row[col.fieldname]"
                                                               (valueChange)="onFieldChange(field.fieldname)"
                                                               [mediaHandler]="mediaHandler"
+                                                              [mediaResolver]="mediaResolver"
                                                               [linkDataSource]="linkDataSource"
                                                               [linkRequestObserver]="linkRequestObserver"
                                                               [formMetadata]="metadata"
@@ -361,6 +362,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                             [field]="field"
                                             [(value)]="formData[field.fieldname]"
                                             [mediaHandler]="mediaHandler"
+                                                              [mediaResolver]="mediaResolver"
                                             [linkDataSource]="linkDataSource"
                                             [linkRequestObserver]="linkRequestObserver"
                                             [formMetadata]="metadata"
@@ -491,6 +493,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   @Input() disabled: boolean = false;
   @Input() metadata?: any;
   @Input() mediaHandler?: VfMediaHandler;
+  @Input() mediaResolver?: VfMediaResolver;
   @Input() linkDataSource?: VfLinkDataSource;
   @Input() linkRequestObserver?: VfLinkRequestObserver;
 
@@ -531,6 +534,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     this.initForm();
     this.ctx.initialize(this.document, this.formData, this.metadata);
     this.ctx.mediaHandler = this.mediaHandler;
+    this.ctx.mediaResolver = this.mediaResolver;
     this.ctx.linkDataSource = this.linkDataSource;
     this.ctx.linkRequestObserver = this.linkRequestObserver;
     if (this.readonly) {
@@ -554,6 +558,9 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     }
     if (changes['mediaHandler'] && !changes['mediaHandler'].firstChange) {
       this.ctx.mediaHandler = this.mediaHandler;
+    }
+    if (changes['mediaResolver'] && !changes['mediaResolver'].firstChange) {
+      this.ctx.mediaResolver = this.mediaResolver;
     }
     if (changes['linkDataSource'] && !changes['linkDataSource'].firstChange) {
       this.ctx.linkDataSource = this.linkDataSource;
