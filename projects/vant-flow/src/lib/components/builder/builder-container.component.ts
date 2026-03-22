@@ -341,38 +341,52 @@ type RightTab = 'properties' | 'script';
         
         <div class="w-full max-w-6xl px-4 pt-6">
           <div class="rounded-2xl border border-sky-200 bg-white shadow-sm overflow-hidden">
-            <div class="px-5 py-4 border-b border-sky-100 bg-sky-50/80 flex items-start justify-between gap-4">
+            <button
+              type="button"
+              class="w-full px-5 py-4 bg-sky-50/80 flex items-start justify-between gap-4 text-left transition-colors hover:bg-sky-50"
+              aria-controls="preview-metadata-panel"
+              [attr.aria-expanded]="previewMetadataExpanded()"
+              (click)="togglePreviewMetadata()"
+            >
               <div>
-                <vf-eyebrow label="Test frm.metadata" tone="sky"></vf-eyebrow>
-                <p class="text-xs text-sky-900/80 mt-1">This JSON feeds <code>frm.metadata</code> in preview so scripts that depend on host metadata can run correctly. It is not saved to the schema or included in export.</p>
+                <div class="flex items-center gap-3 flex-wrap">
+                  <vf-eyebrow label="Test frm.metadata" tone="sky"></vf-eyebrow>
+                  <vf-eyebrow label="Preview Only" tone="sky"></vf-eyebrow>
+                </div>
+                <p class="text-xs text-sky-900/80 mt-2">This JSON feeds <code>frm.metadata</code> in preview so scripts that depend on host metadata can run correctly. It is not saved to the schema or included in export.</p>
               </div>
-              <vf-eyebrow label="Preview Only" tone="sky"></vf-eyebrow>
-            </div>
-            <div class="p-5 space-y-3">
-              <textarea
-                class="w-full min-h-44 rounded-xl border bg-zinc-950 text-emerald-300 font-mono text-[11px] leading-relaxed p-4 outline-none transition-all"
-                [class.border-red-300]="previewMetadataError"
-                [class.focus:border-red-400]="previewMetadataError"
-                [class.border-zinc-800]="!previewMetadataError"
-                [class.focus:border-sky-400]="!previewMetadataError"
-                [ngModel]="previewMetadataInput"
-                (ngModelChange)="onPreviewMetadataInput($event)"
-                placeholder="{&#10;  &quot;currentUser&quot;: { &quot;role&quot;: &quot;Manager&quot; }&#10;}">
-              </textarea>
+              <div class="flex items-center gap-2 text-sky-700 pt-0.5 shrink-0">
+                <span class="text-[11px] font-semibold uppercase tracking-[0.18em]">{{ previewMetadataExpanded() ? 'Collapse' : 'Expand' }}</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="transition-transform" [class.rotate-180]="previewMetadataExpanded()"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </button>
 
-              @if (previewMetadataError) {
-                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
-                  {{ previewMetadataError }}
-                </div>
-              } @else {
-                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-700">
-                  Preview is using the JSON above as the current runtime metadata object.
-                </div>
-              }
-            </div>
+            @if (previewMetadataExpanded()) {
+              <div id="preview-metadata-panel" class="p-5 space-y-3 border-t border-sky-100">
+                <textarea
+                  class="w-full min-h-44 rounded-xl border bg-zinc-950 text-emerald-300 font-mono text-[11px] leading-relaxed p-4 outline-none transition-all"
+                  [class.border-red-300]="previewMetadataError"
+                  [class.focus:border-red-400]="previewMetadataError"
+                  [class.border-zinc-800]="!previewMetadataError"
+                  [class.focus:border-sky-400]="!previewMetadataError"
+                  [ngModel]="previewMetadataInput"
+                  (ngModelChange)="onPreviewMetadataInput($event)"
+                  placeholder="{&#10;  &quot;currentUser&quot;: { &quot;role&quot;: &quot;Manager&quot; }&#10;}">
+                </textarea>
+
+                @if (previewMetadataError) {
+                  <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                    {{ previewMetadataError }}
+                  </div>
+                } @else {
+                  <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-700">
+                    Preview is using the JSON above as the current runtime metadata object.
+                  </div>
+                }
+              </div>
+            }
           </div>
         </div>
-
         <vf-renderer class="w-full" [document]="state.document()" [metadata]="previewMetadataValue" (formAction)="onFormAction($event)"></vf-renderer>
 
         @if (lastSubmittedData) {
@@ -410,6 +424,7 @@ export class VfBuilder implements OnInit, OnChanges {
   previewMetadataValue: Record<string, any> = {};
   previewMetadataInput = this.stringifyPreviewMetadata(this.getDefaultPreviewMetadata());
   previewMetadataError: string | null = null;
+  previewMetadataExpanded = signal(false);
 
   // Sidebar controls
   leftSidebarVisible = signal(true);
@@ -476,6 +491,10 @@ export class VfBuilder implements OnInit, OnChanges {
   setMode(mode: 'builder' | 'preview') {
     this.state.mode.set(mode);
     if (mode === 'builder') this.lastSubmittedData = null;
+  }
+
+  togglePreviewMetadata() {
+    this.previewMetadataExpanded.update(expanded => !expanded);
   }
 
   onPreviewMetadataInput(value: string) {
@@ -567,3 +586,4 @@ export class VfBuilder implements OnInit, OnChanges {
     this.showExport = false;
   }
 }
+
