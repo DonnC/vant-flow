@@ -2,7 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VfBuilderState } from '../../services/builder-state.service';
-import { DocumentField, FieldType } from '../../models/document.model';
+import { DocumentField, FieldType, TableColumnDef } from '../../models/document.model';
 import { VfUiPrimitivesModule } from '../../ui/ui-primitives.module';
 import { VfChoiceGroup, VfChoiceOption } from './shared/choice-group.component';
 import { VfToggleCard } from './shared/toggle-card.component';
@@ -228,6 +228,22 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
           </div>
         }
 
+        @if (field()!.fieldtype === 'Attach') {
+          <div class="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3">
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                [ngModel]="!!field()!.attach_config?.enable_capture"
+                (ngModelChange)="updateAttachConfig({ enable_capture: $event })">
+              <span class="space-y-1">
+                <span class="block text-[11px] font-semibold text-zinc-700">Enable camera capture</span>
+                <span class="block text-[10px] leading-relaxed text-zinc-500">Adds a camera action to the attach field while preserving the existing upload flow.</span>
+              </span>
+            </label>
+          </div>
+        }
+
         @if (field()!.fieldtype === 'Link') {
           <div class="space-y-4 p-3 rounded-xl border border-indigo-100 bg-indigo-50/30">
             <div class="space-y-1">
@@ -362,6 +378,17 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
                         <label class="text-[9px] font-bold text-zinc-400 uppercase">Options / Config</label>
                         <input class="ui-input !p-1.5 !text-[11px]" [ngModel]="col.options" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { options: $event })" placeholder="config...">
                       </div>
+                    }
+
+                    @if (col.fieldtype === 'Attach') {
+                      <label class="flex items-center gap-2 cursor-pointer rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5">
+                        <input
+                          type="checkbox"
+                          class="w-3 h-3 rounded"
+                          [ngModel]="!!col.attach_config?.enable_capture"
+                          (ngModelChange)="updateTableAttachConfig(col, { enable_capture: $event })">
+                        <span class="text-[10px] font-medium text-zinc-600">Enable camera capture</span>
+                      </label>
                     }
 
                     <div class="flex items-center gap-4 pt-1">
@@ -759,6 +786,30 @@ export class VfPropertyEditor {
   toNumber(value: any) {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  updateAttachConfig(patch: Record<string, any>) {
+    const f = this.field();
+    if (!f) return;
+
+    this.state.updateField(f.id, {
+      attach_config: {
+        ...(f.attach_config || {}),
+        ...patch
+      }
+    });
+  }
+
+  updateTableAttachConfig(col: TableColumnDef, patch: Record<string, any>) {
+    const f = this.field();
+    if (!f) return;
+
+    this.state.updateTableColumn(f.id, col.id, {
+      attach_config: {
+        ...(col.attach_config || {}),
+        ...patch
+      }
+    });
   }
 
   public slugify(text: string): string {

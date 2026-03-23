@@ -64,6 +64,11 @@ export interface VfLinkFieldConfig {
   page_size?: number;
 }
 
+export interface VfAttachFieldConfig {
+  enable_capture?: boolean;
+  capture_mode?: 'user' | 'environment';
+}
+
 export interface VfLinkDataSourceRequest {
   field: DocumentField;
   query: string;
@@ -95,6 +100,7 @@ export interface TableColumnDef {
   default?: any;
   options?: string;
   regex?: string;
+  attach_config?: VfAttachFieldConfig;
 }
 
 export interface DocumentField {
@@ -117,6 +123,7 @@ export interface DocumentField {
   table_fields?: TableColumnDef[]; // Only used by Table fieldtype
   data_group?: string; // Optional: nested object path (e.g. "user.profile")
   link_config?: VfLinkFieldConfig;
+  attach_config?: VfAttachFieldConfig;
 }
 
 export interface DocumentColumn {

@@ -317,17 +317,52 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                       [accept]="attachConfig.accept"
                       [multiple]="attachConfig.maxFiles > 1"
                       (change)="onFileSelected($event)">
+                    @if (canShowCameraButton) {
+                      <input type="file" #cameraInput class="hidden"
+                        [accept]="cameraAccept"
+                        [attr.capture]="cameraCaptureMode"
+                        [multiple]="false"
+                        (change)="onCameraSelected($event)">
+                    }
     
+                    @if (canShowCameraButton) {
+                      <button
+                        type="button"
+                        class="absolute top-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white/95 text-zinc-500 shadow-sm transition-all hover:border-indigo-200 hover:text-indigo-600 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                        (click)="triggerCameraInput($event)"
+                        [disabled]="cameraButtonDisabled"
+                        title="Capture image">
+                        @if (isCheckingCamera) {
+                          <svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                          </svg>
+                        } @else {
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14.5 4H9.5l-1.4 2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.1L14.5 4z"/>
+                            <circle cx="12" cy="12" r="3.5"/>
+                          </svg>
+                        }
+                      </button>
+                    }
+
                     <div class="flex flex-col items-center gap-2 text-center">
                       <div class="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 group-hover/drop:bg-indigo-100 group-hover/drop:text-indigo-600 transition-colors">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                       </div>
                       <div>
                         <p class="text-[13px] text-zinc-600 font-bold">Click or drag to upload</p>
+                        @if (cameraCaptureEnabled) {
+                          <p class="mt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-indigo-500">or tap the camera to capture</p>
+                        }
                         <p class="text-[11px] text-zinc-400">{{ attachConfig.accept || 'All files' }} • Max {{ attachConfig.maxSizeText }}</p>
                       </div>
                     </div>
                   </div>
+                  @if (cameraCaptureEnabled && cameraStatusMessage) {
+                    <div class="rounded-xl border px-3 py-2 text-[11px] font-medium" [ngClass]="cameraStatusClasses">
+                      {{ cameraStatusMessage }}
+                    </div>
+                  }
                 } @else if (attachments.length === 0) {
                   <div class="p-4 bg-zinc-50 border border-zinc-100 rounded-xl text-center">
                     <p class="text-[11px] text-zinc-400 font-bold uppercase tracking-widest italic">No files attached</p>
@@ -514,6 +549,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
 export class VfField implements AfterViewInit, OnInit, DoCheck {
   @ViewChild('signatureCanvas') canvasRef?: ElementRef<HTMLCanvasElement>;
   @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
+  @ViewChild('cameraInput') cameraInputRef?: ElementRef<HTMLInputElement>;
 
   @Input() field!: DocumentField;
   @Input() value: any;
@@ -587,7 +623,15 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     // Expected format in options: ".pdf,.jpg | 5MB | 1" or a JSON string
     const opt = (this.options[0] as string) || '';
     if (opt.startsWith('{')) {
-      try { return JSON.parse(opt); } catch { }
+      try {
+        const parsed = JSON.parse(opt);
+        return {
+          accept: parsed.accept || '',
+          maxSize: parsed.maxSize ?? this.parseFileSize(parsed.maxSizeText || '5MB'),
+          maxSizeText: parsed.maxSizeText || '5MB',
+          maxFiles: parsed.maxFiles ?? 1
+        };
+      } catch { }
     }
     const parts = opt.split('|').map(p => p.trim());
     return {
@@ -596,6 +640,52 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       maxSizeText: parts[1] || '5MB',
       maxFiles: parseInt(parts[2]) || 1
     };
+  }
+
+  get attachFieldConfig() {
+    return this.field.attach_config || {};
+  }
+
+  get cameraCaptureEnabled() {
+    return this.field.fieldtype === 'Attach' && !!this.attachFieldConfig.enable_capture;
+  }
+
+  get cameraCaptureMode() {
+    return this.attachFieldConfig.capture_mode || 'environment';
+  }
+
+  get cameraAccept() {
+    const accept = this.attachConfig.accept?.trim();
+    if (!accept) return 'image/*';
+
+    const allowsImages = accept
+      .split(',')
+      .map((part: string) => part.trim().toLowerCase())
+      .some((part: string) => part.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic', '.heif'].includes(part));
+
+    return allowsImages ? accept : 'image/*';
+  }
+
+  get canShowCameraButton() {
+    return this.cameraCaptureEnabled;
+  }
+
+  get cameraButtonDisabled() {
+    return this.disabled || this.isCheckingCamera || this.cameraSupportState === 'unsupported';
+  }
+
+  get cameraStatusClasses() {
+    switch (this.cameraSupportState) {
+      case 'denied':
+      case 'unsupported':
+      case 'unavailable':
+      case 'error':
+        return 'border-amber-200 bg-amber-50 text-amber-700';
+      case 'ready':
+        return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      default:
+        return 'border-zinc-200 bg-zinc-50 text-zinc-500';
+    }
   }
 
   get attachments(): any[] {
@@ -652,16 +742,26 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   private linkBlurTimer?: ReturnType<typeof setTimeout>;
   private activeLinkRequestId = 0;
   private lastLinkRefreshTick = 0;
+  isCheckingCamera = false;
+  cameraStatusMessage = '';
+  cameraSupportState: 'idle' | 'ready' | 'unsupported' | 'denied' | 'unavailable' | 'error' = 'idle';
+  private lastCameraCaptureEnabled?: boolean;
 
   ngOnInit() {
     if (this.field.fieldtype === 'Link') {
       this.syncLinkInputWithValue();
     }
+
+    this.refreshCameraSupportState();
   }
 
   ngDoCheck() {
     if (this.field.fieldtype === 'Link' && !this.showLinkDropdown) {
       this.syncLinkInputWithValue();
+    }
+
+    if (this.lastCameraCaptureEnabled !== this.cameraCaptureEnabled) {
+      this.refreshCameraSupportState();
     }
 
     if (this.field.fieldtype !== 'Link' || !this.ctx) return;
@@ -1001,6 +1101,21 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     this.fileInputRef?.nativeElement.click();
   }
 
+  async triggerCameraInput(event?: Event) {
+    event?.stopPropagation();
+    if (this.disabled || !this.cameraCaptureEnabled) return;
+    if (this.cameraSupportState === 'unsupported') {
+      this.reportCameraIssue('unsupported', this.cameraStatusMessage || 'Camera capture is not supported on this browser or device.');
+      return;
+    }
+
+    if (!(await this.prepareCameraAccess())) {
+      return;
+    }
+
+    this.cameraInputRef?.nativeElement.click();
+  }
+
   onDragOver(event: DragEvent) {
     if (this.disabled) return;
     event.preventDefault();
@@ -1023,6 +1138,15 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   onFileSelected(event: any) {
     const files = event.target.files;
     if (files) this.handleFiles(files);
+  }
+
+  onCameraSelected(event: any) {
+    const files = event.target.files;
+    if (files?.length) {
+      this.setCameraStatus('ready', 'Camera is ready. You can capture again or upload normally.');
+      this.handleFiles(files);
+    }
+    if (this.cameraInputRef) this.cameraInputRef.nativeElement.value = '';
   }
 
   private async handleFiles(fileList: FileList) {
@@ -1056,6 +1180,106 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
 
     this.onValueChange(config.maxFiles === 1 ? current[0] : current);
     if (this.fileInputRef) this.fileInputRef.nativeElement.value = '';
+  }
+
+  private refreshCameraSupportState() {
+    this.lastCameraCaptureEnabled = this.cameraCaptureEnabled;
+
+    if (!this.cameraCaptureEnabled) {
+      this.cameraStatusMessage = '';
+      this.cameraSupportState = 'idle';
+      return;
+    }
+
+    const hasWindow = typeof window !== 'undefined';
+    const hasDocument = typeof document !== 'undefined';
+    const hasNavigator = typeof navigator !== 'undefined';
+    const captureSupported = hasDocument && 'capture' in document.createElement('input');
+    const canPreflight = hasNavigator && !!navigator.mediaDevices?.getUserMedia;
+
+    if (captureSupported || canPreflight) {
+      this.setCameraStatus('ready', 'Use the camera button to capture an image, or keep using upload.');
+      return;
+    }
+
+    if (hasWindow && !window.isSecureContext) {
+      this.setCameraStatus('unsupported', 'Camera capture needs a secure browser context on this device. Upload is still available.');
+      return;
+    }
+
+    this.setCameraStatus('unsupported', 'Camera capture is not supported on this browser or device. Upload is still available.');
+  }
+
+  private async prepareCameraAccess(): Promise<boolean> {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      return this.cameraSupportState !== 'unsupported';
+    }
+
+    this.isCheckingCamera = true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: this.cameraCaptureMode }
+        }
+      });
+      stream.getTracks().forEach(track => track.stop());
+      this.setCameraStatus('ready', 'Camera access is available. Capture an image or switch back to upload anytime.');
+      return true;
+    } catch (error) {
+      const issue = this.mapCameraError(error);
+      this.reportCameraIssue(issue.state, issue.message);
+      return false;
+    } finally {
+      this.isCheckingCamera = false;
+    }
+  }
+
+  private mapCameraError(error: unknown): { state: 'unsupported' | 'denied' | 'unavailable' | 'error'; message: string } {
+    const name = typeof error === 'object' && error && 'name' in error ? String((error as { name?: string }).name) : '';
+
+    switch (name) {
+      case 'NotAllowedError':
+      case 'PermissionDeniedError':
+      case 'SecurityError':
+        return {
+          state: 'denied',
+          message: 'Camera permission was denied. You can allow it in the browser settings or continue with file upload.'
+        };
+      case 'NotFoundError':
+      case 'DevicesNotFoundError':
+      case 'OverconstrainedError':
+        return {
+          state: 'unavailable',
+          message: 'No camera was found for this device or the selected camera is unavailable. You can still upload an image.'
+        };
+      case 'NotReadableError':
+      case 'TrackStartError':
+        return {
+          state: 'unavailable',
+          message: 'The camera is unavailable right now, possibly because another app is using it. Upload is still available.'
+        };
+      case 'NotSupportedError':
+      case 'TypeError':
+        return {
+          state: 'unsupported',
+          message: 'This browser does not support camera capture for this field. You can still upload an image.'
+        };
+      default:
+        return {
+          state: 'error',
+          message: 'The camera could not be opened. You can still upload an image.'
+        };
+    }
+  }
+
+  private reportCameraIssue(state: 'unsupported' | 'denied' | 'unavailable' | 'error', message: string) {
+    this.setCameraStatus(state, message);
+    this.ctx?.msgprint(message, state === 'error' ? 'warning' : 'warning');
+  }
+
+  private setCameraStatus(state: 'idle' | 'ready' | 'unsupported' | 'denied' | 'unavailable' | 'error', message: string) {
+    this.cameraSupportState = state;
+    this.cameraStatusMessage = message;
   }
 
   removeFile(index: number) {
