@@ -2,12 +2,12 @@
   "name": "vant-flow",
   "version": "0.0.1",
   "peerDependencies": {
-    "@angular/common": "^17.3.0",
-    "@angular/core": "^17.3.0",
-    "@angular/cdk": "^17.3.10",
-    "monaco-editor": "^0.55.1",
-    "ngx-monaco-editor-v2": "^21.1.4",
-    "ngx-quill": "^25.3.3",
+    "@angular/common": "^20.3.0",
+    "@angular/core": "^20.3.0",
+    "@angular/cdk": "^20.2.14",
+    "monaco-editor": "^0.52.2",
+    "ngx-monaco-editor-v2": "^20.0.0",
+    "ngx-quill": "^28.0.2",
     "quill": "^2.0.3",
     "quill-table-better": "^1.2.3"
   },

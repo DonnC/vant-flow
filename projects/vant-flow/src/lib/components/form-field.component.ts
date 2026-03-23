@@ -4,8 +4,10 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { QuillModule } from 'ngx-quill';
 import { firstValueFrom } from 'rxjs';
-import { DocumentField, VfLinkDataSource, VfLinkFieldConfig, VfLinkRequestObserver, VfMediaHandler, VfStoredMedia } from '../models/document.model';
+import { DocumentField, VfLinkDataSource, VfLinkFieldConfig, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver, VfStoredMedia } from '../models/document.model';
 import { VfFormContext } from '../services/form-context';
+import { VfUiPrimitivesModule } from '../ui/ui-primitives.module';
+import { VfIconButton } from './shared/icon-button.component';
 
 import QuillTableBetter from 'quill-table-better';
 import Quill from "quill";
@@ -14,7 +16,10 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
 @Component({
   selector: 'vf-field',
   standalone: true,
-  imports: [CommonModule, FormsModule, QuillModule],
+  host: {
+    class: 'block',
+  },
+  imports: [CommonModule, FormsModule, QuillModule, VfUiPrimitivesModule, VfIconButton],
   template: `
     <div class="field-group transition-all duration-200" [class.ui-field-error]="!validate() && (value || submitted)" [class.compact]="compact">
       @if (shouldShowLabel) {
@@ -96,15 +101,15 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                     </svg>
                   </div>
                 } @else if (value && !disabled) {
-                  <button
-                    type="button"
+                  <vf-icon-button
                     (mousedown)="$event.preventDefault()"
                     (click)="clearLinkSelection()"
-                    class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all">
+                    class="absolute right-2 top-1/2 -translate-y-1/2"
+                    tone="danger" [soft]="true">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                       <path d="M18 6L6 18M6 6l12 12"/>
                     </svg>
-                  </button>
+                  </vf-icon-button>
                 }
 
                 @if (showLinkDropdown) {
@@ -266,10 +271,11 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
   
                   @if (value && !isDrawing) {
                     <div class="absolute top-2 right-2 flex gap-1.5 opacity-0 group-sig:opacity-100 group-hover/sig:opacity-100 transition-opacity">
-                      <button type="button" (click)="clearSignature()" 
-                        class="p-1.5 rounded-lg bg-white shadow-sm border border-zinc-200 text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                      <vf-icon-button (pressed)="clearSignature()" 
+                        class="bg-white shadow-sm border border-zinc-200"
+                        size="md" tone="danger">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                      </button>
+                      </vf-icon-button>
                     </div>
                   }
                 </div>
@@ -311,17 +317,52 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                       [accept]="attachConfig.accept"
                       [multiple]="attachConfig.maxFiles > 1"
                       (change)="onFileSelected($event)">
+                    @if (canShowCameraButton) {
+                      <input type="file" #cameraInput class="hidden"
+                        [accept]="cameraAccept"
+                        [attr.capture]="cameraCaptureMode"
+                        [multiple]="false"
+                        (change)="onCameraSelected($event)">
+                    }
     
+                    @if (canShowCameraButton) {
+                      <button
+                        type="button"
+                        class="absolute top-3 right-3 inline-flex h-10 w-10 items-center justify-center rounded-full border border-zinc-200 bg-white/95 text-zinc-500 shadow-sm transition-all hover:border-indigo-200 hover:text-indigo-600 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
+                        (click)="triggerCameraInput($event)"
+                        [disabled]="cameraButtonDisabled"
+                        title="Capture image">
+                        @if (isCheckingCamera) {
+                          <svg class="animate-spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                          </svg>
+                        } @else {
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14.5 4H9.5l-1.4 2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.1L14.5 4z"/>
+                            <circle cx="12" cy="12" r="3.5"/>
+                          </svg>
+                        }
+                      </button>
+                    }
+
                     <div class="flex flex-col items-center gap-2 text-center">
                       <div class="w-10 h-10 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-400 group-hover/drop:bg-indigo-100 group-hover/drop:text-indigo-600 transition-colors">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                       </div>
                       <div>
                         <p class="text-[13px] text-zinc-600 font-bold">Click or drag to upload</p>
+                        @if (cameraCaptureEnabled) {
+                          <p class="mt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-indigo-500">or tap the camera to capture</p>
+                        }
                         <p class="text-[11px] text-zinc-400">{{ attachConfig.accept || 'All files' }} • Max {{ attachConfig.maxSizeText }}</p>
                       </div>
                     </div>
                   </div>
+                  @if (cameraCaptureEnabled && cameraStatusMessage) {
+                    <div class="rounded-xl border px-3 py-2 text-[11px] font-medium" [ngClass]="cameraStatusClasses">
+                      {{ cameraStatusMessage }}
+                    </div>
+                  }
                 } @else if (attachments.length === 0) {
                   <div class="p-4 bg-zinc-50 border border-zinc-100 rounded-xl text-center">
                     <p class="text-[11px] text-zinc-400 font-bold uppercase tracking-widest italic">No files attached</p>
@@ -349,13 +390,13 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                         </div>
                         <div class="flex items-center gap-1 transition-opacity" 
                             [ngClass]="{'opacity-0': !disabled, 'group-hover/file:opacity-100': !disabled}">
-                          <button type="button" (click)="downloadFile(file)" class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+                          <vf-icon-button (pressed)="downloadFile(file)" tone="brand">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                          </button>
+                          </vf-icon-button>
                           @if (!disabled) {
-                            <button type="button" (click)="removeFile(i)" class="p-1.5 rounded-md text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-all">
+                            <vf-icon-button (pressed)="removeFile(i)" tone="danger">
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
-                            </button>
+                            </vf-icon-button>
                           }
                         </div>
                       </div>
@@ -508,6 +549,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
 export class VfField implements AfterViewInit, OnInit, DoCheck {
   @ViewChild('signatureCanvas') canvasRef?: ElementRef<HTMLCanvasElement>;
   @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
+  @ViewChild('cameraInput') cameraInputRef?: ElementRef<HTMLInputElement>;
 
   @Input() field!: DocumentField;
   @Input() value: any;
@@ -515,6 +557,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   @Input() hideLabel: boolean = false;
   @Input() compact: boolean = false;
   @Input() mediaHandler?: VfMediaHandler;
+  @Input() mediaResolver?: VfMediaResolver;
   @Input() linkDataSource?: VfLinkDataSource;
   @Input() linkRequestObserver?: VfLinkRequestObserver;
   @Input() formMetadata?: any;
@@ -580,7 +623,15 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     // Expected format in options: ".pdf,.jpg | 5MB | 1" or a JSON string
     const opt = (this.options[0] as string) || '';
     if (opt.startsWith('{')) {
-      try { return JSON.parse(opt); } catch { }
+      try {
+        const parsed = JSON.parse(opt);
+        return {
+          accept: parsed.accept || '',
+          maxSize: parsed.maxSize ?? this.parseFileSize(parsed.maxSizeText || '5MB'),
+          maxSizeText: parsed.maxSizeText || '5MB',
+          maxFiles: parsed.maxFiles ?? 1
+        };
+      } catch { }
     }
     const parts = opt.split('|').map(p => p.trim());
     return {
@@ -589,6 +640,52 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       maxSizeText: parts[1] || '5MB',
       maxFiles: parseInt(parts[2]) || 1
     };
+  }
+
+  get attachFieldConfig() {
+    return this.field.attach_config || {};
+  }
+
+  get cameraCaptureEnabled() {
+    return this.field.fieldtype === 'Attach' && !!this.attachFieldConfig.enable_capture;
+  }
+
+  get cameraCaptureMode() {
+    return this.attachFieldConfig.capture_mode || 'environment';
+  }
+
+  get cameraAccept() {
+    const accept = this.attachConfig.accept?.trim();
+    if (!accept) return 'image/*';
+
+    const allowsImages = accept
+      .split(',')
+      .map((part: string) => part.trim().toLowerCase())
+      .some((part: string) => part.startsWith('image/') || ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.heic', '.heif'].includes(part));
+
+    return allowsImages ? accept : 'image/*';
+  }
+
+  get canShowCameraButton() {
+    return this.cameraCaptureEnabled;
+  }
+
+  get cameraButtonDisabled() {
+    return this.disabled || this.isCheckingCamera || this.cameraSupportState === 'unsupported';
+  }
+
+  get cameraStatusClasses() {
+    switch (this.cameraSupportState) {
+      case 'denied':
+      case 'unsupported':
+      case 'unavailable':
+      case 'error':
+        return 'border-amber-200 bg-amber-50 text-amber-700';
+      case 'ready':
+        return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+      default:
+        return 'border-zinc-200 bg-zinc-50 text-zinc-500';
+    }
   }
 
   get attachments(): any[] {
@@ -645,16 +742,26 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   private linkBlurTimer?: ReturnType<typeof setTimeout>;
   private activeLinkRequestId = 0;
   private lastLinkRefreshTick = 0;
+  isCheckingCamera = false;
+  cameraStatusMessage = '';
+  cameraSupportState: 'idle' | 'ready' | 'unsupported' | 'denied' | 'unavailable' | 'error' = 'idle';
+  private lastCameraCaptureEnabled?: boolean;
 
   ngOnInit() {
     if (this.field.fieldtype === 'Link') {
       this.syncLinkInputWithValue();
     }
+
+    this.refreshCameraSupportState();
   }
 
   ngDoCheck() {
     if (this.field.fieldtype === 'Link' && !this.showLinkDropdown) {
       this.syncLinkInputWithValue();
+    }
+
+    if (this.lastCameraCaptureEnabled !== this.cameraCaptureEnabled) {
+      this.refreshCameraSupportState();
     }
 
     if (this.field.fieldtype !== 'Link' || !this.ctx) return;
@@ -875,6 +982,9 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     return key.replace(/[_\.]+/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
   }
 
+  private mediaUrlCache = new Map<string, string>();
+  private mediaUrlInflight = new Map<string, Promise<string>>();
+
   // ── Signature Logic ──────────────────────────────────────────
   isDrawing = false;
   isProcessingMedia = false;
@@ -904,9 +1014,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
 
     // Loading existing signature if any
     if (this.value && this.field.fieldtype === 'Signature') {
-      const img = new Image();
-      img.onload = () => this.ctx2d?.drawImage(img, 0, 0);
-      img.src = this.getMediaUrl(this.value);
+      void this.renderSignatureValue(this.value);
     }
   }
 
@@ -993,6 +1101,21 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     this.fileInputRef?.nativeElement.click();
   }
 
+  async triggerCameraInput(event?: Event) {
+    event?.stopPropagation();
+    if (this.disabled || !this.cameraCaptureEnabled) return;
+    if (this.cameraSupportState === 'unsupported') {
+      this.reportCameraIssue('unsupported', this.cameraStatusMessage || 'Camera capture is not supported on this browser or device.');
+      return;
+    }
+
+    if (!(await this.prepareCameraAccess())) {
+      return;
+    }
+
+    this.cameraInputRef?.nativeElement.click();
+  }
+
   onDragOver(event: DragEvent) {
     if (this.disabled) return;
     event.preventDefault();
@@ -1015,6 +1138,15 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   onFileSelected(event: any) {
     const files = event.target.files;
     if (files) this.handleFiles(files);
+  }
+
+  onCameraSelected(event: any) {
+    const files = event.target.files;
+    if (files?.length) {
+      this.setCameraStatus('ready', 'Camera is ready. You can capture again or upload normally.');
+      this.handleFiles(files);
+    }
+    if (this.cameraInputRef) this.cameraInputRef.nativeElement.value = '';
   }
 
   private async handleFiles(fileList: FileList) {
@@ -1050,6 +1182,106 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     if (this.fileInputRef) this.fileInputRef.nativeElement.value = '';
   }
 
+  private refreshCameraSupportState() {
+    this.lastCameraCaptureEnabled = this.cameraCaptureEnabled;
+
+    if (!this.cameraCaptureEnabled) {
+      this.cameraStatusMessage = '';
+      this.cameraSupportState = 'idle';
+      return;
+    }
+
+    const hasWindow = typeof window !== 'undefined';
+    const hasDocument = typeof document !== 'undefined';
+    const hasNavigator = typeof navigator !== 'undefined';
+    const captureSupported = hasDocument && 'capture' in document.createElement('input');
+    const canPreflight = hasNavigator && !!navigator.mediaDevices?.getUserMedia;
+
+    if (captureSupported || canPreflight) {
+      this.setCameraStatus('ready', 'Use the camera button to capture an image, or keep using upload.');
+      return;
+    }
+
+    if (hasWindow && !window.isSecureContext) {
+      this.setCameraStatus('unsupported', 'Camera capture needs a secure browser context on this device. Upload is still available.');
+      return;
+    }
+
+    this.setCameraStatus('unsupported', 'Camera capture is not supported on this browser or device. Upload is still available.');
+  }
+
+  private async prepareCameraAccess(): Promise<boolean> {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      return this.cameraSupportState !== 'unsupported';
+    }
+
+    this.isCheckingCamera = true;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: this.cameraCaptureMode }
+        }
+      });
+      stream.getTracks().forEach(track => track.stop());
+      this.setCameraStatus('ready', 'Camera access is available. Capture an image or switch back to upload anytime.');
+      return true;
+    } catch (error) {
+      const issue = this.mapCameraError(error);
+      this.reportCameraIssue(issue.state, issue.message);
+      return false;
+    } finally {
+      this.isCheckingCamera = false;
+    }
+  }
+
+  private mapCameraError(error: unknown): { state: 'unsupported' | 'denied' | 'unavailable' | 'error'; message: string } {
+    const name = typeof error === 'object' && error && 'name' in error ? String((error as { name?: string }).name) : '';
+
+    switch (name) {
+      case 'NotAllowedError':
+      case 'PermissionDeniedError':
+      case 'SecurityError':
+        return {
+          state: 'denied',
+          message: 'Camera permission was denied. You can allow it in the browser settings or continue with file upload.'
+        };
+      case 'NotFoundError':
+      case 'DevicesNotFoundError':
+      case 'OverconstrainedError':
+        return {
+          state: 'unavailable',
+          message: 'No camera was found for this device or the selected camera is unavailable. You can still upload an image.'
+        };
+      case 'NotReadableError':
+      case 'TrackStartError':
+        return {
+          state: 'unavailable',
+          message: 'The camera is unavailable right now, possibly because another app is using it. Upload is still available.'
+        };
+      case 'NotSupportedError':
+      case 'TypeError':
+        return {
+          state: 'unsupported',
+          message: 'This browser does not support camera capture for this field. You can still upload an image.'
+        };
+      default:
+        return {
+          state: 'error',
+          message: 'The camera could not be opened. You can still upload an image.'
+        };
+    }
+  }
+
+  private reportCameraIssue(state: 'unsupported' | 'denied' | 'unavailable' | 'error', message: string) {
+    this.setCameraStatus(state, message);
+    this.ctx?.msgprint(message, state === 'error' ? 'warning' : 'warning');
+  }
+
+  private setCameraStatus(state: 'idle' | 'ready' | 'unsupported' | 'denied' | 'unavailable' | 'error', message: string) {
+    this.cameraSupportState = state;
+    this.cameraStatusMessage = message;
+  }
+
   removeFile(index: number) {
     if (this.disabled) return;
     const current = [...this.attachments];
@@ -1057,8 +1289,8 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     this.onValueChange(this.attachConfig.maxFiles === 1 ? null : current);
   }
 
-  downloadFile(file: any) {
-    const targetUrl = file?.downloadUrl || this.getMediaUrl(file);
+  async downloadFile(file: any) {
+    const targetUrl = await this.resolveMediaUrl(file, 'download');
     if (!targetUrl) {
       this.ctx?.msgprint('No downloadable URL is available for this file.', 'warning');
       return;
@@ -1088,8 +1320,84 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
 
   getMediaUrl(value: any): string {
     if (!value) return '';
+    const directUrl = this.getDirectMediaUrl(value);
+    if (directUrl) return directUrl;
+
+    const cacheKey = this.getMediaCacheKey(value);
+    if (cacheKey && this.mediaUrlCache.has(cacheKey)) {
+      return this.mediaUrlCache.get(cacheKey) || '';
+    }
+
+    void this.resolveMediaUrl(value, 'preview');
+    return '';
+  }
+
+  private getDirectMediaUrl(value: any): string {
+    if (!value) return '';
     if (typeof value === 'string') return value;
     return value.url || value.downloadUrl || '';
+  }
+
+  private getMediaCacheKey(value: any): string | null {
+    if (!value) return null;
+    if (typeof value === 'string') return value;
+    return value.fileId || value.downloadUrl || value.url || value.name || null;
+  }
+
+  private async resolveMediaUrl(value: any, action: 'preview' | 'download'): Promise<string> {
+    const directUrl = this.getDirectMediaUrl(value);
+    if (directUrl) return directUrl;
+    if (!value || !this.mediaResolver) return '';
+
+    const cacheKey = this.getMediaCacheKey(value);
+    if (cacheKey && this.mediaUrlCache.has(cacheKey)) {
+      return this.mediaUrlCache.get(cacheKey) || '';
+    }
+
+    const existing = cacheKey ? this.mediaUrlInflight.get(cacheKey) : undefined;
+    if (existing) return existing;
+
+    const pending = (async () => {
+      try {
+        const result = await this.mediaResolver!(value, {
+          field: this.field,
+          fieldname: this.field.fieldname,
+          fieldtype: this.field.fieldtype === 'Signature' ? 'Signature' : 'Attach',
+          currentValue: this.value,
+          formMetadata: this.formMetadata ?? this.ctx?.metadata,
+          action
+        });
+
+        const resolvedUrl = typeof result === 'string' ? result : this.getDirectMediaUrl(result);
+        if (cacheKey && resolvedUrl) {
+          this.mediaUrlCache.set(cacheKey, resolvedUrl);
+        }
+        return resolvedUrl || '';
+      } catch (error) {
+        this.handleMediaError(error, 'Failed to resolve media URL');
+        return '';
+      } finally {
+        if (cacheKey) this.mediaUrlInflight.delete(cacheKey);
+      }
+    })();
+
+    if (cacheKey) this.mediaUrlInflight.set(cacheKey, pending);
+    return pending;
+  }
+
+  private async renderSignatureValue(value: any) {
+    const canvas = this.canvasRef?.nativeElement;
+    if (!canvas || !this.ctx2d || !value) return;
+
+    const src = await this.resolveMediaUrl(value, 'preview');
+    if (!src) return;
+
+    const img = new Image();
+    img.onload = () => {
+      this.ctx2d?.clearRect(0, 0, canvas.width, canvas.height);
+      this.ctx2d?.drawImage(img, 0, 0);
+    };
+    img.src = src;
   }
 
   private isAccepted(file: File, accept: string): boolean {

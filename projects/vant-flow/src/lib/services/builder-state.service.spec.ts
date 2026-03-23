@@ -125,4 +125,22 @@ describe('VfBuilderState', () => {
     expect(section.columns[1].fields.length).toBe(1);
     expect(section.columns[1].fields[0].fieldname).toBe('source_field');
   });
+
+  it('defaults new fields to indexed false', () => {
+    state.document.set({
+      name: 'Indexed Defaults',
+      sections: [{
+        id: 'section_1',
+        columns: [{
+          id: 'column_1',
+          fields: []
+        }]
+      }]
+    });
+
+    const field = state.addField('section_1', 'column_1', 'Data');
+
+    expect(field.indexed).toBeFalse();
+    expect(state.document().sections[0].columns[0].fields[0].indexed).toBeFalse();
+  });
 });

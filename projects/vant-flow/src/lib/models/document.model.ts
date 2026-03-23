@@ -2,7 +2,7 @@ export type FieldType = 'Data' | 'Select' | 'Link' | 'Check' | 'Int' | 'Text' | 
 
 export interface VfStoredMedia {
   name: string;
-  url: string;
+  url?: string;
   size?: number;
   type?: string;
   fileId?: string;
@@ -35,6 +35,16 @@ export type VfMediaHandler = (
   context: VfMediaHandlerContext
 ) => Promise<VfMediaHandlerResult> | VfMediaHandlerResult;
 
+export interface VfMediaResolverContext extends VfMediaHandlerContext {
+  action: 'preview' | 'download';
+}
+
+export type VfMediaResolverResult = string | VfStoredMedia | null;
+export type VfMediaResolver = (
+  media: string | VfStoredMedia,
+  context: VfMediaResolverContext
+) => Promise<VfMediaResolverResult> | VfMediaResolverResult;
+
 export interface VfLinkFieldMapping {
   id: string;
   title: string;
@@ -52,6 +62,11 @@ export interface VfLinkFieldConfig {
   cache?: boolean;
   min_query_length?: number;
   page_size?: number;
+}
+
+export interface VfAttachFieldConfig {
+  enable_capture?: boolean;
+  capture_mode?: 'user' | 'environment';
 }
 
 export interface VfLinkDataSourceRequest {
@@ -85,6 +100,7 @@ export interface TableColumnDef {
   default?: any;
   options?: string;
   regex?: string;
+  attach_config?: VfAttachFieldConfig;
 }
 
 export interface DocumentField {
@@ -95,6 +111,7 @@ export interface DocumentField {
   default?: any;
   mandatory?: boolean;
   reqd?: boolean;
+  indexed?: boolean;
   options?: string; // Newline-separated for Select, Link target for Link, button style for Button, content for Markdown
   hidden?: boolean;
   read_only?: boolean;
@@ -106,6 +123,7 @@ export interface DocumentField {
   table_fields?: TableColumnDef[]; // Only used by Table fieldtype
   data_group?: string; // Optional: nested object path (e.g. "user.profile")
   link_config?: VfLinkFieldConfig;
+  attach_config?: VfAttachFieldConfig;
 }
 
 export interface DocumentColumn {

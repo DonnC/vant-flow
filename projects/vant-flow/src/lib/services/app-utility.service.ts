@@ -1,7 +1,7 @@
-import { Injectable, signal, inject, ApplicationRef, EnvironmentInjector, createComponent } from '@angular/core';
+import { Injectable, signal, ApplicationRef, EnvironmentInjector, createComponent } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { DocumentField, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler } from '../models/document.model';
+import { DocumentField, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver } from '../models/document.model';
 import { VfPromptModal } from '../components/prompt-modal.component';
 
 export type ToastIndicator = 'success' | 'error' | 'info' | 'warning';
@@ -27,7 +27,11 @@ export class VfUtilityService {
   readonly toasts = signal<Toast[]>([]);
   readonly isFreezing = signal<string | null>(null);
 
-  private http = inject(HttpClient);
+  constructor(
+    private http: HttpClient,
+    private appRef: ApplicationRef,
+    private envInjector: EnvironmentInjector,
+  ) {}
 
   show_alert(msg: string, indicator: ToastIndicator = 'info') {
     const id = ++_toastId;
@@ -49,13 +53,6 @@ export class VfUtilityService {
 
   /**
    * Show a custom dialog built from Document Fields.
-   * Injects a dialog element directly into the DOM to avoid Material dependency.
-   */
-  private appRef = inject(ApplicationRef);
-  private envInjector = inject(EnvironmentInjector);
-
-  /**
-   * Show a custom dialog built from Document Fields.
    * Centralized via PromptModalComponent.
    */
   prompt(
@@ -63,6 +60,7 @@ export class VfUtilityService {
     title: string = 'Enter Data',
     readOnly: boolean = false,
     mediaHandler?: VfMediaHandler,
+    mediaResolver?: VfMediaResolver,
     linkDataSource?: VfLinkDataSource,
     linkRequestObserver?: VfLinkRequestObserver,
     formMetadata?: any
@@ -80,6 +78,7 @@ export class VfUtilityService {
       componentRef.instance.values = initialValues;
       componentRef.instance.readOnly = readOnly;
       componentRef.instance.mediaHandler = mediaHandler;
+      componentRef.instance.mediaResolver = mediaResolver;
       componentRef.instance.linkDataSource = linkDataSource;
       componentRef.instance.linkRequestObserver = linkRequestObserver;
       componentRef.instance.formMetadata = formMetadata;

@@ -1,6 +1,6 @@
 import { FormGroup, Validators } from '@angular/forms';
 import { WritableSignal, signal, Injectable } from '@angular/core';
-import { DEFAULT_FORM_ACTIONS, DocumentField, DocumentSection, DocumentDefinition, FormActionsConfig, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler } from '../models/document.model';
+import { DEFAULT_FORM_ACTIONS, DocumentField, DocumentSection, DocumentDefinition, FormActionsConfig, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver } from '../models/document.model';
 import { VfUtilityService } from './app-utility.service';
 import { VfBuilderState } from './builder-state.service';
 
@@ -26,6 +26,7 @@ export class VfFormContext {
 
     public metadata?: any;
     public mediaHandler?: VfMediaHandler;
+    public mediaResolver?: VfMediaResolver;
     public linkDataSource?: VfLinkDataSource;
     public linkRequestObserver?: VfLinkRequestObserver;
     public linkRefreshSignals = new Map<string, WritableSignal<number>>();
@@ -114,6 +115,7 @@ export class VfFormContext {
             title,
             read_only,
             this.mediaHandler,
+            this.mediaResolver,
             this.linkDataSource,
             this.linkRequestObserver,
             this.metadata

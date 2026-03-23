@@ -5,11 +5,13 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
 import { DocumentSection } from '../../models/document.model';
 import { VfBuilderState } from '../../services/builder-state.service';
 import { VfCanvasColumn } from './canvas-column.component';
+import { VfUiPrimitivesModule } from '../../ui/ui-primitives.module';
+import { VfIconButton } from '../shared/icon-button.component';
 
 @Component({
   selector: 'vf-canvas-section',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, VfCanvasColumn],
+  imports: [CommonModule, FormsModule, DragDropModule, VfCanvasColumn, VfUiPrimitivesModule, VfIconButton],
   template: `
     <div 
       (click)="selectSection($event)"
@@ -40,15 +42,15 @@ import { VfCanvasColumn } from './canvas-column.component';
             class="ui-btn-ghost ui-btn-sm px-2 text-xs"
             title="Add Column"
           >+ Col</button>
-          <button
-            (click)="removeSection()"
-            class="w-6 h-6 rounded flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+          <vf-icon-button
             title="Delete section"
-          >
+            tone="danger"
+            [soft]="true"
+            (pressed)="removeSection()">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/>
             </svg>
-          </button>
+          </vf-icon-button>
         </div>
       </div>
 

@@ -67,4 +67,22 @@ describe('VfBuilder', () => {
     expect(component.previewMetadataError).toContain('Invalid JSON');
     expect(component.previewMetadataValue).toEqual({ currentUser: { role: 'Manager' } });
   });
+  it('starts with the preview metadata editor collapsed and expands on click', () => {
+    fixture.detectChanges();
+
+    component.setMode('preview');
+    fixture.detectChanges();
+
+    const toggleButton = fixture.debugElement.query(By.css('button[aria-controls="preview-metadata-panel"]'));
+    expect(toggleButton).not.toBeNull();
+    expect(toggleButton.attributes['aria-expanded']).toBe('false');
+    expect(fixture.debugElement.query(By.css('#preview-metadata-panel'))).toBeNull();
+
+    toggleButton.nativeElement.click();
+    fixture.detectChanges();
+
+    expect(toggleButton.attributes['aria-expanded']).toBe('true');
+    expect(fixture.debugElement.query(By.css('#preview-metadata-panel'))).not.toBeNull();
+  });
 });
+

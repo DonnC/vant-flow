@@ -1,15 +1,19 @@
-import { Component, computed, inject, effect } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VfBuilderState } from '../../services/builder-state.service';
-import { DocumentField, FieldType } from '../../models/document.model';
+import { DocumentField, FieldType, TableColumnDef } from '../../models/document.model';
+import { VfUiPrimitivesModule } from '../../ui/ui-primitives.module';
+import { VfChoiceGroup, VfChoiceOption } from './shared/choice-group.component';
+import { VfToggleCard } from './shared/toggle-card.component';
+import { VfEyebrow } from '../shared/eyebrow.component';
 
 const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Text', 'Text Editor', 'Table', 'Date', 'Datetime', 'Time', 'Float', 'Password', 'Button', 'Signature', 'Attach'];
 
 @Component({
   selector: 'vf-property-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, VfUiPrimitivesModule, VfChoiceGroup, VfToggleCard, VfEyebrow],
   template: `
   <div class="flex flex-col h-full">
     <!-- Header -->
@@ -21,7 +25,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
     @if (state.showFormSettings()) {
       <div class="flex-1 overflow-y-auto px-4 py-4 space-y-5 animate-in fade-in duration-300">
         <div class="flex items-center gap-2">
-          <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Form Settings</span>
+          <vf-eyebrow label="Form Settings" tone="indigo"></vf-eyebrow>
         </div>
 
         <!-- Document Name -->
@@ -50,23 +54,12 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
 
         <!-- Stepper Toggle -->
         <div class="space-y-3 pt-2">
-            <label class="flex items-center gap-3 p-3 rounded-xl border border-indigo-100 bg-indigo-50/30 cursor-pointer hover:bg-indigo-50 transition-all select-none">
-              <div class="flex-1">
-                <p class="text-[11px] font-bold text-zinc-700 uppercase tracking-tight">Stepper Mode</p>
-                <p class="text-[10px] text-zinc-400">Transform this form into a multi-step wizard</p>
-              </div>
-              <button 
-                role="switch" 
-                class="ui-switch"
-                [attr.aria-checked]="state.document().is_stepper ? 'true' : 'false'"
-                (click)="state.setDocumentMetadata({ is_stepper: !state.document().is_stepper })"
-              >
-                <span class="ui-switch-thumb" 
-                  [class.translate-x-4]="state.document().is_stepper"
-                  [class.translate-x-0]="!state.document().is_stepper">
-                </span>
-              </button>
-            </label>
+          <vf-toggle-card
+            title="Stepper Mode"
+            description="Transform this form into a multi-step wizard"
+            [checked]="!!state.document().is_stepper"
+            (checkedChange)="state.setDocumentMetadata({ is_stepper: $event })">
+          </vf-toggle-card>
         </div>
 
         <div class="ui-sep"></div>
@@ -141,18 +134,13 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
                     
                     <div class="space-y-1">
                       <label class="text-[9px] font-bold text-zinc-400 uppercase">Style / Type</label>
-                      <div class="grid grid-cols-4 gap-1">
-                        @for (t of ['primary', 'secondary', 'danger', 'ghost']; track t) {
-                          <button (click)="state.updateAction(btnId, { type: t })"
-                            class="py-1 text-[9px] font-bold rounded border transition-all capitalize"
-                            [class.bg-white]="btn.type === t"
-                            [class.border-indigo-500]="btn.type === t"
-                            [class.text-indigo-600]="btn.type === t"
-                            [class.text-zinc-400]="btn.type !== t"
-                            [class.border-transparent]="btn.type !== t"
-                          >{{ t }}</button>
-                        }
-                      </div>
+                      <vf-choice-group
+                        [options]="buttonStyleOptions"
+                        [selected]="btn.type || 'primary'"
+                        [columns]="4"
+                        size="sm"
+                        (selectedChange)="state.updateAction(btnId, { type: $event })">
+                      </vf-choice-group>
                     </div>
                   </div>
                 }
@@ -240,6 +228,22 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
           </div>
         }
 
+        @if (field()!.fieldtype === 'Attach') {
+          <div class="space-y-2 rounded-xl border border-zinc-200 bg-zinc-50/60 p-3">
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500"
+                [ngModel]="!!field()!.attach_config?.enable_capture"
+                (ngModelChange)="updateAttachConfig({ enable_capture: $event })">
+              <span class="space-y-1">
+                <span class="block text-[11px] font-semibold text-zinc-700">Enable camera capture</span>
+                <span class="block text-[10px] leading-relaxed text-zinc-500">Adds a camera action to the attach field while preserving the existing upload flow.</span>
+              </span>
+            </label>
+          </div>
+        }
+
         @if (field()!.fieldtype === 'Link') {
           <div class="space-y-4 p-3 rounded-xl border border-indigo-100 bg-indigo-50/30">
             <div class="space-y-1">
@@ -289,20 +293,12 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
         @if (field()!.fieldtype === 'Button') {
           <div>
             <label class="ui-label">Button Style</label>
-            <div class="grid grid-cols-2 gap-2">
-              @for (style of ['primary', 'secondary', 'danger', 'ghost']; track style) {
-                <button (click)="update('options', style)"
-                  class="px-2 py-1.5 rounded border text-[10px] font-semibold transition-all capitalize"
-                  [class.border-indigo-600]="field()!.options === style"
-                  [class.bg-indigo-50]="field()!.options === style"
-                  [class.text-indigo-600]="field()!.options === style"
-                  [class.border-zinc-200]="field()!.options !== style"
-                  [class.text-zinc-500]="field()!.options !== style"
-                >
-                  {{ style }}
-                </button>
-              }
-            </div>
+            <vf-choice-group
+              [options]="buttonStyleOptions"
+              [selected]="field()!.options || 'primary'"
+              [columns]="2"
+              (selectedChange)="update('options', $event)">
+            </vf-choice-group>
           </div>
         }
 
@@ -382,6 +378,17 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
                         <label class="text-[9px] font-bold text-zinc-400 uppercase">Options / Config</label>
                         <input class="ui-input !p-1.5 !text-[11px]" [ngModel]="col.options" (ngModelChange)="state.updateTableColumn(field()!.id, col.id, { options: $event })" placeholder="config...">
                       </div>
+                    }
+
+                    @if (col.fieldtype === 'Attach') {
+                      <label class="flex items-center gap-2 cursor-pointer rounded-md border border-zinc-200 bg-zinc-50 px-2 py-1.5">
+                        <input
+                          type="checkbox"
+                          class="w-3 h-3 rounded"
+                          [ngModel]="!!col.attach_config?.enable_capture"
+                          (ngModelChange)="updateTableAttachConfig(col, { enable_capture: $event })">
+                        <span class="text-[10px] font-medium text-zinc-600">Enable camera capture</span>
+                      </label>
                     }
 
                     <div class="flex items-center gap-4 pt-1">
@@ -549,7 +556,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
     @else if (section()) {
       <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4 animate-in fade-in duration-300">
         <div class="flex items-center gap-2">
-          <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-amber-600 bg-amber-50 px-2 py-1 rounded">Section Settings</span>
+          <vf-eyebrow label="Section Settings" tone="amber"></vf-eyebrow>
         </div>
 
         <!-- Label -->
@@ -603,28 +610,25 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
 
         <!-- Section Toggles -->
         <div class="space-y-3 pt-2">
-          <label class="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 cursor-pointer hover:bg-zinc-50 transition-all select-none">
-            <div class="flex-1">
-              <p class="text-[11px] font-bold text-zinc-700 uppercase tracking-tight">Collapsible</p>
-              <p class="text-[10px] text-zinc-400">Allow users to toggle section visibility</p>
-            </div>
-            <input type="checkbox" 
-              class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" 
-              [ngModel]="section()!.collapsible" 
-              (ngModelChange)="state.updateSectionProperty(section()!.id, 'collapsible', $event)">
-          </label>
+          <vf-toggle-card
+            title="Collapsible"
+            description="Allow users to toggle section visibility"
+            [checked]="!!section()!.collapsible"
+            activeClass="border-zinc-100 bg-zinc-50/50 hover:bg-zinc-50"
+            inactiveClass="border-zinc-100 bg-zinc-50/50 hover:bg-zinc-50"
+            (checkedChange)="state.updateSectionProperty(section()!.id, 'collapsible', $event)">
+          </vf-toggle-card>
 
           @if (section()!.collapsible) {
-            <label class="flex items-center gap-3 p-3 rounded-xl border border-zinc-100 bg-zinc-50/50 cursor-pointer hover:bg-zinc-50 transition-all select-none animate-in slide-in-from-top-1 duration-200">
-              <div class="flex-1">
-                <p class="text-[11px] font-bold text-zinc-700 uppercase tracking-tight">Default Collapsed</p>
-                <p class="text-[10px] text-zinc-400">Start with section minimized</p>
-              </div>
-              <input type="checkbox" 
-                class="w-4 h-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" 
-                [ngModel]="section()!.collapsed" 
-                (ngModelChange)="state.updateSectionProperty(section()!.id, 'collapsed', $event)">
-            </label>
+            <vf-toggle-card
+              class="animate-in slide-in-from-top-1 duration-200"
+              title="Default Collapsed"
+              description="Start with section minimized"
+              [checked]="!!section()!.collapsed"
+              activeClass="border-zinc-100 bg-zinc-50/50 hover:bg-zinc-50"
+              inactiveClass="border-zinc-100 bg-zinc-50/50 hover:bg-zinc-50"
+              (checkedChange)="state.updateSectionProperty(section()!.id, 'collapsed', $event)">
+            </vf-toggle-card>
           }
         </div>
 
@@ -639,7 +643,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
     @else if (step()) {
       <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4 animate-in fade-in duration-300">
         <div class="flex items-center gap-2">
-          <span class="text-[10px] font-bold uppercase tracking-[0.2em] text-indigo-600 bg-indigo-50 px-2 py-1 rounded">Step Settings</span>
+          <vf-eyebrow label="Step Settings" tone="indigo"></vf-eyebrow>
         </div>
 
         <!-- Title -->
@@ -673,6 +677,12 @@ export class VfPropertyEditor {
   fieldTypes = FIELD_TYPES;
   tableChildTypes = ['Data', 'Int', 'Float', 'Text', 'Select', 'Link', 'Check', 'Date', 'Datetime', 'Time', 'Password', 'Text Editor', 'Attach', 'Signature'];
   actionButtonIds: Array<'submit'> = ['submit'];
+  buttonStyleOptions: VfChoiceOption<string>[] = [
+    { value: 'primary', label: 'primary' },
+    { value: 'secondary', label: 'secondary' },
+    { value: 'danger', label: 'danger' },
+    { value: 'ghost', label: 'ghost' },
+  ];
 
   getActionConfig(id: string) {
     return (this.state.document().actions as any)?.[id];
@@ -680,6 +690,7 @@ export class VfPropertyEditor {
 
   toggles: Array<{ label: string; prop: keyof DocumentField }> = [
     { label: 'Mandatory / Required', prop: 'mandatory' },
+    { label: 'Indexed', prop: 'indexed' },
     { label: 'Hidden', prop: 'hidden' },
     { label: 'Read Only', prop: 'read_only' },
   ];
@@ -775,6 +786,30 @@ export class VfPropertyEditor {
   toNumber(value: any) {
     const parsed = Number(value);
     return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  updateAttachConfig(patch: Record<string, any>) {
+    const f = this.field();
+    if (!f) return;
+
+    this.state.updateField(f.id, {
+      attach_config: {
+        ...(f.attach_config || {}),
+        ...patch
+      }
+    });
+  }
+
+  updateTableAttachConfig(col: TableColumnDef, patch: Record<string, any>) {
+    const f = this.field();
+    if (!f) return;
+
+    this.state.updateTableColumn(f.id, col.id, {
+      attach_config: {
+        ...(col.attach_config || {}),
+        ...patch
+      }
+    });
   }
 
   public slugify(text: string): string {
