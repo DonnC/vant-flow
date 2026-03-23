@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDropList, CdkDrag, CdkDragDrop, transferArrayItem, moveItemInArray } from '@angular/cdk/drag-drop';
 import { DocumentField, FieldType, DocumentColumn, DocumentSection } from '../../models/document.model';
 import { VfBuilderState } from '../../services/builder-state.service';
+import { VfIconButton } from '../shared/icon-button.component';
 
 @Component({
   selector: 'vf-canvas-column',
   standalone: true,
-  imports: [CommonModule, DragDropModule],
+  imports: [CommonModule, DragDropModule, VfIconButton],
   template: `
     <div
       cdkDropList
@@ -97,12 +98,13 @@ import { VfBuilderState } from '../../services/builder-state.service';
                }
             </div>
             
-            <button
-              (click)="removeField($event, field.id)"
-              class="w-6 h-6 rounded flex items-center justify-center text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+            <vf-icon-button
+              (pressed)="removeField($event, field.id)"
+              tone="danger"
+              [soft]="true"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>
-            </button>
+            </vf-icon-button>
           </div>
 
           <!-- Drag Placeholder -->
@@ -130,7 +132,7 @@ export class VfCanvasColumn {
     this.state.selectField(field.id);
   }
 
-  removeField(e: MouseEvent, id: string) {
+  removeField(e: Event, id: string) {
     e.stopPropagation();
     this.state.removeField(id);
   }

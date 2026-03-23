@@ -3,11 +3,13 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 import { VfBuilderState } from '../../services/builder-state.service';
+import { VfUiPrimitivesModule } from '../../ui/ui-primitives.module';
+import { VfEyebrow } from '../shared/eyebrow.component';
 
 @Component({
   selector: 'vf-script-editor',
   standalone: true,
-  imports: [CommonModule, FormsModule, MonacoEditorModule],
+  imports: [CommonModule, FormsModule, MonacoEditorModule, VfUiPrimitivesModule, VfEyebrow],
   template: `
     <div class="flex flex-col h-full bg-zinc-950">
       <!-- Header -->
@@ -15,7 +17,7 @@ import { VfBuilderState } from '../../services/builder-state.service';
         <div>
            <div class="flex items-center gap-2">
               <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
-              <p class="text-[10px] font-bold uppercase tracking-widest text-zinc-400">Client Script</p>
+              <vf-eyebrow label="Client Script"></vf-eyebrow>
            </div>
            <p class="text-[10px] text-zinc-500 mt-0.5">Modern Formflow Runtime Environment</p>
         </div>
@@ -127,7 +129,7 @@ export class VfScriptEditor {
         { label: 'frm.throw', code: "frm.throw('Error message');" },
         { label: 'frm.confirm', code: "frm.confirm('Proceed?', () => {\n  frm.msgprint('Confirmed');\n});" },
         { label: 'frm.prompt', code: "frm.prompt([\n  { label: 'Reason', fieldname: 'reason', fieldtype: 'Data', mandatory: 1 }\n], (vals) => {\n  console.log(vals);\n}, 'Provide Reason');" },
-        { label: 'frm.set_intro', code: "frm.set_intro('Welcome to FormFlow', 'blue');" },
+        { label: 'frm.set_intro', code: "frm.set_intro('Welcome to VantFlow', 'blue');" },
       ]
     },
     {

@@ -1,19 +1,23 @@
 import { Component, Input, Output, EventEmitter, ViewChildren, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DocumentField, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler } from '../models/document.model';
+import { DocumentField, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver } from '../models/document.model';
 import { VfField } from './form-field.component';
+import { VfUiPrimitivesModule } from '../ui/ui-primitives.module';
+import { VfIconButton } from './shared/icon-button.component';
 
 @Component({
   selector: 'vf-prompt-modal',
   standalone: true,
-  imports: [CommonModule, FormsModule, VfField],
+  imports: [CommonModule, FormsModule, VfField, VfUiPrimitivesModule, VfIconButton],
   template: `
     <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] fade-in" (click)="onCancel()">
       <div class="bg-white rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden zoom-in duration-200" (click)="$event.stopPropagation()">
         <div class="flex items-center justify-between px-6 py-4 border-b border-zinc-100">
           <h3 class="text-base font-semibold text-zinc-900">{{ title }}</h3>
-          <button (click)="onCancel()" class="text-zinc-400 hover:text-zinc-600 text-xl leading-none">&times;</button>
+          <vf-icon-button title="Close" size="md" tone="neutral" (pressed)="onCancel()">
+            <span class="text-xl leading-none">&times;</span>
+          </vf-icon-button>
         </div>
         <div class="px-6 py-5 space-y-5 max-h-[70vh] overflow-y-auto">
           @for (field of fields; track field.fieldname) {
@@ -22,6 +26,7 @@ import { VfField } from './form-field.component';
               [value]="values[field.fieldname]" 
               [readOnly]="field.read_only || readOnly"
               [mediaHandler]="mediaHandler"
+              [mediaResolver]="mediaResolver"
               [linkDataSource]="linkDataSource"
               [linkRequestObserver]="linkRequestObserver"
               [formMetadata]="formMetadata"
@@ -41,9 +46,6 @@ import { VfField } from './form-field.component';
     </div>
   `,
   styles: [`
-    .ui-btn-primary { @apply px-5 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100 active:scale-95; }
-    .ui-btn-secondary { @apply px-5 py-2.5 bg-white border border-zinc-200 text-zinc-600 text-sm font-bold rounded-xl hover:bg-zinc-50 transition-all active:scale-95; }
-    
     .fade-in { animation: fadeIn 0.2s ease-out; }
     .zoom-in { animation: zoomIn 0.2s cubic-bezier(0.34, 1.56, 0.64, 1); }
 
@@ -57,6 +59,7 @@ export class VfPromptModal {
   @Input() values: Record<string, any> = {};
   @Input() readOnly: boolean = false;
   @Input() mediaHandler?: VfMediaHandler;
+  @Input() mediaResolver?: VfMediaResolver;
   @Input() linkDataSource?: VfLinkDataSource;
   @Input() linkRequestObserver?: VfLinkRequestObserver;
   @Input() formMetadata?: any;

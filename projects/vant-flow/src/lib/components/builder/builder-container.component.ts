@@ -10,6 +10,12 @@ import { VfPropertyEditor } from './property-editor.component';
 import { VfScriptEditor } from './script-editor.component';
 import { VfRenderer } from '../form-renderer/form-renderer.component';
 import { DocumentDefinition } from '../../models/document.model';
+import { VfUiPrimitivesModule } from '../../ui/ui-primitives.module';
+import { VfDashedAction } from '../shared/dashed-action.component';
+import { VfEmptyState } from '../shared/empty-state.component';
+import { VfEyebrow } from '../shared/eyebrow.component';
+import { VfIconButton } from '../shared/icon-button.component';
+import { VfTopSheet } from '../shared/top-sheet.component';
 
 type RightTab = 'properties' | 'script';
 
@@ -20,7 +26,8 @@ type RightTab = 'properties' | 'script';
   imports: [
     CommonModule, FormsModule, DragDropModule,
     VfPalette, VfCanvasSection, VfPropertyEditor,
-    VfScriptEditor, VfRenderer
+    VfScriptEditor, VfRenderer, VfUiPrimitivesModule,
+    VfDashedAction, VfEmptyState, VfEyebrow, VfIconButton, VfTopSheet
   ],
   template: `
   <div class="flex flex-col h-full bg-zinc-100 overflow-hidden">
@@ -34,7 +41,7 @@ type RightTab = 'properties' | 'script';
             <path d="M9 9h6M9 12h6M9 15h4"/>
           </svg>
         </div>
-        <span class="text-sm font-semibold text-zinc-800">FormFlow</span>
+        <span class="text-sm font-semibold text-zinc-800">VantFlow</span>
       </div>
 
       <!-- Document Name edit -->
@@ -98,43 +105,31 @@ type RightTab = 'properties' | 'script';
 
     <!-- Global Import Overlay -->
     @if (showImport) {
-      <div class="absolute inset-x-0 top-12 z-50 bg-white border-b border-zinc-200 shadow-xl animate-in slide-in-from-top-4 duration-300">
-        <div class="max-w-4xl mx-auto p-6 flex flex-col gap-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-sm font-bold text-zinc-800">Import Document Schema</h3>
-            <button (click)="showImport = false" class="text-zinc-400 hover:text-zinc-600">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-          <p class="text-xs text-zinc-500">Paste your previously exported <code>Document</code> JSON schema to load the builder state.</p>
+      <vf-top-sheet
+        title="Import Document Schema"
+        description="Paste your previously exported Document JSON schema to load the builder state."
+        (closed)="showImport = false">
           <textarea #importArea class="w-full h-64 bg-zinc-50 border border-zinc-200 rounded-lg p-4 font-mono text-xs focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all"
             placeholder='{ "name": "Form Name", "sections": [...] }'></textarea>
           <div class="flex justify-end gap-3">
             <button (click)="showImport = false" class="ui-btn-secondary">Cancel</button>
             <button (click)="handleImport(importArea.value)" class="ui-btn-primary px-8">Load Schema</button>
           </div>
-        </div>
-      </div>
+      </vf-top-sheet>
     }
 
     <!-- Global Export Overlay -->
     @if (showExport) {
-      <div class="absolute inset-x-0 top-12 z-50 bg-white border-b border-zinc-200 shadow-xl animate-in slide-in-from-top-4 duration-300">
-        <div class="max-w-4xl mx-auto p-6 flex flex-col gap-4">
-          <div class="flex items-center justify-between">
-            <h3 class="text-sm font-bold text-zinc-800">Export Document Schema</h3>
-            <button (click)="showExport = false" class="text-zinc-400 hover:text-zinc-600">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
-          </div>
-          <p class="text-xs text-zinc-500">Preview and copy your form schema, or download it as a JSON file.</p>
+      <vf-top-sheet
+        title="Export Document Schema"
+        description="Preview and copy your form schema, or download it as a JSON file."
+        (closed)="showExport = false">
           <pre class="w-full h-64 overflow-auto bg-zinc-900 text-indigo-300 rounded-lg p-4 font-mono text-[11px] select-all leading-relaxed">{{ state.document() | json }}</pre>
           <div class="flex justify-end gap-3">
             <button (click)="showExport = false" class="ui-btn-secondary">Close</button>
             <button (click)="downloadJson()" class="ui-btn-primary px-8">Download JSON File</button>
           </div>
-        </div>
-      </div>
+      </vf-top-sheet>
     }
 
     <!-- ── Main Layout ───────────────────────────────────── -->
@@ -209,9 +204,9 @@ type RightTab = 'properties' | 'script';
                       <span class="text-[10px] font-mono text-zinc-400 w-4">{{ i + 1 }}</span>
                       <span class="text-xs font-medium truncate" [class.text-indigo-600]="state.selectedStepId() === step.id">{{ step.title }}</span>
                     </div>
-                    <button (click)="state.removeStep(step.id); $event.stopPropagation()" class="opacity-0 group-hover:opacity-100 p-1 text-zinc-400 hover:text-red-500 transition-opacity">
+                    <vf-icon-button (pressed)="state.removeStep(step.id); $event.stopPropagation()" class="opacity-0 group-hover:opacity-100 transition-opacity" tone="danger">
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
+                    </vf-icon-button>
                   </div>
                 }
                 <button (click)="state.addStep()" class="mt-2 text-[10px] font-bold text-indigo-500 hover:text-indigo-600 px-2 flex items-center gap-1">
@@ -229,10 +224,11 @@ type RightTab = 'properties' | 'script';
                       [allColumnIds]="allColumnIds()"
                     ></vf-canvas-section>
                   }
-                  <button (click)="state.addSection(state.selectedStepId()!)" class="flex items-center gap-2 text-sm text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors rounded-lg px-4 py-2.5 w-full border border-dashed border-zinc-200 hover:border-indigo-300 mt-2">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    Add Section to {{ state.selectedStep()!.title }}
-                  </button>
+                  <vf-dashed-action
+                    [label]="'Add Section to ' + state.selectedStep()!.title"
+                    [subtle]="true"
+                    (pressed)="state.addSection(state.selectedStepId()!)">
+                  </vf-dashed-action>
                 } @else {
                   <div class="h-full flex flex-col items-center justify-center text-zinc-400 text-sm italic">
                     Select a step to edit its contents
@@ -244,19 +240,13 @@ type RightTab = 'properties' | 'script';
             <!-- Legacy Flat Builder View -->
             @if (state.document().sections.length === 0) {
               <!-- Empty state -->
-              <div class="h-full flex flex-col items-center justify-center text-center">
-                <div class="w-20 h-20 rounded-2xl bg-white border-2 border-dashed border-zinc-200 flex items-center justify-center mb-4 shadow-sm">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-zinc-300">
-                    <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/>
-                  </svg>
-                </div>
-                <h3 class="text-base font-semibold text-zinc-700 mb-1">Start Building</h3>
-                <p class="text-sm text-zinc-400 mb-5 max-w-xs">Add a Section from the left panel, then drag fields into it to build your form layout</p>
-                <button (click)="addSection()" class="ui-btn-primary">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                  Add First Section
-                </button>
-              </div>
+              <vf-empty-state
+                title="Start Building"
+                description="Add a Section from the left panel, then drag fields into it to build your form layout"
+                actionLabel="Add First Section"
+                iconPath="M3 3h18v18H3z | M9 9h6 | M9 12h6 | M9 15h4"
+                (action)="addSection()">
+              </vf-empty-state>
             } @else {
               @for (section of state.document().sections; track section.id) {
                 <vf-canvas-section
@@ -264,10 +254,11 @@ type RightTab = 'properties' | 'script';
                   [allColumnIds]="allColumnIds()"
                 ></vf-canvas-section>
               }
-              <button (click)="addSection()" class="flex items-center gap-2 text-sm text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors rounded-lg px-4 py-2.5 w-full border border-dashed border-zinc-200 hover:border-indigo-300 mt-2">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                Add Section
-              </button>
+              <vf-dashed-action
+                label="Add Section"
+                [subtle]="true"
+                (pressed)="addSection()">
+              </vf-dashed-action>
             }
           }
         </main>
@@ -350,38 +341,52 @@ type RightTab = 'properties' | 'script';
         
         <div class="w-full max-w-6xl px-4 pt-6">
           <div class="rounded-2xl border border-sky-200 bg-white shadow-sm overflow-hidden">
-            <div class="px-5 py-4 border-b border-sky-100 bg-sky-50/80 flex items-start justify-between gap-4">
+            <button
+              type="button"
+              class="w-full px-5 py-4 bg-sky-50/80 flex items-start justify-between gap-4 text-left transition-colors hover:bg-sky-50"
+              aria-controls="preview-metadata-panel"
+              [attr.aria-expanded]="previewMetadataExpanded()"
+              (click)="togglePreviewMetadata()"
+            >
               <div>
-                <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700">Test frm.metadata</p>
-                <p class="text-xs text-sky-900/80 mt-1">This JSON feeds <code>frm.metadata</code> in preview so scripts that depend on host metadata can run correctly. It is not saved to the schema or included in export.</p>
+                <div class="flex items-center gap-3 flex-wrap">
+                  <vf-eyebrow label="Test frm.metadata" tone="sky"></vf-eyebrow>
+                  <vf-eyebrow label="Preview Only" tone="sky"></vf-eyebrow>
+                </div>
+                <p class="text-xs text-sky-900/80 mt-2">This JSON feeds <code>frm.metadata</code> in preview so scripts that depend on host metadata can run correctly. It is not saved to the schema or included in export.</p>
               </div>
-              <span class="px-2 py-1 rounded-full border border-sky-200 bg-white text-[10px] font-bold uppercase tracking-widest text-sky-700">Preview Only</span>
-            </div>
-            <div class="p-5 space-y-3">
-              <textarea
-                class="w-full min-h-44 rounded-xl border bg-zinc-950 text-emerald-300 font-mono text-[11px] leading-relaxed p-4 outline-none transition-all"
-                [class.border-red-300]="previewMetadataError"
-                [class.focus:border-red-400]="previewMetadataError"
-                [class.border-zinc-800]="!previewMetadataError"
-                [class.focus:border-sky-400]="!previewMetadataError"
-                [ngModel]="previewMetadataInput"
-                (ngModelChange)="onPreviewMetadataInput($event)"
-                placeholder="{&#10;  &quot;currentUser&quot;: { &quot;role&quot;: &quot;Manager&quot; }&#10;}">
-              </textarea>
+              <div class="flex items-center gap-2 text-sky-700 pt-0.5 shrink-0">
+                <span class="text-[11px] font-semibold uppercase tracking-[0.18em]">{{ previewMetadataExpanded() ? 'Collapse' : 'Expand' }}</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="transition-transform" [class.rotate-180]="previewMetadataExpanded()"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+            </button>
 
-              @if (previewMetadataError) {
-                <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
-                  {{ previewMetadataError }}
-                </div>
-              } @else {
-                <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-700">
-                  Preview is using the JSON above as the current runtime metadata object.
-                </div>
-              }
-            </div>
+            @if (previewMetadataExpanded()) {
+              <div id="preview-metadata-panel" class="p-5 space-y-3 border-t border-sky-100">
+                <textarea
+                  class="w-full min-h-44 rounded-xl border bg-zinc-950 text-emerald-300 font-mono text-[11px] leading-relaxed p-4 outline-none transition-all"
+                  [class.border-red-300]="previewMetadataError"
+                  [class.focus:border-red-400]="previewMetadataError"
+                  [class.border-zinc-800]="!previewMetadataError"
+                  [class.focus:border-sky-400]="!previewMetadataError"
+                  [ngModel]="previewMetadataInput"
+                  (ngModelChange)="onPreviewMetadataInput($event)"
+                  placeholder="{&#10;  &quot;currentUser&quot;: { &quot;role&quot;: &quot;Manager&quot; }&#10;}">
+                </textarea>
+
+                @if (previewMetadataError) {
+                  <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                    {{ previewMetadataError }}
+                  </div>
+                } @else {
+                  <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-700">
+                    Preview is using the JSON above as the current runtime metadata object.
+                  </div>
+                }
+              </div>
+            }
           </div>
         </div>
-
         <vf-renderer class="w-full" [document]="state.document()" [metadata]="previewMetadataValue" (formAction)="onFormAction($event)"></vf-renderer>
 
         @if (lastSubmittedData) {
@@ -419,6 +424,7 @@ export class VfBuilder implements OnInit, OnChanges {
   previewMetadataValue: Record<string, any> = {};
   previewMetadataInput = this.stringifyPreviewMetadata(this.getDefaultPreviewMetadata());
   previewMetadataError: string | null = null;
+  previewMetadataExpanded = signal(false);
 
   // Sidebar controls
   leftSidebarVisible = signal(true);
@@ -485,6 +491,10 @@ export class VfBuilder implements OnInit, OnChanges {
   setMode(mode: 'builder' | 'preview') {
     this.state.mode.set(mode);
     if (mode === 'builder') this.lastSubmittedData = null;
+  }
+
+  togglePreviewMetadata() {
+    this.previewMetadataExpanded.update(expanded => !expanded);
   }
 
   onPreviewMetadataInput(value: string) {
@@ -576,3 +586,4 @@ export class VfBuilder implements OnInit, OnChanges {
     this.showExport = false;
   }
 }
+

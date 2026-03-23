@@ -11,8 +11,9 @@
         "forceConsistentCasingInFileNames": true,
         "baseUrl": ".",
         "paths": {
-            "@vant-flow/models": [
-                "./src/types/models/document.model.ts"
+            "vant-flow": [
+                "../../dist/vant-flow",
+                "../../dist/vant-flow/index.d.ts"
             ]
         }
     },

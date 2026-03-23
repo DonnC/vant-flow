@@ -2,16 +2,21 @@ import { Component, effect, EventEmitter, inject, Input, OnChanges, OnDestroy, O
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuillModule } from 'ngx-quill';
-import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfRendererButtonEvent } from '../../models/document.model';
+import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver, VfRendererButtonEvent } from '../../models/document.model';
 import { VfFormContext } from '../../services/form-context';
 import { VfUtilityService } from '../../services/app-utility.service';
 
 import { VfField } from '../form-field.component';
+import { VfUiPrimitivesModule } from '../../ui/ui-primitives.module';
+import { VfAlertBox } from '../shared/alert-box.component';
+import { VfDashedAction } from '../shared/dashed-action.component';
+import { VfIconButton } from '../shared/icon-button.component';
+import { VfSectionShell } from '../shared/section-shell.component';
 
 @Component({
   selector: 'vf-renderer',
   standalone: true,
-  imports: [CommonModule, FormsModule, QuillModule, VfField],
+  imports: [CommonModule, FormsModule, QuillModule, VfField, VfUiPrimitivesModule, VfAlertBox, VfDashedAction, VfIconButton, VfSectionShell],
   providers: [VfFormContext],
   template: `
     <div class="w-full max-w-[1400px] mx-auto py-8 px-4">
@@ -72,41 +77,21 @@ import { VfField } from '../form-field.component';
 
         <div class="p-8">
           @if (validationErrors.length > 0) {
-            <div class="mb-8 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-red-900 shadow-sm">
-              <div class="flex items-start gap-3">
-                <div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                  </svg>
-                </div>
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-start justify-between gap-3">
-                    <div>
-                      <p class="text-sm font-bold">Please review the highlighted fields.</p>
-                      <p class="mt-1 text-xs text-red-700">
-                        Some required values are missing or invalid.
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      (click)="clearValidationErrors()"
-                      class="rounded-lg border border-red-200 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-red-700 transition-colors hover:bg-red-100">
-                      Dismiss
-                    </button>
-                  </div>
-
-                  <div class="mt-3 flex flex-wrap gap-2">
-                    @for (field of validationErrors; track field) {
-                      <span class="rounded-full border border-red-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-red-900">
-                        {{ describeFieldError(field) }}
-                      </span>
-                    }
-                  </div>
-                </div>
+            <vf-alert-box
+              class="mb-8 block"
+              tone="error"
+              title="Please review the highlighted fields."
+              message="Some required values are missing or invalid."
+              dismissLabel="Dismiss"
+              (dismiss)="clearValidationErrors()">
+              <div class="mt-3 flex flex-wrap gap-2">
+                @for (field of validationErrors; track field) {
+                  <span class="rounded-full border border-red-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-red-900">
+                    {{ describeFieldError(field) }}
+                  </span>
+                }
               </div>
-            </div>
+            </vf-alert-box>
           }
 
           <!-- System Intro (Static) -->
@@ -233,43 +218,13 @@ import { VfField } from '../form-field.component';
 
         <ng-template #sectionTemplate let-section>
           @if (!ctx.getSectionSignal(section.id, 'hidden')()) {
-            <div class="section-card bg-white border border-zinc-200 shadow-sm rounded-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-                  
-                  <!-- Section Header (Clickable if collapsible) -->
-                  <div class="px-6 py-5 flex items-center justify-between gap-4 transition-all bg-zinc-50/30 border-b border-transparent"
-                       [class.border-zinc-100]="!ctx.getSectionSignal(section.id, 'collapsed')()"
-                       [class.cursor-pointer]="section.collapsible"
-                       (click)="section.collapsible ? toggleSection(section.id) : null">
-                    
-                    <div class="space-y-1">
-                      @if (section.label) {
-                        <h3 class="text-xs font-bold text-zinc-900 uppercase tracking-wider transition-colors"
-                            [class.text-indigo-600]="section.collapsible && !ctx.getSectionSignal(section.id, 'collapsed')()">
-                          {{ section.label }}
-                        </h3>
-                      }
-                      @if (section.description) {
-                        <p class="text-[11px] text-zinc-400 italic leading-snug">{{ section.description }}</p>
-                      }
-                    </div>
-
-                    @if (ctx.getSectionSignal(section.id, 'collapsible')()) {
-                      <div class="w-7 h-7 rounded-lg bg-white border border-zinc-200 flex items-center justify-center text-zinc-400 transition-all shadow-xs"
-                           [class.rotate-180]="ctx.getSectionSignal(section.id, 'collapsed')()">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                          <polyline points="18 15 12 9 6 15" />
-                        </svg>
-                      </div>
-                    }
-                  </div>
-
-                  <!-- Collapsible Content Area -->
-                  <div class="grid transition-all duration-500 ease-in-out"
-                       [style.grid-template-rows]="ctx.getSectionSignal(section.id, 'collapsed')() ? '0fr' : '1fr'"
-                       [class.opacity-0]="ctx.getSectionSignal(section.id, 'collapsed')()"
-                       [class.pointer-events-none]="ctx.getSectionSignal(section.id, 'collapsed')()">
-                    <div class="overflow-hidden">
-                      <div class="p-6">
+            <vf-section-shell
+              [title]="section.label || ''"
+              [description]="section.description || ''"
+              [collapsible]="ctx.getSectionSignal(section.id, 'collapsible')()"
+              [collapsed]="ctx.getSectionSignal(section.id, 'collapsed')()"
+              (toggled)="toggleSection(section.id)">
+              <div class="p-6">
                         <div class="flex flex-wrap -mx-3">
                           @for (col of section.columns; track col.id) {
                             <div class="px-3" [ngClass]="getColumnClass(section)">
@@ -326,6 +281,7 @@ import { VfField } from '../form-field.component';
                                                               [(value)]="row[col.fieldname]"
                                                               (valueChange)="onFieldChange(field.fieldname)"
                                                               [mediaHandler]="mediaHandler"
+                                                              [mediaResolver]="mediaResolver"
                                                               [linkDataSource]="linkDataSource"
                                                               [linkRequestObserver]="linkRequestObserver"
                                                               [formMetadata]="metadata"
@@ -333,10 +289,11 @@ import { VfField } from '../form-field.component';
                                                               [hideLabel]="true">
                                                             </vf-field>
                                                             @if (!['Data', 'Int', 'Float', 'Check', 'Select', 'Link', 'Date', 'Time'].includes(col.fieldtype)) {
-                                                              <button (click)="$event.stopPropagation(); editTableRow(field, $index)" 
-                                                                      class="absolute right-1 top-1/2 -translate-y-1/2 p-1 rounded-md text-zinc-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100">
+                                                              <vf-icon-button (pressed)="$event.stopPropagation(); editTableRow(field, $index)"
+                                                                      class="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100 rounded-md"
+                                                                      tone="brand" [soft]="true">
                                                                 <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
-                                                              </button>
+                                                              </vf-icon-button>
                                                             }
                                                           </td>
                                                         }
@@ -345,8 +302,7 @@ import { VfField } from '../form-field.component';
                                                         <td class="p-2 text-zinc-300 text-[10px] italic">...</td>
                                                       }
                                                       <td class="p-2 text-right flex items-center justify-end gap-1">
-                                                        <button (click)="editTableRow(field, $index)"
-                                                                class="p-1.5 rounded-md text-zinc-400 hover:text-indigo-600 hover:bg-indigo-50 transition-all">
+                                                        <vf-icon-button (pressed)="editTableRow(field, $index)" tone="brand">
                                                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                                                                stroke="currentColor" stroke-width="2">
                                                             @if (!ctx.isReadOnly()) {
@@ -357,17 +313,18 @@ import { VfField } from '../form-field.component';
                                                               <circle cx="12" cy="12" r="3"/>
                                                             }
                                                           </svg>
-                                                        </button>
+                                                        </vf-icon-button>
                                                         @if (!ctx.isReadOnly()) {
-                                                          <button (click)="removeTableRow(field.fieldname, $index)"
+                                                          <vf-icon-button (pressed)="removeTableRow(field.fieldname, $index)"
                                                                   [disabled]="ctx.isReadOnly()"
-                                                                  class="p-1.5 rounded-md text-zinc-300 hover:text-red-500 hover:bg-red-50 disabled:opacity-0 opacity-0 group-hover/row:opacity-100 transition-all">
+                                                                  class="disabled:opacity-0 opacity-0 group-hover/row:opacity-100 transition-all"
+                                                                  tone="danger" [soft]="true">
                                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                                                                  stroke="currentColor" stroke-width="2.5">
                                                               <line x1="18" y1="6" x2="6" y2="18"></line>
                                                               <line x1="6" y1="6" x2="18" y2="18"></line>
                                                             </svg>
-                                                          </button>
+                                                          </vf-icon-button>
                                                         }
                                                       </td>
                                                     </tr>
@@ -396,15 +353,7 @@ import { VfField } from '../form-field.component';
                                             </div>
                                             @if (!ctx.isReadOnly()) {
                                               <div class="p-3 bg-zinc-50/50 border-t border-zinc-200">
-                                                <button (click)="addTableRow(field.fieldname)"
-                                                        class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 text-[11px] font-bold text-zinc-600 hover:border-indigo-300 hover:text-indigo-600 transition-all shadow-sm">
-                                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
-                                                       stroke="currentColor" stroke-width="3">
-                                                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                                                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                                                  </svg>
-                                                  Add Row
-                                                </button>
+                                                <vf-dashed-action label="Add Row" [compact]="true" [fullWidth]="false" (pressed)="addTableRow(field.fieldname)"></vf-dashed-action>
                                               </div>
                                             }
                                           </div>
@@ -413,6 +362,7 @@ import { VfField } from '../form-field.component';
                                             [field]="field"
                                             [(value)]="formData[field.fieldname]"
                                             [mediaHandler]="mediaHandler"
+                                                              [mediaResolver]="mediaResolver"
                                             [linkDataSource]="linkDataSource"
                                             [linkRequestObserver]="linkRequestObserver"
                                             [formMetadata]="metadata"
@@ -432,10 +382,8 @@ import { VfField } from '../form-field.component';
                             </div>
                           }
                         </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              </div>
+            </vf-section-shell>
               }
         </ng-template>
 
@@ -545,6 +493,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   @Input() disabled: boolean = false;
   @Input() metadata?: any;
   @Input() mediaHandler?: VfMediaHandler;
+  @Input() mediaResolver?: VfMediaResolver;
   @Input() linkDataSource?: VfLinkDataSource;
   @Input() linkRequestObserver?: VfLinkRequestObserver;
 
@@ -585,6 +534,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     this.initForm();
     this.ctx.initialize(this.document, this.formData, this.metadata);
     this.ctx.mediaHandler = this.mediaHandler;
+    this.ctx.mediaResolver = this.mediaResolver;
     this.ctx.linkDataSource = this.linkDataSource;
     this.ctx.linkRequestObserver = this.linkRequestObserver;
     if (this.readonly) {
@@ -608,6 +558,9 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     }
     if (changes['mediaHandler'] && !changes['mediaHandler'].firstChange) {
       this.ctx.mediaHandler = this.mediaHandler;
+    }
+    if (changes['mediaResolver'] && !changes['mediaResolver'].firstChange) {
+      this.ctx.mediaResolver = this.mediaResolver;
     }
     if (changes['linkDataSource'] && !changes['linkDataSource'].firstChange) {
       this.ctx.linkDataSource = this.linkDataSource;

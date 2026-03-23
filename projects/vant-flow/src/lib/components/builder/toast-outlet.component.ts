@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { VfUtilityService } from '../../services/app-utility.service';
 
@@ -55,5 +55,5 @@ import { VfUtilityService } from '../../services/app-utility.service';
   `
 })
 export class VfToastOutlet {
-  app = inject(VfUtilityService);
+  constructor(public app: VfUtilityService) {}
 }

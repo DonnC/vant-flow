@@ -33,6 +33,7 @@ In traditional enterprise apps, a simple change (like hiding a field based on a 
 * **Modern Stack**: Built with Angular Signals, Standalone Components, and Tailwind CSS.
 * **Rich Components**: Signature pads, file attachments, recursive tables, and text editors.
 * **Enhanced Tables**: Support for any field type as a column with specialized compact rendering (previews for attachments, text editors, and signatures).
+* **Shared UI Primitives**: Reusable Vant-styled buttons, inputs, selects, labels, switches, and badges exposed for internal consistency and host-app extension.
 
 ---
 
@@ -96,6 +97,31 @@ provideVfFlow({
 | `VfBuilder` | `vf-builder` | The full visual IDE for designing forms. Supports `[initialSchema]` and `(schemaChange)`. |
 | `VfRenderer` | `vf-renderer` | The form renderer. Supports `[document]`, `(formReady)`, and `(formAction)`. |
 | `VfToastOutlet` | `vf-toast-outlet` | Notification host for `VfUtilityService` toasts. |
+
+### Shared UI Primitives
+
+Vant Flow now exposes a lightweight internal design-system layer through `VfUiPrimitivesModule`. It keeps the builder, renderer, and prompt surfaces visually aligned and gives host apps a stable way to opt into the same look.
+
+```typescript
+import { VfUiPrimitivesModule } from 'vant-flow';
+```
+
+You can use either the existing `ui-*` class API or the new primitive attributes:
+
+```html
+<button vfButton="primary">Save</button>
+<button vfButton="secondary" vfButtonSize="sm">Cancel</button>
+<input vfInput placeholder="Search..." />
+<textarea vfTextarea></textarea>
+<select vfSelect></select>
+```
+
+Vant also now uses reusable builder-facing components internally for repeated control patterns such as segmented option selection and settings toggles. These are exposed as `VfChoiceGroup` and `VfToggleCard`.
+
+In practice, the current Vant visual language is best described as:
+- A custom Tailwind-based design system
+- Frappe-inspired for enterprise form workflows
+- Soft-surface, high-clarity, modern admin UI rather than a generic component kit
 
 ### Core Services
 
@@ -216,6 +242,71 @@ frm.on('refresh', (_val, frm) => {
 
 Builder Preview and the example demo pages also expose a JSON editor for this runtime metadata. It feeds `frm.metadata` so scripts that depend on host/client metadata can run correctly. Invalid JSON keeps the last valid metadata object active, and the runtime metadata is not exported with the form schema.
 
+### Media Storage and Secure Signatures
+
+Vant Flow supports both direct media URLs and private file-id-based storage. Keep using `[mediaHandler]` to upload or persist attachments/signatures, and optionally provide `[mediaResolver]` when a stored file must be resolved into a preview or download URL later.
+
+This keeps current behavior fully intact:
+- If your app already stores `url` or `downloadUrl`, the renderer uses them directly.
+- If your backend only returns a `fileId`, the renderer can lazily resolve it when the user previews or downloads the file.
+
+```typescript
+import {
+  VfMediaHandler,
+  VfMediaResolver,
+  VfStoredMedia,
+  VfMediaResolverContext
+} from 'vant-flow';
+
+mediaHandler: VfMediaHandler = async (file, context) => {
+  const uploaded = await this.api.upload(file, {
+    fieldname: context.field.fieldname,
+    filename: file.name || context.field.fieldname + '.bin'
+  });
+
+  return {
+    fileId: uploaded.id,
+    name: uploaded.originalName,
+    contentType: uploaded.contentType,
+    size: uploaded.size,
+    metadata: {
+      capturedAt: new Date().toISOString(),
+      source: context.field.fieldtype
+    }
+  } satisfies VfStoredMedia;
+};
+
+mediaResolver: VfMediaResolver = async (
+  media: VfStoredMedia,
+  context: VfMediaResolverContext
+) => {
+  if (!media.fileId) return null;
+
+  const access = await this.api.resolveFile(media.fileId, {
+    usage: context.usage,
+    fieldname: context.field.fieldname
+  });
+
+  return {
+    url: access.url,
+    downloadUrl: access.downloadUrl ?? access.url
+  };
+};
+```
+
+```html
+<vf-renderer
+  [document]="schema"
+  [mediaHandler]="mediaHandler"
+  [mediaResolver]="mediaResolver"
+></vf-renderer>
+```
+
+For `Signature` fields, the safest production pattern is:
+- Upload the signature blob immediately through `mediaHandler` instead of storing long-lived base64 in saved form data.
+- Persist only `fileId` plus metadata such as `capturedAt`, `contentType`, `sha256`, and signer or audit identifiers.
+- Use `mediaResolver` to request a short-lived signed URL only when the signature needs to be previewed or downloaded.
+- Keep signature files in private object storage or behind an authenticated media endpoint rather than exposing permanent public URLs.
 Tables also feature **Smart Compact Rendering**:
 - **Text Editor**: Automatic HTML stripping for table cell previews.
 - **Attach**: Visual file counters and icons.
@@ -247,3 +338,4 @@ The showcase application demonstrates:
 - **Landing Page**: Feature overview and navigation.
 - **Admin Side**: Integrated Builder + Renderer side-by-side.
 - **Standalone Demos**: Isolated components for debugging.
+
