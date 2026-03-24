@@ -229,6 +229,29 @@ This is especially useful for:
 - signed download URLs
 - existing file services
 
+### Attach camera capture
+
+`Attach` fields can also opt into browser camera capture through `attach_config.enable_capture`.
+
+```json
+{
+  "fieldname": "site_photo",
+  "fieldtype": "Attach",
+  "label": "Site Photo",
+  "options": "image/* | 5MB | 1",
+  "attach_config": {
+    "enable_capture": true
+  }
+}
+```
+
+Important runtime notes:
+
+- Upload behavior does not change. Captured images still go through the same attach validation, `mediaHandler`, and value-change pipeline.
+- Permission-denied, unsupported-browser, and no-camera states are surfaced inline and through the runtime message API.
+- The browser `capture` attribute is only a hint. On many desktop browsers it still opens the normal file picker even after camera permission is granted.
+- For the most reliable capture testing, use a mobile browser on `https` or `localhost`. Desktop browsers often require a custom `getUserMedia` camera UI if you want a true in-app webcam capture flow instead of file picking.
+
 ## AI and MCP support
 
 The example app demonstrates two AI-assisted workflows:
