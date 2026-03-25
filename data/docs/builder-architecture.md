@@ -21,6 +21,10 @@
 - `VfScriptEditor` edits the `client_script`
 - `VfRenderer` is embedded in preview mode to show the live result
 
+Important host-facing builder input:
+
+- `showScriptEditor` controls whether the script tab is available in builder mode
+
 ## Builder Flow
 
 ```mermaid
@@ -134,6 +138,19 @@ The script editor turns the builder into a runtime behavior authoring tool, not 
 - field-change events
 - step transitions
 - custom actions
+
+Host applications can also disable this authoring surface entirely by setting `showScriptEditor` to `false` on `VfBuilder`. When that flag is off, the builder keeps the properties panel but hides the script tab so teams can allow schema editing without exposing client-script editing.
+
+Example:
+
+```html
+<vf-builder
+  [initialSchema]="document"
+  [previewMetadata]="previewMetadata"
+  [showScriptEditor]="false"
+  (schemaChange)="onSchemaChange($event)"
+></vf-builder>
+```
 
 It also now documents and autocompletes newer runtime APIs such as:
 

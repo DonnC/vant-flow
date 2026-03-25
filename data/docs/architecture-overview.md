@@ -122,12 +122,14 @@ Developers can customize Vant Flow at several layers:
 
 - UI editor stack through `provideVfFlow()` for Monaco and Quill configuration
 - Runtime form behavior through `client_script`
+- Host choice over whether renderer `client_script` executes through `runFormScripts`
 - Backend integration through `frm.call`
 - Binary upload and storage integration through renderer `mediaHandler`
 - Remote autocomplete integration through renderer `linkDataSource`
 - Runtime action buttons through document `actions` and `frm.add_custom_button`
 - A single event contract for submit and custom renderer buttons
 - Visibility and required logic through `depends_on` and `mandatory_depends_on`
+- Host-controlled field, action-button, and script-execution state through renderer inputs such as `runFormScripts`, `readonlyFields`, `hiddenFields`, `disabledActionButtons`, and `hiddenActionButtons`
 - Data shape through `data_group`
 - Role and environment awareness through renderer `metadata`
 

@@ -506,6 +506,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
                 <div class="bg-zinc-900 text-indigo-300 p-2 rounded font-mono text-[10px] space-y-1 overflow-x-auto">
                   <div><span class="text-zinc-500">// Read Only / Hidden</span></div>
                   <div>frm.set_df_property('fieldname', 'read_only', 1);</div>
+                  <div>frm.set_df_property(['field_a', 'field_b'], 'hidden', 1);</div>
                   <div>frm.set_df_property('fieldname', 'hidden', 1);</div>
                   <div>frm.set_df_property('fieldname', 'reqd', 1);</div>
                   <div><span class="text-zinc-500">// Change Label / Desc</span></div>
@@ -719,17 +720,15 @@ export class VfPropertyEditor {
 
     const patches: Partial<DocumentField> = { [prop]: value };
 
-    // Auto-slug fieldname from label
     if (prop === 'label') {
-      const oldSlugBase = this.slugify(f.label);
-      const isAutoSlug = !f.fieldname || f.fieldname === oldSlugBase ||
-        new RegExp(`^${oldSlugBase}_\\d+$`).test(f.fieldname);
-
-      if (isAutoSlug) {
-        const match = f.fieldname?.match(/_(\d+)$/);
-        const suffix = match ? match[0] : '';
-        patches.fieldname = this.slugify(value) + suffix;
+      if (this.state.shouldAutoSyncFieldname(f.id)) {
+        patches.fieldname = this.state.createUniqueFieldname(value, f.id);
       }
+    }
+
+    if (prop === 'fieldname') {
+      this.state.markFieldnameManual(f.id);
+      patches.fieldname = this.state.createUniqueFieldname(value, f.id);
     }
 
     this.state.updateField(f.id, patches);

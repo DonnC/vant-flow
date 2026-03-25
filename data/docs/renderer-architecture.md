@@ -55,6 +55,7 @@ This is the `frm` runtime API exposed to client scripts. It manages:
 - event listeners
 - custom buttons
 - runtime button labels and button actions
+- runtime button visibility and readonly behavior
 - readonly state
 - dynamic intro banners
 - metadata access
@@ -69,6 +70,7 @@ The current implementation supports patterns like:
 - `frm.get_value(...)`
 - `frm.set_value(...)`
 - `frm.set_df_property(...)`
+- `frm.set_df_property([...], ...)`
 - `frm.set_section_property(...)`
 - `frm.set_intro(...)`
 - `frm.add_row(...)` and `frm.remove_row(...)`
@@ -76,6 +78,7 @@ The current implementation supports patterns like:
 - `frm.add_custom_button(...)`
 - `frm.set_button_label(...)`
 - `frm.set_button_action(...)`
+- `frm.set_button_property(...)`
 - `frm.call(...)`
 - `frm.set_filter(...)`
 - `frm.refresh_link(...)`
@@ -84,6 +87,47 @@ The current implementation supports patterns like:
 ## Data Initialization and Packing
 
 The renderer converts external input into runtime form state, then later converts runtime state back into a business payload.
+
+## Host-Driven Runtime Control
+
+`VfRenderer` can now receive host-owned controls so Angular code can decide both whether schema scripts execute at all and how field/button state should be overridden without pushing every rule into `client_script`.
+
+Supported inputs:
+
+- `runFormScripts`
+- `readonlyFields`
+- `hiddenFields`
+- `disabledActionButtons`
+- `hiddenActionButtons`
+
+These inputs are applied after renderer initialization and again whenever the bound arrays change.
+
+Example:
+
+```html
+<vf-renderer
+  [document]="schema"
+  [runFormScripts]="false"
+  [readonlyFields]="['reviewer_notes', 'finance_notes', 'approve_step']"
+  [hiddenFields]="['internal_comments']"
+  [disabledActionButtons]="['submit', 'approve']"
+  [hiddenActionButtons]="['decline']"
+  [metadata]="metadata"
+></vf-renderer>
+```
+
+This gives host teams a clean split:
+
+- use `runFormScripts` when schema-authored scripts should be fully allowed or fully suppressed in a given host surface
+- use renderer inputs for page-level workflow state such as approval stage, route context, or role context already known by the app
+- use `frm` methods for dynamic reactions that happen inside the form at runtime
+
+Behavior details:
+
+- `runFormScripts = false` skips `document.client_script` execution and ignores schema action-script strings
+- `readonlyFields` and `hiddenFields` target runtime document fields, including field-level `Button` fields
+- `disabledActionButtons` and `hiddenActionButtons` target renderer header action buttons such as `submit`, `approve`, and `decline`
+- removing an item from one of these arrays restores the default runtime state for that override
 
 ```mermaid
 flowchart LR

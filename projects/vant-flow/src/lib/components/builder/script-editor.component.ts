@@ -139,6 +139,7 @@ export class VfScriptEditor {
         { label: 'frm.get_value', code: "const val = frm.get_value('fieldname');" },
         { label: 'frm.set_readonly', code: "frm.set_readonly(true);" },
         { label: 'frm.set_df_property', code: "frm.set_df_property('fieldname', 'read_only', 1);" },
+        { label: 'frm.set_df_property (Bulk)', code: "frm.set_df_property(['reviewer', 'manager', 'finance'], 'read_only', 1);" },
         { label: 'frm.set_df_property (reqd alias)', code: "frm.set_df_property('fieldname', 'reqd', 1);" },
         { label: 'frm.set_df_property (Table Column)', code: "frm.set_df_property('table_fieldname', 'options', '.pdf,.jpg', 'column_fieldname');" },
         { label: 'frm.set_filter (Link)', code: "frm.set_filter('item', { category: 'Voucher', brand: frm.get_value('brand') });" },
@@ -152,6 +153,7 @@ export class VfScriptEditor {
         { label: 'frm.add_custom_button', code: "frm.add_custom_button('Custom Button', () => {\n  frm.msgprint('Clicked');\n}, 'primary');" },
         { label: 'frm.set_button_label', code: "frm.set_button_label('submit', 'Send Now');" },
         { label: 'frm.set_button_action', code: "frm.set_button_action('submit', (frm) => {\n  frm.msgprint('Custom submit logic');\n});" },
+        { label: 'frm.set_button_property', code: "frm.set_button_property(['submit', 'approve'], 'visible', false);" },
       ]
     },
     {
@@ -215,8 +217,8 @@ export class VfScriptEditor {
         set_value(values: Record<string, any>): void;
         /** Get value of a field */
         get_value(fieldname: string): any;
-        /** Set a property of a field (hidden, read_only, mandatory/reqd, etc.) */
-        set_df_property(fieldname: string, prop: 'hidden' | 'read_only' | 'mandatory' | 'reqd' | 'label' | 'options' | 'link_config', val: any, child_fieldname?: string): void;
+        /** Set a property of one field or many fields (hidden, read_only, mandatory/reqd, etc.) */
+        set_df_property(fieldname: string | string[], prop: 'hidden' | 'read_only' | 'mandatory' | 'reqd' | 'label' | 'options' | 'link_config', val: any, child_fieldname?: string): void;
         /** Set or replace filters for a Link field data source */
         set_filter(fieldname: string, filters: Record<string, any>): void;
         /** Force a Link field to refetch its data source */
@@ -246,6 +248,8 @@ export class VfScriptEditor {
         set_button_label(id: 'save' | 'submit' | 'approve' | 'decline', label: string): void;
         /** Override a default button action */
         set_button_action(id: 'save' | 'submit' | 'approve' | 'decline', action: (frm: VfFormContext) => void): void;
+        /** Set one property across one or many default action buttons */
+        set_button_property(id: ('save' | 'submit' | 'approve' | 'decline') | Array<'save' | 'submit' | 'approve' | 'decline'>, prop: 'label' | 'visible' | 'type' | 'disable_on_readonly', value: any): void;
         
         /** Remote procedure call */
         call(opts: { 

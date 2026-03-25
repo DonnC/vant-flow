@@ -6,6 +6,8 @@ function uid() { return `id_${++_uid}_${Math.random().toString(36).slice(2, 7)}`
 
 @Injectable({ providedIn: 'root' })
 export class VfBuilderState {
+    private autoFieldnameFieldIds = new Set<string>();
+
     // Main Document state
     readonly document: WritableSignal<DocumentDefinition> = signal({
         name: 'New Document',
@@ -121,6 +123,7 @@ export class VfBuilderState {
                 this.selectedFieldId.set(null);
                 this.selectedSectionId.set(null);
                 this.selectedStepId.set(null);
+                this.resetAutoFieldnameTracking();
                 return true;
             }
         } catch (e) {
@@ -270,11 +273,11 @@ export class VfBuilderState {
             Table: 'Items',
         };
         const label = defaultLabels[fieldtype] ?? `${fieldtype} Field`;
-        const slug = label.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_-]+/g, '_') + '_' + (Math.random().toString(36).substr(2, 9));
+        const fieldname = this.createUniqueFieldname(label);
 
         const field: DocumentField = {
             id: uid(),
-            fieldname: slug,
+            fieldname,
             fieldtype,
             label,
             hidden: false,
@@ -303,12 +306,14 @@ export class VfBuilderState {
             }
             return { ...doc, sections: updateSections(doc.sections) };
         });
+        this.autoFieldnameFieldIds.add(field.id);
         this.selectField(field.id);
         return field;
     }
 
     removeField(fieldId: string) {
         if (this.selectedFieldId() === fieldId) this.selectedFieldId.set(null);
+        this.autoFieldnameFieldIds.delete(fieldId);
         this.document.update(doc => {
             const updateSections = (sects: DocumentSection[]) => sects.map(s => ({
                 ...s,
@@ -340,6 +345,26 @@ export class VfBuilderState {
             }
             return { ...doc, sections: updateSections(doc.sections) };
         });
+    }
+
+    shouldAutoSyncFieldname(fieldId: string) {
+        return this.autoFieldnameFieldIds.has(fieldId);
+    }
+
+    markFieldnameManual(fieldId: string) {
+        this.autoFieldnameFieldIds.delete(fieldId);
+    }
+
+    createUniqueFieldname(source: string, excludeFieldId?: string) {
+        const base = this.sanitizeFieldname(source);
+        if (!base) {
+            return this.getNextAvailableFieldname('field', excludeFieldId);
+        }
+        return this.getNextAvailableFieldname(base, excludeFieldId);
+    }
+
+    resetAutoFieldnameTracking() {
+        this.autoFieldnameFieldIds.clear();
     }
 
 
@@ -515,5 +540,40 @@ export class VfBuilderState {
             }
             return { ...doc, sections: updateSections(doc.sections) };
         });
+    }
+
+    private sanitizeFieldname(value: string) {
+        return String(value ?? '')
+            .toLowerCase()
+            .replace(/[^\w\s-]/g, '')
+            .replace(/[\s_-]+/g, '_')
+            .replace(/^_+|_+$/g, '');
+    }
+
+    private getNextAvailableFieldname(base: string, excludeFieldId?: string) {
+        const existing = new Set<string>();
+        const doc = this.document();
+        const sections = doc.is_stepper ? (doc.steps?.flatMap(s => s.sections) || []) : doc.sections;
+
+        sections.forEach(section => {
+            section.columns.forEach(column => {
+                column.fields.forEach(field => {
+                    if (field.id !== excludeFieldId) {
+                        existing.add(field.fieldname);
+                    }
+                });
+            });
+        });
+
+        if (!existing.has(base)) {
+            return base;
+        }
+
+        let suffix = 2;
+        while (existing.has(`${base}_${suffix}`)) {
+            suffix++;
+        }
+
+        return `${base}_${suffix}`;
     }
 }

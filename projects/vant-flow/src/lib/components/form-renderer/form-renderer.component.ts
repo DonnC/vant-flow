@@ -488,6 +488,11 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   @Input() document!: DocumentDefinition;
   @Input() initialData?: Record<string, any>;
   @Input() readonly?: boolean;
+  @Input() runFormScripts: boolean = true;
+  @Input() readonlyFields: string[] = [];
+  @Input() hiddenFields: string[] = [];
+  @Input() disabledActionButtons: string[] = [];
+  @Input() hiddenActionButtons: string[] = [];
   @Input() showActions: boolean = true;
   @Input() submitLabel?: string;
   @Input() disabled: boolean = false;
@@ -507,6 +512,10 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   validationErrors: string[] = [];
   ctx = inject(VfFormContext);
   utils = inject(VfUtilityService);
+  private appliedReadonlyFields = new Set<string>();
+  private appliedHiddenFields = new Set<string>();
+  private appliedDisabledActionButtons = new Set<string>();
+  private appliedHiddenActionButtons = new Set<string>();
 
   get isLastStep(): boolean {
     if (!this.document.is_stepper || !this.document.steps) return true;
@@ -532,20 +541,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
 
   ngOnInit() {
     this.initForm();
-    this.ctx.initialize(this.document, this.formData, this.metadata);
-    this.ctx.mediaHandler = this.mediaHandler;
-    this.ctx.mediaResolver = this.mediaResolver;
-    this.ctx.linkDataSource = this.linkDataSource;
-    this.ctx.linkRequestObserver = this.linkRequestObserver;
-    if (this.readonly) {
-      this.ctx.set_readonly(true);
-    }
-    this.ctx.execute(this.document.client_script || '', 'refresh');
-    this.ctx.trigger('refresh');
-    this.formReady.emit(this.ctx);
+    this.initializeRuntimeContext(true);
   }
 
   ngOnChanges(changes: SimpleChanges) {
+    if (changes['runFormScripts'] && !changes['runFormScripts'].firstChange) {
+      this.initializeRuntimeContext(true);
+      return;
+    }
     if (changes['readonly'] && !changes['readonly'].firstChange) {
       this.ctx.set_readonly(!!this.readonly);
     }
@@ -568,10 +571,38 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     if (changes['linkRequestObserver'] && !changes['linkRequestObserver'].firstChange) {
       this.ctx.linkRequestObserver = this.linkRequestObserver;
     }
+    if (
+      (changes['readonlyFields'] && !changes['readonlyFields'].firstChange) ||
+      (changes['hiddenFields'] && !changes['hiddenFields'].firstChange) ||
+      (changes['disabledActionButtons'] && !changes['disabledActionButtons'].firstChange) ||
+      (changes['hiddenActionButtons'] && !changes['hiddenActionButtons'].firstChange)
+    ) {
+      this.applyHostStateOverrides();
+    }
   }
 
   ngOnDestroy() {
     this.ctx.destroy();
+  }
+
+  private initializeRuntimeContext(emitReady: boolean = false) {
+    this.ctx.destroy();
+    this.ctx.initialize(this.document, this.formData, this.metadata);
+    this.ctx.mediaHandler = this.mediaHandler;
+    this.ctx.mediaResolver = this.mediaResolver;
+    this.ctx.linkDataSource = this.linkDataSource;
+    this.ctx.linkRequestObserver = this.linkRequestObserver;
+    if (this.readonly) {
+      this.ctx.set_readonly(true);
+    }
+    if (this.runFormScripts) {
+      this.ctx.execute(this.document.client_script || '', 'refresh');
+    }
+    this.ctx.trigger('refresh');
+    this.applyHostStateOverrides();
+    if (emitReady) {
+      this.formReady.emit(this.ctx);
+    }
   }
 
   private initForm() {
@@ -816,6 +847,60 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     }
   }
 
+  private applyHostStateOverrides() {
+    this.syncFieldOverride(this.appliedReadonlyFields, this.readonlyFields, 'read_only');
+    this.syncFieldOverride(this.appliedHiddenFields, this.hiddenFields, 'hidden');
+    this.syncButtonOverride(this.appliedDisabledActionButtons, this.disabledActionButtons, 'disable_on_readonly');
+    this.syncButtonOverride(this.appliedHiddenActionButtons, this.hiddenActionButtons, 'visible', false);
+  }
+
+  private syncFieldOverride(
+    applied: Set<string>,
+    nextItems: string[],
+    prop: 'read_only' | 'hidden'
+  ) {
+    const next = new Set((nextItems || []).map(item => item?.trim()).filter(Boolean));
+
+    applied.forEach(fieldname => {
+      if (!next.has(fieldname)) {
+        this.ctx.set_df_property(fieldname, prop, false);
+      }
+    });
+
+    next.forEach(fieldname => {
+      if (!applied.has(fieldname)) {
+        this.ctx.set_df_property(fieldname, prop, true);
+      }
+    });
+
+    applied.clear();
+    next.forEach(fieldname => applied.add(fieldname));
+  }
+
+  private syncButtonOverride(
+    applied: Set<string>,
+    nextItems: string[],
+    prop: 'disable_on_readonly' | 'visible',
+    enabledValue: boolean = true
+  ) {
+    const next = new Set((nextItems || []).map(item => item?.trim()).filter(Boolean));
+
+    applied.forEach(buttonId => {
+      if (!next.has(buttonId)) {
+        this.ctx.set_button_property(buttonId, prop, prop === 'visible' ? true : false);
+      }
+    });
+
+    next.forEach(buttonId => {
+      if (!applied.has(buttonId)) {
+        this.ctx.set_button_property(buttonId, prop, enabledValue);
+      }
+    });
+
+    applied.clear();
+    next.forEach(buttonId => applied.add(buttonId));
+  }
+
   toggleSection(sectionId: string) {
     const current = this.ctx.getSectionSignal(sectionId, 'collapsed')();
     this.ctx.set_section_property(sectionId, 'collapsed', !current);
@@ -902,7 +987,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       const config = (this.ctx.actionsConfig() as any)?.[action.toLowerCase()];
       if (config?.runtimeAction) {
         config.runtimeAction(this.ctx);
-      } else if (config?.action) {
+      } else if (config?.action && this.runFormScripts) {
         this.ctx.execute(config.action, action);
       }
 
