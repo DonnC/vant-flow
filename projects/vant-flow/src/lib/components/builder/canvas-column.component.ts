@@ -33,14 +33,9 @@ import { VfIconButton } from '../shared/icon-button.component';
           cdkDrag
           [cdkDragData]="field"
           (click)="selectField($event, field)"
-          class="group relative bg-white border rounded-xl p-3 shadow-sm hover:shadow-md hover:border-indigo-400 transition-all cursor-default active:ring-2 active:ring-indigo-500/10"
+          class="group relative cursor-grab active:cursor-grabbing bg-white border rounded-xl p-3 shadow-sm hover:shadow-md hover:border-indigo-400 transition-all active:ring-2 active:ring-indigo-500/10"
           [ngClass]="isSelected(field) ? 'border-indigo-500 ring-2 ring-indigo-500/10' : 'border-zinc-200'"
         >
-          <!-- Drag Handle -->
-          <div cdkDragHandle class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing p-1 rounded hover:bg-zinc-100 transition-all text-zinc-400">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
-          </div>
-
           <!-- Field Metadata -->
           <div class="flex items-center gap-2 mb-2">
             <span class="text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full"

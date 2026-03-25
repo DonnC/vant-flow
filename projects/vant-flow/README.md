@@ -307,6 +307,31 @@ For `Signature` fields, the safest production pattern is:
 - Persist only `fileId` plus metadata such as `capturedAt`, `contentType`, `sha256`, and signer or audit identifiers.
 - Use `mediaResolver` to request a short-lived signed URL only when the signature needs to be previewed or downloaded.
 - Keep signature files in private object storage or behind an authenticated media endpoint rather than exposing permanent public URLs.
+
+For `Attach` fields, the builder can also enable browser camera capture with `attach_config.enable_capture`.
+
+```json
+{
+  "fieldname": "site_photo",
+  "fieldtype": "Attach",
+  "label": "Site Photo",
+  "options": "image/* | 5MB | 1",
+  "attach_config": {
+    "enable_capture": true
+  }
+}
+```
+
+Camera capture keeps the current attach pipeline intact:
+- the same file validation rules still apply
+- the same `mediaHandler` upload hook is used
+- the same attach value shape is emitted back to the renderer
+
+Browser behavior caveat:
+- mobile browsers are the most reliable way to test this
+- many desktop browsers still open the normal file picker because `capture` is only a browser hint, not a guaranteed webcam UI
+- Vant Flow now shows inline feedback when camera permission is denied, no device is available, or the browser does not support capture for that field
+
 Tables also feature **Smart Compact Rendering**:
 - **Text Editor**: Automatic HTML stripping for table cell previews.
 - **Attach**: Visual file counters and icons.

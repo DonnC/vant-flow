@@ -1295,10 +1295,15 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       this.ctx?.msgprint('No downloadable URL is available for this file.', 'warning');
       return;
     }
-    const link = document.createElement('a');
-    link.href = targetUrl;
-    link.download = file?.name || 'download';
-    link.click();
+    const opened = window.open(targetUrl, '_blank', 'noopener,noreferrer');
+    if (!opened) {
+      const link = document.createElement('a');
+      link.href = targetUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.download = file?.name || 'download';
+      link.click();
+    }
   }
 
   isImage(type: string) {

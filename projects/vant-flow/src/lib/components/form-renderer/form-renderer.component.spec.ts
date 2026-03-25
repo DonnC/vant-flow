@@ -15,7 +15,7 @@ describe('VfRenderer', () => {
         mockFormContext = jasmine.createSpyObj('VfFormContext', [
             'getFieldSignal', 'getSectionSignal', 'set_section_property',
             'initialize', 'execute',
-            'trigger', 'triggerChange', 'destroy', 'set_df_property'
+            'trigger', 'triggerChange', 'destroy', 'set_df_property', 'set_button_property'
         ]);
 
         (mockFormContext as any).valueUpdateSignal = signal(0);
@@ -72,6 +72,16 @@ describe('VfRenderer', () => {
 
     it('should trigger refresh script on init', () => {
         fixture.detectChanges();
+        expect(mockFormContext.execute).toHaveBeenCalledWith(component.document.client_script || '', 'refresh');
+        expect(mockFormContext.trigger).toHaveBeenCalledWith('refresh');
+    });
+
+    it('does not execute schema client scripts when runFormScripts is false', () => {
+        component.runFormScripts = false;
+
+        fixture.detectChanges();
+
+        expect(mockFormContext.execute).not.toHaveBeenCalled();
         expect(mockFormContext.trigger).toHaveBeenCalledWith('refresh');
     });
 
@@ -98,6 +108,66 @@ describe('VfRenderer', () => {
         });
 
         expect((mockFormContext as any).metadata).toEqual({ featureFlags: { clearanceOverride: true } });
+    });
+
+    it('applies host readonly and hidden field overrides on init', () => {
+        component.readonlyFields = ['reviewer_notes', 'approve_step'];
+        component.hiddenFields = ['internal_comment'];
+
+        fixture.detectChanges();
+
+        expect(mockFormContext.set_df_property).toHaveBeenCalledWith('reviewer_notes', 'read_only', true);
+        expect(mockFormContext.set_df_property).toHaveBeenCalledWith('approve_step', 'read_only', true);
+        expect(mockFormContext.set_df_property).toHaveBeenCalledWith('internal_comment', 'hidden', true);
+    });
+
+    it('updates host field overrides when renderer inputs change', () => {
+        component.readonlyFields = ['reviewer_notes'];
+        fixture.detectChanges();
+        mockFormContext.set_df_property.calls.reset();
+
+        component.readonlyFields = ['finance_notes'];
+        component.hiddenFields = ['internal_comment'];
+        component.ngOnChanges({
+            readonlyFields: {
+                currentValue: component.readonlyFields,
+                previousValue: ['reviewer_notes'],
+                firstChange: false,
+                isFirstChange: () => false
+            },
+            hiddenFields: {
+                currentValue: component.hiddenFields,
+                previousValue: [],
+                firstChange: false,
+                isFirstChange: () => false
+            }
+        });
+
+        expect(mockFormContext.set_df_property).toHaveBeenCalledWith('reviewer_notes', 'read_only', false);
+        expect(mockFormContext.set_df_property).toHaveBeenCalledWith('finance_notes', 'read_only', true);
+        expect(mockFormContext.set_df_property).toHaveBeenCalledWith('internal_comment', 'hidden', true);
+    });
+
+    it('applies host action button overrides on init and change', () => {
+        component.disabledActionButtons = ['submit'];
+        component.hiddenActionButtons = ['approve'];
+        fixture.detectChanges();
+
+        expect(mockFormContext.set_button_property).toHaveBeenCalledWith('submit', 'disable_on_readonly', true);
+        expect(mockFormContext.set_button_property).toHaveBeenCalledWith('approve', 'visible', false);
+
+        mockFormContext.set_button_property.calls.reset();
+        component.hiddenActionButtons = [];
+        component.ngOnChanges({
+            hiddenActionButtons: {
+                currentValue: [],
+                previousValue: ['approve'],
+                firstChange: false,
+                isFirstChange: () => false
+            }
+        });
+
+        expect(mockFormContext.set_button_property).toHaveBeenCalledWith('approve', 'visible', true);
     });
 
     describe('packData() — Data Groups', () => {
@@ -197,6 +267,45 @@ describe('VfRenderer', () => {
             expect(emitted.source).toBe('custom');
             expect(emitted.frm).toBe(mockFormContext as any);
         });
+
+        it('skips schema button action scripts when runFormScripts is false', () => {
+            fixture.detectChanges();
+
+            (mockFormContext as any).actionsConfig.set({
+                submit: { label: 'Submit', visible: true, type: 'primary' },
+                approve: { label: 'Approve', visible: true, action: "frm.msgprint('approved')" }
+            });
+
+            mockFormContext.execute.calls.reset();
+            component.runFormScripts = false;
+
+            component.onAction('approve');
+
+            expect(mockFormContext.execute).not.toHaveBeenCalled();
+        });
+    });
+
+    it('rebuilds runtime context when runFormScripts changes after init', () => {
+        fixture.detectChanges();
+        mockFormContext.initialize.calls.reset();
+        mockFormContext.execute.calls.reset();
+        mockFormContext.trigger.calls.reset();
+        mockFormContext.destroy.calls.reset();
+
+        component.runFormScripts = false;
+        component.ngOnChanges({
+            runFormScripts: {
+                currentValue: false,
+                previousValue: true,
+                firstChange: false,
+                isFirstChange: () => false
+            }
+        });
+
+        expect(mockFormContext.destroy).toHaveBeenCalled();
+        expect(mockFormContext.initialize).toHaveBeenCalledWith(component.document, component.formData, component.metadata);
+        expect(mockFormContext.execute).not.toHaveBeenCalled();
+        expect(mockFormContext.trigger).toHaveBeenCalledWith('refresh');
     });
 
     describe('onFieldChange()', () => {

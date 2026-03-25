@@ -1,4 +1,4 @@
-import { Component, computed, inject, HostListener, OnInit, OnChanges, SimpleChanges, signal, effect, Input, Output, EventEmitter } from '@angular/core';
+import { Component, computed, inject, HostListener, OnInit, OnChanges, OnDestroy, SimpleChanges, signal, effect, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CdkDrag, CdkDropList, DragDropModule } from '@angular/cdk/drag-drop';
@@ -302,7 +302,7 @@ type RightTab = 'properties' | 'script';
               [class.border-indigo-500]="rightTab === 'properties'"
               [class.text-zinc-400]="rightTab !== 'properties'"
             >Properties</button>
-            @if (state.showFormSettings()) {
+            @if (showScriptEditor && state.showFormSettings()) {
               <button
                 (click)="rightTab = 'script'"
                 class="flex-1 py-2.5 text-xs font-medium transition-colors border-l border-zinc-100"
@@ -325,7 +325,7 @@ type RightTab = 'properties' | 'script';
           <div class="flex-1 overflow-hidden">
             @if (rightTab === 'properties') {
               <vf-property-editor></vf-property-editor>
-            } @else {
+            } @else if (showScriptEditor) {
               <vf-script-editor></vf-script-editor>
             }
           </div>
@@ -406,11 +406,13 @@ type RightTab = 'properties' | 'script';
   </div>
   `
 })
-export class VfBuilder implements OnInit, OnChanges {
+export class VfBuilder implements OnInit, OnChanges, OnDestroy {
   /** Initial form schema to load into the builder. */
   @Input() initialSchema?: DocumentDefinition;
   /** Optional runtime-only metadata used while testing scripts in preview mode. */
   @Input() previewMetadata?: Record<string, any>;
+  /** Controls whether the form script editor tab is available in builder mode. Defaults to true. */
+  @Input() showScriptEditor = true;
 
   /** Emitted whenever the form schema is modified in the builder. */
   @Output() schemaChange = new EventEmitter<DocumentDefinition>();
@@ -431,6 +433,8 @@ export class VfBuilder implements OnInit, OnChanges {
   rightSidebarVisible = signal(true);
   sidebarWidth = signal(288);
   isResizing = signal(false);
+  private schemaStabilizeHandle: number | null = null;
+  private readonly addSectionListener = () => this.addSection();
 
   constructor() {
     // Auto-focus properties tab when a field, section, or step is selected
@@ -474,18 +478,30 @@ export class VfBuilder implements OnInit, OnChanges {
   stepCount = computed(() => this.state.document().steps?.length || 0);
 
   ngOnInit() {
-    if (this.initialSchema) {
-      this.state.document.set({ ...this.initialSchema });
-    }
+    this.applyInitialSchema(this.initialSchema);
     this.applyPreviewMetadataInput(this.previewMetadata ?? this.getDefaultPreviewMetadata());
     // listen for palette's section add shortcut
-    document.addEventListener('add-section', () => this.addSection());
+    document.addEventListener('add-section', this.addSectionListener);
   }
 
   ngOnChanges(changes: SimpleChanges) {
+    if (changes['initialSchema'] && changes['initialSchema'].currentValue) {
+      const nextSchema = changes['initialSchema'].currentValue as DocumentDefinition;
+      if (!this.isSameDocument(this.state.document(), nextSchema)) {
+        this.applyInitialSchema(nextSchema);
+      }
+    }
     if (changes['previewMetadata'] && !changes['previewMetadata'].firstChange) {
       this.applyPreviewMetadataInput(changes['previewMetadata'].currentValue ?? this.getDefaultPreviewMetadata());
     }
+    if (changes['showScriptEditor'] && !this.showScriptEditor && this.rightTab === 'script') {
+      this.rightTab = 'properties';
+    }
+  }
+
+  ngOnDestroy() {
+    document.removeEventListener('add-section', this.addSectionListener);
+    this.clearSchemaStabilizeHandle();
   }
 
   setMode(mode: 'builder' | 'preview') {
@@ -554,6 +570,58 @@ export class VfBuilder implements OnInit, OnChanges {
         clearanceOverride: true
       }
     };
+  }
+
+  private applyInitialSchema(schema?: DocumentDefinition) {
+    if (!schema) {
+      return;
+    }
+
+    const cloned = this.cloneDocument(schema);
+    this.state.document.set(cloned);
+    this.state.resetAutoFieldnameTracking();
+    this.state.selectedFieldId.set(null);
+    this.state.selectedSectionId.set(null);
+    this.state.showFormSettings.set(false);
+    this.state.selectedStepId.set(cloned.is_stepper ? (cloned.steps?.[0]?.id ?? null) : null);
+
+    this.clearSchemaStabilizeHandle();
+    const applyStableClone = () => {
+      this.state.document.set(this.cloneDocument(schema));
+    };
+
+    if (typeof requestAnimationFrame === 'function') {
+      this.schemaStabilizeHandle = requestAnimationFrame(() => {
+        this.schemaStabilizeHandle = null;
+        applyStableClone();
+      });
+      return;
+    }
+
+    this.schemaStabilizeHandle = window.setTimeout(() => {
+      this.schemaStabilizeHandle = null;
+      applyStableClone();
+    }, 0);
+  }
+
+  private clearSchemaStabilizeHandle() {
+    if (this.schemaStabilizeHandle == null) {
+      return;
+    }
+    if (typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(this.schemaStabilizeHandle);
+    } else {
+      clearTimeout(this.schemaStabilizeHandle);
+    }
+    this.schemaStabilizeHandle = null;
+  }
+
+  private cloneDocument(document: DocumentDefinition): DocumentDefinition {
+    return JSON.parse(JSON.stringify(document)) as DocumentDefinition;
+  }
+
+  private isSameDocument(current: DocumentDefinition, incoming: DocumentDefinition): boolean {
+    return JSON.stringify(current) === JSON.stringify(incoming);
   }
 
   // Sidebar resizing

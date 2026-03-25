@@ -84,5 +84,76 @@ describe('VfBuilder', () => {
     expect(toggleButton.attributes['aria-expanded']).toBe('true');
     expect(fixture.debugElement.query(By.css('#preview-metadata-panel'))).not.toBeNull();
   });
+
+  it('shows the script tab by default when form settings are selected', () => {
+    fixture.detectChanges();
+
+    component.state.selectFormSettings();
+    fixture.detectChanges();
+
+    const tabs = fixture.debugElement.queryAll(By.css('aside button'));
+    expect(tabs.some((tab) => tab.nativeElement.textContent.includes('Script'))).toBeTrue();
+  });
+
+  it('hides the script tab when showScriptEditor is false', () => {
+    component.showScriptEditor = false;
+    fixture.detectChanges();
+
+    component.state.selectFormSettings();
+    fixture.detectChanges();
+
+    const tabs = fixture.debugElement.queryAll(By.css('aside button'));
+    expect(tabs.some((tab) => tab.nativeElement.textContent.includes('Script'))).toBeFalse();
+  });
+
+  it('reloads the builder document when initialSchema changes after mount', () => {
+    fixture.detectChanges();
+
+    component.initialSchema = {
+      name: 'Updated Form',
+      sections: [{
+        id: 'section_2',
+        columns: [{
+          id: 'column_2',
+          fields: [{
+            id: 'field_2',
+            fieldname: 'reference',
+            fieldtype: 'Data',
+            label: 'Reference',
+          }],
+        }],
+      }],
+    };
+
+    component.ngOnChanges({
+      initialSchema: {
+        previousValue: null,
+        currentValue: component.initialSchema,
+        firstChange: false,
+        isFirstChange: () => false,
+      },
+    });
+
+    expect(component.state.document().name).toBe('Updated Form');
+    expect(component.state.document().sections[0]?.columns[0]?.fields[0]?.label).toBe('Reference');
+  });
+
+  it('does not clear the current property selection when the parent echoes back the same schema', () => {
+    fixture.detectChanges();
+
+    component.state.selectFormSettings();
+    const echoedSchema = component.state.document();
+
+    component.ngOnChanges({
+      initialSchema: {
+        previousValue: component.initialSchema,
+        currentValue: echoedSchema,
+        firstChange: false,
+        isFirstChange: () => false,
+      },
+    });
+
+    expect(component.state.showFormSettings()).toBeTrue();
+  });
 });
 

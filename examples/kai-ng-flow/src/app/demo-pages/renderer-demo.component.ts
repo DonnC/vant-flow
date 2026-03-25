@@ -22,6 +22,9 @@ import { EXAMPLE_DOCUMENT } from './example-data';
           </div>
         </div>
         <div class="flex items-center gap-4">
+           <a routerLink="/demo/builder-host-controls" class="ui-btn-secondary ui-btn-sm">
+             Builder Host Controls
+           </a>
            <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100">
              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
              <span class="text-[10px] font-bold text-emerald-700 uppercase">Production Ready</span>
@@ -35,7 +38,66 @@ import { EXAMPLE_DOCUMENT } from './example-data';
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             <div>
               <p class="font-bold mb-1">Renderer Demo</p>
-              <p>This page demonstrate the <code>&lt;vf-renderer&gt;</code> component loading a complex JSON schema with sections, columns, validation, and custom client-side scripting hooks.</p>
+              <p>This page demonstrates the <code>&lt;vf-renderer&gt;</code> component loading a complex JSON schema with host-controlled field/button state, metadata injection, validation, and client-side scripting hooks.</p>
+            </div>
+          </div>
+
+          <div class="mb-8 rounded-2xl border border-amber-200 bg-white shadow-sm overflow-hidden">
+            <div class="px-5 py-4 border-b border-amber-100 bg-amber-50/80 flex items-start justify-between gap-4">
+              <div>
+                <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-amber-700">Host Controls</p>
+                <p class="text-xs text-amber-900/80 mt-1">These toggles are driven from Angular host code and passed into <code>&lt;vf-renderer&gt;</code> through <code>readonly</code>, <code>readonlyFields</code>, <code>hiddenFields</code>, <code>disabledActionButtons</code>, and <code>hiddenActionButtons</code>.</p>
+              </div>
+              <span class="px-2 py-1 rounded-full border border-amber-200 bg-white text-[10px] font-bold uppercase tracking-widest text-amber-700">Host App</span>
+            </div>
+            <div class="p-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <label class="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                <input type="checkbox" class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" [ngModel]="runFormScripts" (ngModelChange)="runFormScripts = !!$event">
+                <span>
+                  <span class="block text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700">Run Form Scripts</span>
+                  <span class="block text-xs text-zinc-500">Turn off schema client scripts entirely. This suppresses refresh handlers, field event handlers, and schema action scripts.</span>
+                </span>
+              </label>
+
+              <label class="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                <input type="checkbox" class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" [ngModel]="hostReadonly" (ngModelChange)="hostReadonly = !!$event">
+                <span>
+                  <span class="block text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700">Whole Form Readonly</span>
+                  <span class="block text-xs text-zinc-500">Lets you compare full-form readonly with field-level readonly arrays.</span>
+                </span>
+              </label>
+
+              <label class="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                <input type="checkbox" class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" [ngModel]="lockReviewFields" (ngModelChange)="lockReviewFields = !!$event">
+                <span>
+                  <span class="block text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700">Readonly Selected Fields</span>
+                  <span class="block text-xs text-zinc-500">Locks <code>batch_id</code>, <code>quality_score</code>, and the clearance button field only.</span>
+                </span>
+              </label>
+
+              <label class="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                <input type="checkbox" class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" [ngModel]="hideClearanceSectionFields" (ngModelChange)="hideClearanceSectionFields = !!$event">
+                <span>
+                  <span class="block text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700">Hide Clearance Fields</span>
+                  <span class="block text-xs text-zinc-500">Hides the text editor and field-level button in the clearance area.</span>
+                </span>
+              </label>
+
+              <label class="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3">
+                <input type="checkbox" class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" [ngModel]="hideSubmitAction" (ngModelChange)="hideSubmitAction = !!$event">
+                <span>
+                  <span class="block text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700">Hide Submit Action</span>
+                  <span class="block text-xs text-zinc-500">Removes the renderer header submit button through <code>hiddenActionButtons</code>.</span>
+                </span>
+              </label>
+
+              <label class="flex items-start gap-3 rounded-2xl border border-zinc-200 bg-zinc-50 px-4 py-3 md:col-span-2 xl:col-span-2">
+                <input type="checkbox" class="mt-0.5 h-4 w-4 rounded border-zinc-300 text-indigo-600 focus:ring-indigo-500" [ngModel]="disableSubmitWhileReadonly" (ngModelChange)="disableSubmitWhileReadonly = !!$event">
+                <span>
+                  <span class="block text-[11px] font-black uppercase tracking-[0.2em] text-zinc-700">Disable Submit During Readonly</span>
+                  <span class="block text-xs text-zinc-500">This uses <code>disabledActionButtons</code>. Turn on whole-form readonly above to see the submit action become disabled instead of hidden.</span>
+                </span>
+              </label>
             </div>
           </div>
 
@@ -72,6 +134,12 @@ import { EXAMPLE_DOCUMENT } from './example-data';
           
           <vf-renderer 
             [document]="schema" 
+            [runFormScripts]="runFormScripts"
+            [readonly]="hostReadonly"
+            [readonlyFields]="readonlyFields"
+            [hiddenFields]="hiddenFields"
+            [disabledActionButtons]="disabledActionButtons"
+            [hiddenActionButtons]="hiddenActionButtons"
             [metadata]="runtimeMetadata"
             (formAction)="onFormAction($event)"
             (formReady)="onFormReady($event)">
@@ -99,6 +167,32 @@ export class RendererDemoComponent {
   runtimeMetadata = this.getDefaultMetadata();
   metadataInput = JSON.stringify(this.runtimeMetadata, null, 2);
   metadataError: string | null = null;
+  runFormScripts = true;
+  hostReadonly = false;
+  lockReviewFields = true;
+  hideClearanceSectionFields = false;
+  hideSubmitAction = false;
+  disableSubmitWhileReadonly = true;
+
+  get readonlyFields() {
+    return this.lockReviewFields
+      ? ['batch_id', 'quality_score', 'btn_request_clearance']
+      : [];
+  }
+
+  get hiddenFields() {
+    return this.hideClearanceSectionFields
+      ? ['clearance_request', 'btn_request_clearance']
+      : [];
+  }
+
+  get disabledActionButtons() {
+    return this.disableSubmitWhileReadonly ? ['submit'] : [];
+  }
+
+  get hiddenActionButtons() {
+    return this.hideSubmitAction ? ['submit'] : [];
+  }
 
   onMetadataInput(value: string) {
     this.metadataInput = value;
