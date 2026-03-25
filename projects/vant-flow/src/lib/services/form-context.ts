@@ -1,6 +1,6 @@
 import { FormGroup, Validators } from '@angular/forms';
 import { WritableSignal, signal, Injectable } from '@angular/core';
-import { DEFAULT_FORM_ACTIONS, DocumentField, DocumentSection, DocumentDefinition, FormActionsConfig, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver } from '../models/document.model';
+import { DEFAULT_FORM_ACTIONS, DocumentField, DocumentSection, DocumentDefinition, FormActionButton, FormActionsConfig, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver } from '../models/document.model';
 import { VfUtilityService } from './app-utility.service';
 import { VfBuilderState } from './builder-state.service';
 
@@ -124,27 +124,34 @@ export class VfFormContext {
         });
     }
 
-    set_df_property(fieldname: string, prop: keyof DocumentField | 'reqd', val: any, child_fieldname?: string) {
-        const s = this.fieldSignals.get(fieldname);
-        if (!s) { console.warn(`[frm] Unknown field: ${fieldname}`); return; }
+    set_df_property(fieldname: string | string[], prop: keyof DocumentField | 'reqd', val: any, child_fieldname?: string) {
         const normalizedProp = prop === 'reqd' ? 'mandatory' : prop;
+        const fieldnames = Array.isArray(fieldname) ? fieldname : [fieldname];
 
-        if (child_fieldname) {
-            // Target a column within a table
-            s.update(current => {
-                if (current.fieldtype !== 'Table' || !current.table_fields) return current;
-                const updatedCols = current.table_fields.map(col => {
-                    if (col.fieldname === child_fieldname) {
-                        return { ...col, [normalizedProp]: val };
-                    }
-                    return col;
+        fieldnames.forEach(name => {
+            const s = this.fieldSignals.get(name);
+            if (!s) {
+                console.warn(`[frm] Unknown field: ${name}`);
+                return;
+            }
+
+            if (child_fieldname) {
+                // Target a column within a table
+                s.update(current => {
+                    if (current.fieldtype !== 'Table' || !current.table_fields) return current;
+                    const updatedCols = current.table_fields.map(col => {
+                        if (col.fieldname === child_fieldname) {
+                            return { ...col, [normalizedProp]: val };
+                        }
+                        return col;
+                    });
+                    return { ...current, table_fields: updatedCols };
                 });
-                return { ...current, table_fields: updatedCols };
-            });
-        } else {
-            // Target the field itself
-            s.update(current => ({ ...current, [normalizedProp]: val }));
-        }
+            } else {
+                // Target the field itself
+                s.update(current => ({ ...current, [normalizedProp]: val }));
+            }
+        });
     }
 
     set_section_property(sectionId: string, prop: keyof DocumentSection, val: any) {
@@ -370,6 +377,25 @@ export class VfFormContext {
         const config: FormActionsConfig = { submit: { ...DEFAULT_FORM_ACTIONS.submit! }, ...(this.actionsConfig() || {}) };
         const key = id.toLowerCase() as keyof FormActionsConfig;
         config[key] = { ...(config[key] || { label: id, visible: true }), label };
+        this.actionsConfig.set({ ...config });
+    }
+
+    set_button_property(
+        id: string | string[],
+        prop: keyof Pick<FormActionButton, 'label' | 'visible' | 'type' | 'disable_on_readonly'>,
+        value: any
+    ) {
+        const config: FormActionsConfig = { submit: { ...DEFAULT_FORM_ACTIONS.submit! }, ...(this.actionsConfig() || {}) };
+        const ids = Array.isArray(id) ? id : [id];
+
+        ids.forEach(buttonId => {
+            const key = buttonId.toLowerCase() as keyof FormActionsConfig;
+            config[key] = {
+                ...(config[key] || { label: buttonId, visible: true }),
+                [prop]: value
+            };
+        });
+
         this.actionsConfig.set({ ...config });
     }
 

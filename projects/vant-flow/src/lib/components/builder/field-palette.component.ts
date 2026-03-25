@@ -23,6 +23,7 @@ import { VfEyebrow } from '../shared/eyebrow.component';
           [cdkDropListData]="paletteItems"
           [cdkDropListConnectedTo]="connectedLists"
           [cdkDropListEnterPredicate]="noEnter"
+          [cdkDropListSortingDisabled]="true"
           class="flex flex-col gap-2.5 pb-20"
         >
           @for (item of paletteItems; track item.fieldtype) {
@@ -41,7 +42,21 @@ import { VfEyebrow } from '../shared/eyebrow.component';
                 <span class="text-[9px] text-zinc-400 truncate">{{ item.desc }}</span>
               </div>
 
-              <div *cdkDragPlaceholder class="bg-indigo-50 border-2 border-dashed border-indigo-200 rounded-xl h-14"></div>
+              <ng-template cdkDragPreview>
+                <div class="flex items-center gap-3 p-3 min-w-[220px] bg-white border border-indigo-200 rounded-xl shadow-xl cursor-grabbing opacity-95">
+                  <div class="w-8 h-8 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-indigo-600">
+                      <path [attr.d]="item.icon"></path>
+                    </svg>
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="text-[11px] font-bold text-zinc-700 tracking-tight">{{ item.fieldtype }}</span>
+                    <span class="text-[9px] text-zinc-400 truncate">{{ item.desc }}</span>
+                  </div>
+                </div>
+              </ng-template>
+
+              <div *cdkDragPlaceholder class="h-0 overflow-hidden opacity-0 border-0 p-0 m-0"></div>
             </div>
           }
         </div>

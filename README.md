@@ -91,7 +91,12 @@ export const appConfig: ApplicationConfig = {
   [document]="document"
   [initialData]="initialData"
   [metadata]="metadata"
-  (formSubmit)="handleSubmit($event)"
+  [runFormScripts]="runFormScripts"
+  [readonlyFields]="readonlyFields"
+  [hiddenFields]="hiddenFields"
+  [disabledActionButtons]="disabledActionButtons"
+  [hiddenActionButtons]="hiddenActionButtons"
+  (formAction)="handleAction($event)"
 ></vf-renderer>
 ```
 
@@ -101,9 +106,12 @@ export const appConfig: ApplicationConfig = {
 <vf-builder
   [initialSchema]="document"
   [previewMetadata]="previewMetadata"
+  [showScriptEditor]="allowClientScripting"
   (schemaChange)="onSchemaChange($event)"
 ></vf-builder>
 ```
+
+Use `showScriptEditor` when the host app should decide whether schema authors are allowed to view and edit the form script from the builder UI.
 
 ## A minimal client script
 
@@ -122,6 +130,18 @@ frm.on('status', (value, frm) => {
 });
 ```
 
+Bulk runtime updates are also supported:
+
+```js
+frm.set_df_property(
+  ['reviewer_notes', 'manager_notes', 'finance_notes'],
+  'read_only',
+  true
+);
+
+frm.set_button_property(['submit', 'approve'], 'visible', false);
+```
+
 The runtime is intentionally constrained. Scripts can shape the form, but dangerous browser globals are not meant to be available inside the sandbox. Backend work should flow through `frm.call(...)` or host-provided integrations.
 
 ## Feature highlights
@@ -134,6 +154,8 @@ The same `DocumentDefinition` can be:
 - previewed beside the builder
 - rendered for end users
 - replayed later in readonly mode
+
+Builder hosts can also decide whether the script authoring surface is exposed by toggling `showScriptEditor` on `VfBuilder`.
 
 ### 2. Dynamic logic without redeploying the UI
 
@@ -217,6 +239,42 @@ You can pass host-only runtime context into scripts through `[metadata]`.
 Inside scripts, that becomes `frm.metadata`.
 
 This is separate from persisted `DocumentDefinition.metadata`.
+
+### Host-controlled field and button state
+
+The host app can also control runtime state directly through `VfRenderer` inputs, without putting everything in `client_script`.
+
+```ts
+runFormScripts = false;
+readonlyFields = ['reviewer_notes', 'finance_notes', 'approve_step'];
+hiddenFields = ['internal_comments'];
+disabledActionButtons = ['submit', 'approve'];
+hiddenActionButtons = ['decline'];
+```
+
+```html
+<vf-renderer
+  [document]="approvalSchema"
+  [runFormScripts]="runFormScripts"
+  [readonlyFields]="readonlyFields"
+  [hiddenFields]="hiddenFields"
+  [disabledActionButtons]="disabledActionButtons"
+  [hiddenActionButtons]="hiddenActionButtons"
+  [metadata]="metadata"
+  (formAction)="handleAction($event)"
+></vf-renderer>
+```
+
+Use this when approval stage, role, or page-level app state should control the form from Angular code.
+
+Important notes:
+
+- `runFormScripts` lets the host app either execute or completely ignore schema-authored form scripts
+- when `runFormScripts` is `false`, the renderer skips `document.client_script` and ignores schema action-script strings
+- `readonlyFields` and `hiddenFields` work with normal inputs and field-level `Button` fields
+- `disabledActionButtons` and `hiddenActionButtons` target renderer header actions like `submit`, `approve`, and `decline`
+- these inputs are applied on first render and whenever the bound arrays change
+- client scripts can still use `frm.set_df_property(...)` and `frm.set_button_property(...)` for dynamic in-form behavior
 
 ### Media handler pipeline
 

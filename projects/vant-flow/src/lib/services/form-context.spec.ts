@@ -107,6 +107,50 @@ describe('VfFormContext', () => {
     expect(context.getFieldSignal('restored_at', 'mandatory')()).toBeTrue();
   });
 
+  it('updates multiple fields at once through set_df_property', () => {
+    const document: DocumentDefinition = {
+      name: 'Bulk Field Update Form',
+      sections: [{
+        id: 'section_1',
+        columns: [{
+          id: 'column_1',
+          fields: [
+            { id: 'field_1', fieldname: 'reviewer_notes', fieldtype: 'Text', label: 'Reviewer Notes', read_only: false },
+            { id: 'field_2', fieldname: 'finance_notes', fieldtype: 'Text', label: 'Finance Notes', read_only: false },
+            { id: 'field_3', fieldname: 'approve_step', fieldtype: 'Button', label: 'Approve Step', read_only: false }
+          ]
+        }]
+      }]
+    };
+
+    context.initialize(document, formData);
+    context.set_df_property(['reviewer_notes', 'finance_notes', 'approve_step'], 'read_only', true);
+
+    expect(context.getFieldSignal('reviewer_notes', 'read_only')()).toBeTrue();
+    expect(context.getFieldSignal('finance_notes', 'read_only')()).toBeTrue();
+    expect(context.getFieldSignal('approve_step', 'read_only')()).toBeTrue();
+  });
+
+  it('updates multiple header buttons at once through set_button_property', () => {
+    const document: DocumentDefinition = {
+      name: 'Bulk Button Update Form',
+      sections: [],
+      actions: {
+        submit: { label: 'Submit', visible: true, disable_on_readonly: false },
+        approve: { label: 'Approve', visible: true, disable_on_readonly: false }
+      }
+    };
+
+    context.initialize(document, formData);
+    context.set_button_property(['submit', 'approve'], 'visible', false);
+    context.set_button_property(['submit', 'approve'], 'disable_on_readonly', true);
+
+    expect(context.actionsConfig()?.submit?.visible).toBeFalse();
+    expect(context.actionsConfig()?.approve?.visible).toBeFalse();
+    expect(context.actionsConfig()?.submit?.disable_on_readonly).toBeTrue();
+    expect(context.actionsConfig()?.approve?.disable_on_readonly).toBeTrue();
+  });
+
   it('skips hidden steps when moving to the next step', () => {
     const document: DocumentDefinition = {
       name: 'Stepper Form',
