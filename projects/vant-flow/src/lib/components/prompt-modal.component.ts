@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter, ViewChildren, QueryList } from 
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { DocumentField, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver } from '../models/document.model';
+import { VfFormContext } from '../services/form-context';
 import { VfField } from './form-field.component';
 import { VfUiPrimitivesModule } from '../ui/ui-primitives.module';
 import { VfIconButton } from './shared/icon-button.component';
@@ -63,6 +64,7 @@ export class VfPromptModal {
   @Input() linkDataSource?: VfLinkDataSource;
   @Input() linkRequestObserver?: VfLinkRequestObserver;
   @Input() formMetadata?: any;
+  @Input() frm!: VfFormContext;
   @Output() result = new EventEmitter<Record<string, any> | null>();
 
   @ViewChildren(VfField) fieldComponents!: QueryList<VfField>;

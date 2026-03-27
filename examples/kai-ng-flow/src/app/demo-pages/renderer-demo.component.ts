@@ -1,8 +1,8 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { VfRenderer, VfToastOutlet, VfUtilityService } from 'vant-flow';
+import { VfRenderer, VfToastOutlet, VfUtilityService, VfMediaHandler, VfMediaHandlerContext, VfMediaHandlerPayload, VfRendererButtonEvent, VfRendererChangeEvent, VfFormContext } from 'vant-flow';
 import { EXAMPLE_DOCUMENT } from './example-data';
 
 @Component({
@@ -25,6 +25,9 @@ import { EXAMPLE_DOCUMENT } from './example-data';
            <a routerLink="/demo/builder-host-controls" class="ui-btn-secondary ui-btn-sm">
              Builder Host Controls
            </a>
+           <button type="button" (click)="runValidation()" class="ui-btn-secondary ui-btn-sm">
+             Validate Form
+           </button>
            <div class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-100">
              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
              <span class="text-[10px] font-bold text-emerald-700 uppercase">Production Ready</span>
@@ -141,7 +144,9 @@ import { EXAMPLE_DOCUMENT } from './example-data';
             [disabledActionButtons]="disabledActionButtons"
             [hiddenActionButtons]="hiddenActionButtons"
             [metadata]="runtimeMetadata"
+            [mediaHandler]="mediaHandler"
             (formAction)="onFormAction($event)"
+            (formChange)="onFormChange($event)"
             (formReady)="onFormReady($event)">
           </vf-renderer>
 
@@ -161,6 +166,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
   `
 })
 export class RendererDemoComponent {
+  @ViewChild(VfRenderer) renderer?: VfRenderer;
   private utils = inject(VfUtilityService);
   schema = EXAMPLE_DOCUMENT;
   submittedData: any = null;
@@ -211,12 +217,19 @@ export class RendererDemoComponent {
     }
   }
 
-  onFormAction(event: any) {
+  onFormAction(event: VfRendererButtonEvent) {
     this.submittedData = event?.data ?? event;
     console.log('[Renderer Demo] Action Triggered:', event);
 
     if (event?.action === 'submit') {
+      if (!event.frm.validate()) {
+        return;
+      }
       this.utils.show_alert(`Renderer action: ${event.buttonName}`, 'success');
+      return;
+    }
+
+    if (event?.action === 'approve' && !event.frm.validate()) {
       return;
     }
 
@@ -225,8 +238,30 @@ export class RendererDemoComponent {
     // once the demo app has a centralized action orchestration layer.
   }
 
-  onFormReady(frm: any) {
+  onFormChange(event: VfRendererChangeEvent) {
+    if (['quality_score', 'batch_id'].includes(event.fieldname)) {
+      event.frm.validate();
+    }
+  }
+
+  onFormReady(frm: VfFormContext) {
     console.log('[Renderer Demo] Form initialized with API context.');
+  }
+
+  mediaHandler: VfMediaHandler = async (payload: VfMediaHandlerPayload, context: VfMediaHandlerContext) => {
+    if (!context.frm.validate()) {
+      throw new Error('Please fix validation issues before uploading media.');
+    }
+
+    this.utils.show_alert(`Handling ${context.fieldtype.toLowerCase()} for ${context.fieldname}`, 'info');
+    return payload.fieldtype === 'Attach'
+      ? `mock://uploads/${context.fieldname}`
+      : `data:${context.fieldtype.toLowerCase()}`;
+  };
+
+  runValidation() {
+    const valid = this.renderer?.validate();
+    this.utils.show_alert(valid ? 'Validation passed.' : 'Validation found issues.', valid ? 'success' : 'warning');
   }
 
   private getDefaultMetadata() {

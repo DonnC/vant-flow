@@ -2,6 +2,7 @@ import { Injectable, signal, ApplicationRef, EnvironmentInjector, createComponen
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { DocumentField, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver } from '../models/document.model';
+import { VfFormContext } from './form-context';
 import { VfPromptModal } from '../components/prompt-modal.component';
 
 export type ToastIndicator = 'success' | 'error' | 'info' | 'warning';
@@ -59,6 +60,7 @@ export class VfUtilityService {
     fields: DocumentField[],
     title: string = 'Enter Data',
     readOnly: boolean = false,
+    frm: VfFormContext,
     mediaHandler?: VfMediaHandler,
     mediaResolver?: VfMediaResolver,
     linkDataSource?: VfLinkDataSource,
@@ -82,6 +84,7 @@ export class VfUtilityService {
       componentRef.instance.linkDataSource = linkDataSource;
       componentRef.instance.linkRequestObserver = linkRequestObserver;
       componentRef.instance.formMetadata = formMetadata;
+      componentRef.instance.frm = frm;
 
       componentRef.instance.result.subscribe(res => {
         this.appRef.detachView(componentRef.hostView);

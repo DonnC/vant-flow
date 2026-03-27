@@ -1,3 +1,5 @@
+import type { VfFormContext } from '../services/form-context';
+
 export type FieldType = 'Data' | 'Select' | 'Link' | 'Check' | 'Int' | 'Text' | 'Date' | 'Float' | 'Password' | 'Button' | 'Text Editor' | 'Table' | 'Datetime' | 'Time' | 'Signature' | 'Attach';
 
 export interface VfStoredMedia {
@@ -16,6 +18,7 @@ export interface VfMediaHandlerContext {
   fieldtype: 'Attach' | 'Signature';
   currentValue: any;
   formMetadata?: any;
+  frm: VfFormContext;
 }
 
 export type VfMediaHandlerPayload =
@@ -75,6 +78,7 @@ export interface VfLinkDataSourceRequest {
   filters: Record<string, any>;
   config: VfLinkFieldConfig;
   formMetadata?: any;
+  frm: VfFormContext;
 }
 
 export interface VfLinkRequestState {
@@ -84,6 +88,7 @@ export interface VfLinkRequestState {
   status: 'idle' | 'loading' | 'success' | 'error';
   resultCount?: number;
   error?: string;
+  frm: VfFormContext;
 }
 
 export type VfLinkDataSource = (request: VfLinkDataSourceRequest) => Promise<any[]> | any[];
@@ -156,7 +161,7 @@ export interface FormActionButton {
   type?: string;
   action?: string; // Custom script event to trigger
   disable_on_readonly?: boolean;
-  runtimeAction?: (frm: any) => void;
+  runtimeAction?: (frm: VfFormContext) => void;
 }
 
 export interface FormActionsConfig {
@@ -172,8 +177,15 @@ export interface VfRendererButtonEvent {
   buttonName: string;
   data: any;
   rawData: Record<string, any>;
-  frm: any;
+  frm: VfFormContext;
   source: 'default' | 'custom';
+}
+
+export interface VfRendererChangeEvent {
+  fieldname: string;
+  value: any;
+  data: Record<string, any>;
+  frm: VfFormContext;
 }
 
 export const DEFAULT_FORM_ACTIONS: FormActionsConfig = {

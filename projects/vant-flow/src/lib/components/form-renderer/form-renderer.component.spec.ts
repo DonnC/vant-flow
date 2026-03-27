@@ -15,7 +15,8 @@ describe('VfRenderer', () => {
         mockFormContext = jasmine.createSpyObj('VfFormContext', [
             'getFieldSignal', 'getSectionSignal', 'set_section_property',
             'initialize', 'execute',
-            'trigger', 'triggerChange', 'destroy', 'set_df_property', 'set_button_property'
+            'trigger', 'triggerChange', 'destroy', 'set_df_property', 'set_button_property',
+            'set_validation_handlers', 'begin_validation_hook', 'end_validation_hook'
         ]);
 
         (mockFormContext as any).valueUpdateSignal = signal(0);
@@ -74,6 +75,22 @@ describe('VfRenderer', () => {
         fixture.detectChanges();
         expect(mockFormContext.execute).toHaveBeenCalledWith(component.document.client_script || '', 'refresh');
         expect(mockFormContext.trigger).toHaveBeenCalledWith('refresh');
+    });
+
+    it('wires validate handlers into the form context', () => {
+        fixture.detectChanges();
+
+        expect(mockFormContext.set_validation_handlers).toHaveBeenCalled();
+    });
+
+    it('exposes validate() as a public renderer helper', () => {
+        fixture.detectChanges();
+        mockFormContext.trigger.calls.reset();
+
+        expect(component.validate()).toBeTrue();
+        expect(mockFormContext.begin_validation_hook).toHaveBeenCalled();
+        expect(mockFormContext.trigger).toHaveBeenCalledWith('validate');
+        expect(mockFormContext.end_validation_hook).toHaveBeenCalled();
     });
 
     it('does not execute schema client scripts when runFormScripts is false', () => {
@@ -268,6 +285,21 @@ describe('VfRenderer', () => {
             expect(emitted.frm).toBe(mockFormContext as any);
         });
 
+        it('does not emit when a custom button callback returns false', () => {
+            fixture.detectChanges();
+
+            let emitted: any;
+            component.formAction.subscribe((d: unknown) => emitted = d);
+
+            component.onCustomButtonClick({
+                id: 'custom_button',
+                label: 'Custom Button',
+                action: () => false
+            });
+
+            expect(emitted).toBeUndefined();
+        });
+
         it('skips schema button action scripts when runFormScripts is false', () => {
             fixture.detectChanges();
 
@@ -282,6 +314,24 @@ describe('VfRenderer', () => {
             component.onAction('approve');
 
             expect(mockFormContext.execute).not.toHaveBeenCalled();
+        });
+
+        it('does not emit when a runtime action returns false', () => {
+            fixture.detectChanges();
+
+            const runtimeAction = jasmine.createSpy('runtimeAction').and.returnValue(false);
+            (mockFormContext as any).actionsConfig.set({
+                submit: { label: 'Submit', visible: true, type: 'primary' },
+                approve: { label: 'Approve', visible: true, runtimeAction }
+            });
+
+            let emitted: any;
+            component.formAction.subscribe((d: unknown) => emitted = d);
+
+            component.onAction('approve');
+
+            expect(runtimeAction).toHaveBeenCalledWith(mockFormContext as any);
+            expect(emitted).toBeUndefined();
         });
     });
 

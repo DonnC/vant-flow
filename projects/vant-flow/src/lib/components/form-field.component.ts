@@ -878,7 +878,8 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
           query,
           filters,
           config,
-          formMetadata: this.formMetadata ?? this.ctx?.metadata
+          formMetadata: this.formMetadata ?? this.ctx?.metadata,
+          frm: this.ctx!
         })
         : await this.fetchLinkOptionsFromEndpoint(query, filters, config);
 
@@ -946,7 +947,8 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       filters: { ...(this.resolvedLinkConfig?.filters || {}) },
       status,
       resultCount,
-      error
+      error,
+      frm: this.ctx!
     });
     this.ctx?.linkRequestObserver?.({
       fieldname: this.field.fieldname,
@@ -954,7 +956,8 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       filters: { ...(this.resolvedLinkConfig?.filters || {}) },
       status,
       resultCount,
-      error
+      error,
+      frm: this.ctx!
     });
   }
 
@@ -1061,17 +1064,18 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       this.isProcessingMedia = true;
       try {
         const blob = await this.canvasToBlob(canvas);
-        const result = await this.mediaHandler({
-          fieldtype: 'Signature',
-          blob,
-          dataUrl
-        }, {
-          field: this.field,
-          fieldname: this.field.fieldname,
-          fieldtype: 'Signature',
-          currentValue: this.value,
-          formMetadata: this.formMetadata ?? this.ctx?.metadata
-        });
+      const result = await this.mediaHandler({
+        fieldtype: 'Signature',
+        blob,
+        dataUrl
+      }, {
+        field: this.field,
+        fieldname: this.field.fieldname,
+        fieldtype: 'Signature',
+        currentValue: this.value,
+        formMetadata: this.formMetadata ?? this.ctx?.metadata,
+        frm: this.ctx!
+      });
 
         this.onValueChange(result ?? '');
       } catch (error) {
@@ -1370,7 +1374,8 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
           fieldtype: this.field.fieldtype === 'Signature' ? 'Signature' : 'Attach',
           currentValue: this.value,
           formMetadata: this.formMetadata ?? this.ctx?.metadata,
-          action
+          action,
+          frm: this.ctx!
         });
 
         const resolvedUrl = typeof result === 'string' ? result : this.getDirectMediaUrl(result);
@@ -1436,7 +1441,8 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
         fieldname: this.field.fieldname,
         fieldtype: 'Attach',
         currentValue: this.value,
-        formMetadata: this.formMetadata ?? this.ctx?.metadata
+        formMetadata: this.formMetadata ?? this.ctx?.metadata,
+        frm: this.ctx!
       });
 
       if (!result) return null;

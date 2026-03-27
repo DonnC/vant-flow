@@ -2,7 +2,7 @@ import { Component, effect, EventEmitter, inject, Input, OnChanges, OnDestroy, O
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuillModule } from 'ngx-quill';
-import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver, VfRendererButtonEvent } from '../../models/document.model';
+import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver, VfRendererButtonEvent, VfRendererChangeEvent } from '../../models/document.model';
 import { VfFormContext } from '../../services/form-context';
 import { VfUtilityService } from '../../services/app-utility.service';
 
@@ -503,7 +503,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   @Input() linkRequestObserver?: VfLinkRequestObserver;
 
   @Output() formAction = new EventEmitter<VfRendererButtonEvent>();
-  @Output() formChange = new EventEmitter<{ fieldname: string; value: any; data: Record<string, any> }>();
+  @Output() formChange = new EventEmitter<VfRendererChangeEvent>();
   @Output() formError = new EventEmitter<string[]>();
   @Output() formReady = new EventEmitter<VfFormContext>();
   @ViewChildren(VfField) fieldComponents!: QueryList<VfField>;
@@ -592,6 +592,11 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     this.ctx.mediaResolver = this.mediaResolver;
     this.ctx.linkDataSource = this.linkDataSource;
     this.ctx.linkRequestObserver = this.linkRequestObserver;
+    this.ctx.set_validation_handlers(
+      () => this.validateForm(),
+      () => this.validateForm(false),
+      () => this.validateStep()
+    );
     if (this.readonly) {
       this.ctx.set_readonly(true);
     }
@@ -652,53 +657,17 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     this.formChange.emit({
       fieldname,
       value: this.formData[fieldname],
-      data: { ...this.formData }
+      data: { ...this.formData },
+      frm: this.ctx
     });
   }
 
-  validateForm(): boolean {
-    const invalidFields: string[] = [];
-    const allSections: DocumentSection[] = [];
-    if (this.document.is_stepper && this.document.steps) {
-      this.document.steps.forEach(s => allSections.push(...s.sections));
-    } else {
-      allSections.push(...this.document.sections);
-    }
+  validate(): boolean {
+    return this.validateForm();
+  }
 
-    allSections.forEach((s: DocumentSection) => {
-      if (this.ctx.getSectionSignal(s.id, 'hidden')()) return;
-      s.columns.forEach((c) => {
-        c.fields.forEach((f: DocumentField) => {
-          if (this.ctx.getFieldSignal(f.fieldname, 'hidden')()) return;
-          const isMandatory = this.ctx.getFieldSignal(f.fieldname, 'mandatory')();
-          const val = this.formData[f.fieldname];
-
-          if (isMandatory && (val === undefined || val === null || val === '')) {
-            invalidFields.push(f.fieldname);
-          }
-
-          if (f.regex && val && !this.isValidRegex(f.fieldname, f.regex)) {
-            invalidFields.push(f.fieldname);
-          }
-
-          if (f.fieldtype === 'Table' && this.formData[f.fieldname]) {
-            const rows = this.formData[f.fieldname] as any[];
-            rows.forEach(row => {
-              f.table_fields?.forEach((tf: any) => {
-                const cellVal = row[tf.fieldname];
-                if (tf.mandatory && (cellVal === undefined || cellVal === null || cellVal === '')) {
-                  invalidFields.push(`${f.fieldname}.${tf.fieldname}`);
-                }
-                if (tf.regex && cellVal && !this.isValidRegex(tf.fieldname, tf.regex, cellVal)) {
-                  invalidFields.push(`${f.fieldname}.${tf.fieldname}`);
-                }
-              });
-            });
-          }
-        });
-      });
-    });
-
+  validateForm(triggerValidateHook: boolean = true): boolean {
+    const invalidFields = this.collectValidationErrors(this.getAllSections());
     if (invalidFields.length > 0) {
       this.validationErrors = [...new Set(invalidFields)];
       this.markFieldsSubmitted();
@@ -709,9 +678,16 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
 
     this.validationErrors = [];
 
-    const result = this.ctx.trigger('validate');
-    if (result === false) {
-      return false;
+    if (triggerValidateHook) {
+      this.ctx.begin_validation_hook();
+      try {
+        const result = this.ctx.trigger('validate');
+        if (result === false) {
+          return false;
+        }
+      } finally {
+        this.ctx.end_validation_hook();
+      }
     }
 
     return true;
@@ -724,45 +700,10 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   }
 
   validateStep(): boolean {
-    const currentIndex = this.ctx.currentStepIndex();
-    const step = this.document.steps?.[currentIndex];
+    const step = this.document.steps?.[this.ctx.currentStepIndex()];
     if (!step) return true;
 
-    const invalidFields: string[] = [];
-    step.sections.forEach(s => {
-      if (this.ctx.getSectionSignal(s.id, 'hidden')()) return;
-      s.columns.forEach(c => {
-        c.fields.forEach(f => {
-          if (this.ctx.getFieldSignal(f.fieldname, 'hidden')()) return;
-          const isMandatory = this.ctx.getFieldSignal(f.fieldname, 'mandatory')();
-          const val = this.formData[f.fieldname];
-
-          if (isMandatory && (val === undefined || val === null || val === '')) {
-            invalidFields.push(f.fieldname);
-          }
-
-          if (f.regex && val && !this.isValidRegex(f.fieldname, f.regex)) {
-            invalidFields.push(f.fieldname);
-          }
-
-          if (f.fieldtype === 'Table' && this.formData[f.fieldname]) {
-            const rows = this.formData[f.fieldname] as any[];
-            rows.forEach(row => {
-              f.table_fields?.forEach((tf: any) => {
-                const cellVal = row[tf.fieldname];
-                if (tf.mandatory && (cellVal === undefined || cellVal === null || cellVal === '')) {
-                  invalidFields.push(`${f.fieldname}.${tf.fieldname}`);
-                }
-                if (tf.regex && cellVal && !this.isValidRegex(tf.fieldname, tf.regex, cellVal)) {
-                  invalidFields.push(`${f.fieldname}.${tf.fieldname}`);
-                }
-              });
-            });
-          }
-        });
-      });
-    });
-
+    const invalidFields = this.collectValidationErrors(step.sections);
     if (invalidFields.length > 0) {
       this.validationErrors = [...new Set(invalidFields)];
       this.markFieldsSubmitted();
@@ -801,6 +742,56 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       });
     });
     return packedData;
+  }
+
+  private getAllSections(): DocumentSection[] {
+    const allSections: DocumentSection[] = [];
+    if (this.document.is_stepper && this.document.steps) {
+      this.document.steps.forEach(s => allSections.push(...s.sections));
+    } else {
+      allSections.push(...this.document.sections);
+    }
+    return allSections;
+  }
+
+  private collectValidationErrors(sections: DocumentSection[]): string[] {
+    const invalidFields: string[] = [];
+
+    sections.forEach((s: DocumentSection) => {
+      if (this.ctx.getSectionSignal(s.id, 'hidden')()) return;
+      s.columns.forEach((c) => {
+        c.fields.forEach((f: DocumentField) => {
+          if (this.ctx.getFieldSignal(f.fieldname, 'hidden')()) return;
+          const isMandatory = this.ctx.getFieldSignal(f.fieldname, 'mandatory')();
+          const val = this.formData[f.fieldname];
+
+          if (isMandatory && (val === undefined || val === null || val === '')) {
+            invalidFields.push(f.fieldname);
+          }
+
+          if (f.regex && val && !this.isValidRegex(f.fieldname, f.regex)) {
+            invalidFields.push(f.fieldname);
+          }
+
+          if (f.fieldtype === 'Table' && this.formData[f.fieldname]) {
+            const rows = this.formData[f.fieldname] as any[];
+            rows.forEach(row => {
+              f.table_fields?.forEach((tf: any) => {
+                const cellVal = row[tf.fieldname];
+                if (tf.mandatory && (cellVal === undefined || cellVal === null || cellVal === '')) {
+                  invalidFields.push(`${f.fieldname}.${tf.fieldname}`);
+                }
+                if (tf.regex && cellVal && !this.isValidRegex(tf.fieldname, tf.regex, cellVal)) {
+                  invalidFields.push(`${f.fieldname}.${tf.fieldname}`);
+                }
+              });
+            });
+          }
+        });
+      });
+    });
+
+    return invalidFields;
   }
 
   private evaluateDependsOn() {
@@ -969,7 +960,10 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   onCustomButtonClick(btn: { id: string; label: string; action: Function }) {
     if (this.disabled) return;
 
-    btn.action(this.ctx);
+    const result = btn.action(this.ctx);
+    if (result === false) {
+      return;
+    }
     this.emitButtonEvent(btn.id, btn.label, this.packData(), 'custom');
   }
 
@@ -985,12 +979,16 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       this.submit();
     } else {
       const config = (this.ctx.actionsConfig() as any)?.[action.toLowerCase()];
+      let allowEmit = true;
       if (config?.runtimeAction) {
-        config.runtimeAction(this.ctx);
+        allowEmit = config.runtimeAction(this.ctx) !== false;
       } else if (config?.action && this.runFormScripts) {
-        this.ctx.execute(config.action, action);
+        allowEmit = this.ctx.execute(config.action, action) !== false;
       }
 
+      if (!allowEmit) {
+        return;
+      }
       this.emitButtonEvent(action, config?.label || action, this.packData(), 'custom');
     }
   }

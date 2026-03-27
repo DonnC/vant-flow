@@ -142,6 +142,37 @@ frm.set_df_property(
 frm.set_button_property(['submit', 'approve'], 'visible', false);
 ```
 
+Validation is also available from both script code and host Angular code:
+
+```js
+frm.on('approve', () => {
+  if (!frm.validate()) {
+    return false;
+  }
+});
+
+frm.on('validate', () => {
+  if (!frm.get_value('approval_comment')) {
+    frm.msgprint('Approval comment is required');
+    return false;
+  }
+});
+```
+
+```ts
+@ViewChild(VfRenderer) renderer?: VfRenderer;
+
+handleApproveClick() {
+  if (!this.renderer?.validate()) {
+    return;
+  }
+
+  this.workflowApi.advance();
+}
+```
+
+You can call that same API from `refresh`, custom button callbacks, `before_step_change`, or any other script hook. If a script calls `frm.validate()` from inside the `validate` hook itself, it falls back to the built-in field checks instead of recursing.
+
 The runtime is intentionally constrained. Scripts can shape the form, but dangerous browser globals are not meant to be available inside the sandbox. Backend work should flow through `frm.call(...)` or host-provided integrations.
 
 ## Feature highlights
@@ -279,6 +310,39 @@ Important notes:
 ### Media handler pipeline
 
 `Attach` and `Signature` fields can use a renderer-level `mediaHandler`, letting your app upload files and return compact storage references instead of keeping large payloads in form state.
+
+The host callbacks stay consistent with the form runtime:
+
+- `formAction` events include `event.frm`
+- `formChange` events include `event.frm`
+- `mediaHandler` receives `context.frm`
+- `linkDataSource` requests include `request.frm`
+- `linkRequestObserver` state includes `state.frm`
+
+Example host usage:
+
+```ts
+onFormAction(event: VfRendererButtonEvent) {
+  if (!event.frm.validate()) {
+    return false;
+  }
+}
+
+onFormChange(event: VfRendererChangeEvent) {
+  if (event.fieldname === 'approval_comment') {
+    event.frm.validate();
+  }
+}
+
+mediaHandler: VfMediaHandler = async (payload, context) => {
+  if (!context.frm.validate()) {
+    throw new Error('Fix validation first.');
+  }
+  return `mock://${context.fieldname}`;
+};
+```
+
+For custom buttons and runtime actions, `return false` cancels the downstream `formAction` emit, which is how failed validation now stops the action completely.
 
 This is especially useful for:
 
