@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { DocumentField, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver } from '../models/document.model';
 import { VfFormContext } from './form-context';
-import { VfPromptModal } from '../components/prompt-modal.component';
 
 export type ToastIndicator = 'success' | 'error' | 'info' | 'warning';
 
@@ -67,7 +66,8 @@ export class VfUtilityService {
     linkRequestObserver?: VfLinkRequestObserver,
     formMetadata?: any
   ): Promise<Record<string, any> | null> {
-    return new Promise(resolve => {
+    return new Promise(async resolve => {
+      const { VfPromptModal } = await import('../components/prompt-modal.component');
       const initialValues: Record<string, any> = {};
       fields.forEach(f => { initialValues[f.fieldname] = f.default ?? ''; });
 

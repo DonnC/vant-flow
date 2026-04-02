@@ -1144,11 +1144,11 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     if (files) this.handleFiles(files);
   }
 
-  onCameraSelected(event: any) {
+  async onCameraSelected(event: any) {
     const files = event.target.files;
     if (files?.length) {
       this.setCameraStatus('ready', 'Camera is ready. You can capture again or upload normally.');
-      this.handleFiles(files);
+      await this.handleFiles(files);
     }
     if (this.cameraInputRef) this.cameraInputRef.nativeElement.value = '';
   }

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { VfField } from './form-field.component';
 
 describe('VfField Attach Camera Capture', () => {
@@ -7,7 +8,7 @@ describe('VfField Attach Camera Capture', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [VfField]
+      imports: [VfField, HttpClientTestingModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(VfField);
