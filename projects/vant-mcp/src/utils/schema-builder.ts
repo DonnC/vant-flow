@@ -66,7 +66,7 @@ export interface FieldBlueprint {
 export class VantSchemaBuilder {
     buildFromBlueprint(blueprint: FormBlueprint): DocumentDefinition {
         const schema: DocumentDefinition = {
-            name: this.slugify(blueprint.title),
+            name: blueprint.title,
             module: blueprint.module || "General",
             version: blueprint.version || "1.0.0",
             description: blueprint.description || `Generated ${blueprint.title}`,
@@ -99,31 +99,85 @@ export class VantSchemaBuilder {
     }
 
     buildFromPrompt(prompt: string): DocumentDefinition {
-        const p = prompt.toLowerCase();
+        const cleanedPrompt = prompt.replace(/\s+/g, ' ').trim();
+        const isStepper = this.shouldUseStepper(cleanedPrompt);
+        const requirements = this.extractRequirements(cleanedPrompt);
+        const sections = this.buildSectionsFromRequirements(cleanedPrompt, requirements);
+        const title = this.extractTitle(cleanedPrompt, sections);
+
         const blueprint: FormBlueprint = {
-            title: this.extractTitle(prompt),
-            description: `Generated from: "${prompt}"`,
-            is_stepper: p.includes("step") || p.includes("onboarding") || p.includes("stepper"),
-            sections: []
+            title,
+            description: `Generated from: "${cleanedPrompt}"`,
+            is_stepper: isStepper,
+            sections
         };
 
-        const parts = prompt.split(/step \d+|section|then/i).filter(s => s.trim().length > 0);
-
-        if (blueprint.is_stepper && parts.length > 1) {
-            blueprint.steps = parts.map((part, i) => ({
-                title: part.split(/with|:|for/i)[0].trim() || `Step ${i + 1}`,
-                sections: [this.parseSection(part)]
-            }));
-        } else {
-            blueprint.sections = parts.map(part => this.parseSection(part));
+        if (isStepper) {
+            const steps = this.extractStepBlueprints(cleanedPrompt);
+            if (steps.length > 0) {
+                blueprint.steps = steps;
+                delete blueprint.sections;
+            }
         }
 
         return this.buildFromBlueprint(blueprint);
     }
 
-    private extractTitle(prompt: string): string {
-        const match = prompt.match(/^(?:a|an)?\s*(.*?)\s+(?:form|request|application|with|for)/i);
-        if (match) return this.capitalize(match[1]);
+    private extractStepBlueprints(prompt: string): Array<{ title: string; description?: string; sections: SectionBlueprint[] }> {
+        const normalized = prompt
+            .replace(/^\s*\d+\s*-\s*step\s+/i, '')
+            .replace(/^\s*\d+\s*step\s+/i, '')
+            .trim();
+
+        const parts = normalized
+            .split(/\bthen\b|\bfinally\b|\bnext\b/gi)
+            .map(part => part.replace(/^[,\s]+|[,\s]+$/g, '').trim())
+            .filter(Boolean);
+
+        if (parts.length < 2) {
+            return [];
+        }
+
+        return parts.map((part, index) => {
+            const requirements = this.extractRequirements(part);
+            const sections = this.buildSectionsFromRequirements(part, requirements);
+            return {
+                title: this.extractStepTitle(part, index, sections),
+                sections
+            };
+        });
+    }
+
+    private extractStepTitle(segment: string, index: number, sections: SectionBlueprint[]): string {
+        const captureMatch = segment.match(/(?:with|capture|collect|include|record|gather)\s+(.+)/i);
+        const source = captureMatch?.[1] || segment;
+        const fragment = source
+            .split(/,|and/)[0]
+            ?.replace(/^(a|an|the)\s+/i, '')
+            .trim();
+
+        if (fragment) {
+            return this.toTitleCase(fragment);
+        }
+
+        if (sections[0]?.label) {
+            return sections[0].label;
+        }
+
+        return `Step ${index + 1}`;
+    }
+
+    private extractTitle(prompt: string, sections: SectionBlueprint[]): string {
+        const explicitMatch = prompt.match(/(?:create|build|generate|draft|scaffold)\s+(?:a|an|new)?\s*(.*?)(?:\s+form|\s+request|\s+application|\.|$)/i);
+        if (explicitMatch?.[1]) {
+            return this.toTitleCase(`${explicitMatch[1].trim()} Form`);
+        }
+
+        const firstSection = sections[0]?.label;
+        if (firstSection) {
+            return `${firstSection} Form`;
+        }
+
         return "New Vant Form";
     }
 
@@ -193,6 +247,199 @@ export class VantSchemaBuilder {
         if (l.includes("text") || l.includes("memo") || l.includes("long")) return "Text";
 
         return "Data";
+    }
+
+    private shouldUseStepper(prompt: string): boolean {
+        const p = prompt.toLowerCase();
+        return p.includes('stepper')
+            || p.includes('multi-step')
+            || p.includes('multi step')
+            || p.includes('wizard')
+            || p.includes('step ');
+    }
+
+    private extractRequirements(prompt: string): string[] {
+        const normalized = prompt
+            .replace(/\bmake\s+(.+?)\s+a\s+table\b/ig, '$1 table')
+            .replace(/\bturn\s+(.+?)\s+into\s+a\s+table\b/ig, '$1 table');
+
+        const clauses = normalized.split(/[.;\n]+/).map(part => part.trim()).filter(Boolean);
+        const collected: string[] = [];
+
+        for (const clause of clauses) {
+            if (/^(create|build|generate|draft|scaffold)\b.*\b(form|request|application)\b/i.test(clause)) {
+                continue;
+            }
+            const captureMatch = clause.match(/(?:capture|collect|include|record|gather|need|with|containing|contains)\s+(.+)/i);
+            if (captureMatch?.[1]) {
+                collected.push(...this.splitRequirementList(captureMatch[1]));
+            } else {
+                collected.push(...this.splitRequirementList(clause));
+            }
+        }
+
+        return Array.from(new Set(collected
+            .map(item => item.replace(/^and\s+/i, '').trim())
+            .filter(item => item.length > 1)));
+    }
+
+    private splitRequirementList(text: string): string[] {
+        return text
+            .split(/,(?![^(]*\))|\band\b/gi)
+            .map(item => item.trim())
+            .filter(Boolean);
+    }
+
+    private buildSectionsFromRequirements(prompt: string, requirements: string[]): SectionBlueprint[] {
+        const buckets = new Map<string, FieldBlueprint[]>();
+        const order: string[] = [];
+
+        const pushField = (sectionLabel: string, field: FieldBlueprint) => {
+            if (!buckets.has(sectionLabel)) {
+                buckets.set(sectionLabel, []);
+                order.push(sectionLabel);
+            }
+            const fields = buckets.get(sectionLabel)!;
+            const fieldname = field.fieldname || this.slugify(field.label);
+            if (!fields.some(existing => (existing.fieldname || this.slugify(existing.label)) === fieldname)) {
+                fields.push({ ...field, fieldname });
+            }
+        };
+
+        for (const requirement of requirements) {
+            const entries = this.expandRequirement(requirement, prompt);
+            entries.forEach(entry => pushField(entry.section, entry.field));
+        }
+
+        if (order.length === 0) {
+            pushField('General Information', {
+                label: 'Description',
+                fieldname: 'description',
+                fieldtype: 'Text',
+                mandatory: true
+            });
+        }
+
+        return order.map(label => ({
+            label,
+            columns_count: label === 'Approvals' ? 2 : 1,
+            fields: buckets.get(label) || []
+        }));
+    }
+
+    private expandRequirement(requirement: string, prompt: string): Array<{ section: string; field: FieldBlueprint }> {
+        const lower = requirement.toLowerCase();
+        if (lower.includes('table') || lower.includes('grid') || lower.includes('list')) {
+            return [{
+                section: 'Line Items',
+                field: this.createPresetTableField(this.toTitleCase(requirement.replace(/\btable\b/ig, '').trim() || 'Line Items'), [
+                    { label: 'Item Name', fieldtype: 'Data', mandatory: true },
+                    { label: 'Quantity', fieldtype: 'Int', mandatory: true },
+                    { label: 'Notes', fieldtype: 'Text', mandatory: false }
+                ])
+            }];
+        }
+
+        if (lower.includes('attach') || lower.includes('upload') || lower.includes('document') || lower.includes('receipt') || lower.includes('evidence') || lower.includes('image') || lower.includes('pdf')) {
+            return [{
+                section: 'Attachments',
+                field: this.createPresetField(this.toTitleCase(requirement), 'Attach', {
+                    mandatory: true,
+                    data_group: 'files',
+                    options: '.pdf,.png,.jpg,.jpeg | 10MB | 5'
+                })
+            }];
+        }
+
+        if (lower.includes('signature') || lower.includes('sign off') || lower.includes('sign-off') || lower.includes('approval') || lower.includes('authorize')) {
+            return [{
+                section: 'Approvals',
+                field: this.createPresetField(this.toTitleCase(requirement), 'Signature', {
+                    mandatory: true,
+                    data_group: 'files'
+                })
+            }];
+        }
+
+        const label = this.toTitleCase(requirement.replace(/^capture\s+/i, ''));
+        const fieldtype = this.inferFieldType(requirement);
+        const section = this.resolveSectionForField(requirement, prompt);
+        const props: Partial<FieldBlueprint> = { mandatory: true };
+
+        if (fieldtype === 'Attach' || fieldtype === 'Signature') {
+            props.data_group = 'files';
+        }
+
+        if (fieldtype === 'Select' && !props.options) {
+            props.options = 'Option 1\nOption 2\nOption 3';
+        }
+
+        return [{
+            section,
+            field: this.createPresetField(label, fieldtype, props)
+        }];
+    }
+
+    private createPresetField(label: string, fieldtype: FieldType, props: Partial<FieldBlueprint> = {}): FieldBlueprint {
+        return {
+            label,
+            fieldname: props.fieldname || this.slugify(label),
+            fieldtype,
+            mandatory: props.mandatory ?? true,
+            read_only: props.read_only,
+            hidden: props.hidden,
+            placeholder: props.placeholder,
+            description: props.description,
+            options: props.options,
+            link_config: props.link_config,
+            regex: props.regex,
+            default: props.default,
+            data_group: props.data_group,
+            depends_on: props.depends_on
+        };
+    }
+
+    private createPresetTableField(label: string, columns: FieldBlueprint['table_fields']): FieldBlueprint {
+        return {
+            label,
+            fieldname: this.slugify(label),
+            fieldtype: 'Table',
+            mandatory: true,
+            table_fields: columns
+        };
+    }
+
+    private resolveSectionForField(requirement: string, prompt: string): string {
+        const lower = requirement.toLowerCase();
+        const fieldtype = this.inferFieldType(requirement);
+
+        if (fieldtype === 'Signature') return 'Approvals';
+        if (fieldtype === 'Attach') return 'Attachments';
+        if (fieldtype === 'Table') return 'Line Items';
+
+        if (lower.includes('contact') || lower.includes('phone') || lower.includes('email') || lower.includes('address')) {
+            return 'Contact Information';
+        }
+        if (lower.includes('date') || lower.includes('time') || lower.includes('schedule') || lower.includes('deadline')) {
+            return 'Timeline';
+        }
+        if (lower.includes('amount') || lower.includes('price') || lower.includes('cost') || lower.includes('quantity') || lower.includes('rate')) {
+            return 'Financial Details';
+        }
+        if (lower.includes('comment') || lower.includes('description') || lower.includes('reason') || lower.includes('note')) {
+            return 'Notes';
+        }
+        return 'Main Details';
+    }
+
+    private toTitleCase(text: string): string {
+        return text
+            .replace(/[_-]+/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .split(' ')
+            .map(word => word ? word.charAt(0).toUpperCase() + word.slice(1) : word)
+            .join(' ');
     }
 
     private capitalize(text: string): string {

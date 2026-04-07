@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, Router } from '@angular/router';
 import { MockStorageService, FormDesign } from '../../core/services/mock-storage.service';
 import { AiFormService } from '../../core/services/ai-form.service';
+import { DemoMediaService, DemoUploadedReferenceFile } from '../../core/services/demo-media.service';
 
 @Component({
   selector: 'app-admin-form-list',
@@ -127,12 +128,42 @@ import { AiFormService } from '../../core/services/ai-form.service';
                  <textarea 
                    #promptInput
                    class="w-full bg-zinc-50 border border-zinc-200 rounded-xl p-4 text-sm text-zinc-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all resize-none h-32 ui-custom-scrollbar"
-                   placeholder="e.g. A comprehensive employee onboarding form with personal details, emergency contacts, tax information, and IT hardware requests..."
+                   placeholder="Optional if you upload a form image or PDF. Example: Turn this paper onboarding form into a digital flow and add a final approval signature step."
                  ></textarea>
+
+                 <div class="mt-5">
+                   <label class="block text-xs font-bold text-zinc-700 uppercase tracking-widest mb-2">Reference Form Image Or PDF</label>
+                   <label class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 px-6 py-6 text-center cursor-pointer hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors">
+                     <input type="file" class="hidden" accept="image/*,.pdf,application/pdf" (change)="onReferenceFileSelected($event)">
+                     <div class="w-12 h-12 rounded-2xl bg-white border border-zinc-200 flex items-center justify-center text-zinc-500 shadow-sm">
+                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                     </div>
+                     <div>
+                       <p class="text-sm font-bold text-zinc-700">Upload a scanned form reference</p>
+                       <p class="text-xs text-zinc-500 mt-1">Accepted formats: image or PDF only. The AI will infer structure, explain assumptions, and scaffold a first draft.</p>
+                     </div>
+                   </label>
+
+                   @if (selectedReferenceFile) {
+                     <div class="mt-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-start justify-between gap-4">
+                       <div>
+                         <p class="text-xs font-bold text-emerald-800">{{ selectedReferenceFile.name }}</p>
+                         <p class="text-[11px] text-emerald-700 mt-1">{{ selectedReferenceFile.type || 'application/octet-stream' }} • {{ formatBytes(selectedReferenceFile.size) }}</p>
+                       </div>
+                       <button type="button" (click)="clearReferenceFile()" class="text-[11px] font-bold text-emerald-700 hover:text-emerald-900">Remove</button>
+                     </div>
+                   }
+                 </div>
+
+                 @if (aiDialogError) {
+                   <div class="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
+                     {{ aiDialogError }}
+                   </div>
+                 }
                  
                  <div class="mt-6 flex items-center gap-3">
-                    <button (click)="showAiDialog = false" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors">Cancel</button>
-                    <button (click)="submitAiPrompt(promptInput.value)" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20">Generate Design</button>
+                    <button (click)="closeAiDialog()" [disabled]="isSubmittingAi" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-zinc-600 hover:bg-zinc-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
+                    <button (click)="submitAiPrompt(promptInput.value)" [disabled]="isSubmittingAi" class="flex-1 py-3 px-4 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20 disabled:opacity-60 disabled:cursor-not-allowed">{{ isSubmittingAi ? 'Preparing AI Draft...' : 'Generate Design' }}</button>
                  </div>
                </div>
             </div>
@@ -144,11 +175,15 @@ import { AiFormService } from '../../core/services/ai-form.service';
 export class AdminFormListComponent {
   private storage = inject(MockStorageService);
   private router = inject(Router);
+  private demoMedia = inject(DemoMediaService);
   ai = inject(AiFormService);
 
   forms = this.storage.forms;
 
   showAiDialog = false;
+  isSubmittingAi = false;
+  aiDialogError: string | null = null;
+  selectedReferenceFile: File | null = null;
 
   getFieldCount(form: FormDesign): number {
     return form.schema.sections.reduce((acc: number, s: any) =>
@@ -160,13 +195,79 @@ export class AdminFormListComponent {
   }
 
   openAiPrompt() {
+    this.aiDialogError = null;
     this.showAiDialog = true;
   }
 
-  submitAiPrompt(prompt: string) {
-    if (!prompt.trim()) return;
+  closeAiDialog() {
+    if (this.isSubmittingAi) return;
     this.showAiDialog = false;
-    this.router.navigate(['/admin/builder', 'new'], { queryParams: { prompt } });
+    this.aiDialogError = null;
+    this.selectedReferenceFile = null;
+  }
+
+  onReferenceFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0] || null;
+    this.aiDialogError = null;
+
+    if (!file) {
+      this.selectedReferenceFile = null;
+      return;
+    }
+
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isImage = file.type.startsWith('image/');
+    if (!isPdf && !isImage) {
+      this.selectedReferenceFile = null;
+      this.aiDialogError = 'Please upload only an image or PDF reference form.';
+      input.value = '';
+      return;
+    }
+
+    this.selectedReferenceFile = file;
+  }
+
+  clearReferenceFile() {
+    this.selectedReferenceFile = null;
+    this.aiDialogError = null;
+  }
+
+  async submitAiPrompt(prompt: string) {
+    const trimmedPrompt = prompt.trim();
+    if (!trimmedPrompt && !this.selectedReferenceFile) {
+      this.aiDialogError = 'Add a prompt, a form image/PDF, or both before generating.';
+      return;
+    }
+
+    this.isSubmittingAi = true;
+    this.aiDialogError = null;
+
+    try {
+      let uploadedReference: DemoUploadedReferenceFile | null = null;
+      if (this.selectedReferenceFile) {
+        uploadedReference = await this.demoMedia.uploadReferenceFile(this.selectedReferenceFile, {
+          source: 'admin-ai-generator'
+        });
+      }
+
+      this.showAiDialog = false;
+      await this.router.navigate(['/admin/builder', 'new'], {
+        queryParams: {
+          prompt: trimmedPrompt || null,
+          referenceFileId: uploadedReference?.fileId || null,
+          referenceFileName: uploadedReference?.name || null,
+          referenceFileType: uploadedReference?.type || null,
+          referenceFileSize: uploadedReference?.size || null
+        }
+      });
+
+      this.selectedReferenceFile = null;
+    } catch (err: any) {
+      this.aiDialogError = err?.message || 'Failed to prepare the uploaded form reference.';
+    } finally {
+      this.isSubmittingAi = false;
+    }
   }
 
   editForm(id: string) {
@@ -181,5 +282,12 @@ export class AdminFormListComponent {
         console.error('Failed to delete form:', err);
       }
     }
+  }
+
+  formatBytes(size: number) {
+    if (!Number.isFinite(size) || size <= 0) return '0 B';
+    if (size < 1024) return `${size} B`;
+    if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
+    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
   }
 }

@@ -7,6 +7,7 @@
 Instead of generating vague UI advice, the MCP project gives agents a structured tool layer for:
 
 - learning the Vant schema model
+- learning the Vant renderer and builder contracts
 - generating or modifying `DocumentDefinition` JSON
 - describing schemas
 - scaffolding forms from blueprints
@@ -88,8 +89,12 @@ The current MCP implementation exposes tools for four main jobs.
 
 ### 1. Knowledge and Discovery
 
+- `get_capabilities`
 - `get_models`
 - `get_field_types`
+- `get_renderer_contract`
+- `get_builder_contract`
+- `get_example_schemas`
 - `analyze_schema`
 - `describe_schema`
 
@@ -117,7 +122,7 @@ These let an agent refine a form instead of regenerating it from scratch.
 
 - `generate_mock_data`
 
-This gives the agent realistic sample payloads for preview, testing, and demo flows.
+This gives the agent realistic sample payloads for preview, testing, and demo flows, including nested `data_group` payload shapes.
 
 ## Tool Dispatch Flow
 
@@ -171,11 +176,16 @@ The example app’s `AiFormService` can connect to the MCP server over SSE. That
 
 ## Current Constraints
 
-The current implementation is intentionally lightweight.
+The current implementation is still intentionally lightweight in a few places.
 
 - many tools return text payloads rather than strongly typed MCP objects
-- `create_form_from_prompt` currently returns guidance text, not a final generated schema
-- schema analysis is still basic in places
-- real intelligence often comes from combining this MCP guidance with an external model
+- prompt-to-form scaffolding is heuristic and benefits from richer prompts or blueprint-driven input
+- image and PDF interpretation still belongs outside MCP and should feed requirements back into MCP tools
+- schema verification is intentionally structural and contract-focused, not business-domain opinionated
 
-That is still valuable, because the project already establishes the protocol boundary and reusable schema operations.
+That is still valuable, because the project already establishes the protocol boundary and reusable schema operations. The recommended flow is:
+
+1. use an external model only for unstructured interpretation when needed
+2. use `get_models`, `get_field_types`, and the contract tools when the client needs Vant-native awareness
+3. use `create_form_from_prompt` or `scaffold_from_blueprint` to build the actual schema
+4. use `verify_schema` to validate the result

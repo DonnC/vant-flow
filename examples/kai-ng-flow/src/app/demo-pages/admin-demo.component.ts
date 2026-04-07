@@ -4,9 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { VfBuilder, VfRenderer, VfToastOutlet, DocumentDefinition } from 'vant-flow';
 import { MockStorageService } from '../core/services/mock-storage.service';
-import { AiFormService } from '../core/services/ai-form.service';
+import { AiFormService, AiScaffoldReferenceFile } from '../core/services/ai-form.service';
 import { DemoMediaService } from '../core/services/demo-media.service';
-import { EXAMPLE_DOCUMENT } from './example-data';
 
 @Component({
   selector: 'app-admin-demo',
@@ -69,12 +68,78 @@ import { EXAMPLE_DOCUMENT } from './example-data';
            </div>
         } @else {
           @if (activeTab === 'builder') {
-            <div class="h-full animate-in fade-in duration-500">
-              <vf-builder [initialSchema]="schema()" [previewMetadata]="runtimeMetadata" (schemaChange)="onSchemaChange($event)"></vf-builder>
+            <div class="h-full flex flex-col bg-zinc-50 animate-in fade-in duration-500">
+              @if (aiSummary() || aiAssumptions().length) {
+                <div class="shrink-0 p-6 pb-0">
+                  <div class="rounded-3xl border border-amber-200 bg-white shadow-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-amber-100 bg-amber-50/80 flex items-start justify-between gap-4">
+                      <div>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-amber-700">AI Scaffold Notes</p>
+                        <p class="text-xs text-amber-900/80 mt-1">{{ aiSummary() || 'The generated form includes assumptions so the admin can review what the AI inferred.' }}</p>
+                      </div>
+                      <div class="flex items-start gap-3">
+                        <div class="text-right text-[10px] font-bold uppercase tracking-widest text-amber-700">
+                          <div>{{ aiProviderUsed() || 'AI' }}</div>
+                          @if (aiReferenceName()) {
+                            <div class="mt-1 text-[9px] text-amber-600">Ref: {{ aiReferenceName() }}</div>
+                          }
+                        </div>
+                        <button type="button" (click)="toggleAiNotes()" class="shrink-0 rounded-xl border border-amber-200 bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-amber-700 hover:bg-amber-50 transition-colors">
+                          {{ aiNotesExpanded() ? 'Hide' : 'Show' }}
+                        </button>
+                      </div>
+                    </div>
+                    @if (aiAssumptions().length && aiNotesExpanded()) {
+                      <div class="px-6 py-5 space-y-2">
+                        @for (assumption of aiAssumptions(); track assumption) {
+                          <div class="rounded-2xl border border-amber-100 bg-amber-50/50 px-4 py-3 text-xs text-amber-900">
+                            {{ assumption }}
+                          </div>
+                        }
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <div class="flex-1 min-h-0">
+                <vf-builder [initialSchema]="schema()" [previewMetadata]="runtimeMetadata" (schemaChange)="onSchemaChange($event)"></vf-builder>
+              </div>
             </div>
           } @else {
             <div class="h-full overflow-y-auto bg-zinc-50 p-10 animate-in fade-in duration-500">
                <div class="max-w-4xl mx-auto py-10">
+                  @if (aiSummary() || aiAssumptions().length) {
+                    <div class="mb-8 rounded-3xl border border-amber-200 bg-white shadow-sm overflow-hidden">
+                      <div class="px-6 py-4 border-b border-amber-100 bg-amber-50/80 flex items-start justify-between gap-4">
+                        <div>
+                          <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-amber-700">AI Scaffold Notes</p>
+                          <p class="text-xs text-amber-900/80 mt-1">{{ aiSummary() || 'The generated form includes assumptions so the admin can review what the AI inferred.' }}</p>
+                        </div>
+                        <div class="flex items-start gap-3">
+                          <div class="text-right text-[10px] font-bold uppercase tracking-widest text-amber-700">
+                            <div>{{ aiProviderUsed() || 'AI' }}</div>
+                            @if (aiReferenceName()) {
+                              <div class="mt-1 text-[9px] text-amber-600">Ref: {{ aiReferenceName() }}</div>
+                            }
+                          </div>
+                          <button type="button" (click)="toggleAiNotes()" class="shrink-0 rounded-xl border border-amber-200 bg-white px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-amber-700 hover:bg-amber-50 transition-colors">
+                            {{ aiNotesExpanded() ? 'Hide' : 'Show' }}
+                          </button>
+                        </div>
+                      </div>
+                      @if (aiAssumptions().length && aiNotesExpanded()) {
+                        <div class="px-6 py-5 space-y-2">
+                          @for (assumption of aiAssumptions(); track assumption) {
+                            <div class="rounded-2xl border border-amber-100 bg-amber-50/50 px-4 py-3 text-xs text-amber-900">
+                              {{ assumption }}
+                            </div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  }
+
                   <div class="mb-8 rounded-2xl border border-sky-200 bg-white shadow-sm overflow-hidden">
                     <div class="px-5 py-4 border-b border-sky-100 bg-sky-50/80 flex items-start justify-between gap-4">
                       <div>
@@ -139,6 +204,11 @@ export class AdminDemoComponent implements OnInit {
   lastSaved = signal<Date | null>(null);
   loading = signal(true);
   loadingMessage = signal('Warming Up Designer...');
+  aiSummary = signal<string | null>(null);
+  aiAssumptions = signal<string[]>([]);
+  aiProviderUsed = signal<string | null>(null);
+  aiReferenceName = signal<string | null>(null);
+  aiNotesExpanded = signal(true);
   runtimeMetadata = this.getDefaultMetadata();
   metadataInput = JSON.stringify(this.runtimeMetadata, null, 2);
   metadataError: string | null = null;
@@ -147,24 +217,38 @@ export class AdminDemoComponent implements OnInit {
     this.route.params.subscribe(async params => {
       this.formId = params['id'];
 
-      const prompt = this.route.snapshot.queryParams['prompt'];
+      const prompt = String(this.route.snapshot.queryParams['prompt'] || '').trim();
+      const referenceFile = this.getReferenceFileFromQuery();
 
-      if (prompt && this.formId === 'new') {
+      if ((prompt || referenceFile) && this.formId === 'new') {
         this.loadingMessage.set('AI Generating Form Layout...');
         this.loading.set(true);
         try {
-          const aiSchema = await this.ai.scaffoldFormFromPrompt(prompt);
-          this.schema.set(aiSchema);
+          const result = await this.ai.scaffoldFormFromPrompt({
+            prompt,
+            referenceFile
+          });
+          this.schema.set(result.schema);
+          this.aiSummary.set(result.summary || null);
+          this.aiAssumptions.set(result.assumptions || []);
+          this.aiProviderUsed.set(result.provider_used || null);
+          this.aiReferenceName.set(referenceFile?.name || null);
 
-          // Clear the prompt from URL so reload doesn't trigger it again
+          // Clear the AI scaffold input from URL so reload doesn't trigger it again.
           this.router.navigate([], {
             relativeTo: this.route,
-            queryParams: { prompt: null },
+            queryParams: {
+              prompt: null,
+              referenceFileId: null,
+              referenceFileName: null,
+              referenceFileType: null,
+              referenceFileSize: null
+            },
             queryParamsHandling: 'merge'
           });
         } catch (err: any) {
           alert('Failed to generate form: ' + err.message);
-          // Reset to blank form so we don't show the "Quality Inspection" example on failure
+          this.clearAiNotes();
           this.resetToBlank();
         }
         this.loading.set(false);
@@ -176,9 +260,10 @@ export class AdminDemoComponent implements OnInit {
         if (existing) {
           this.schema.set({ ...existing.schema });
           this.lastSaved.set(new Date(existing.lastModified));
+          this.syncAiNotesFromSchema(existing.schema);
         }
       } else {
-        // Start with a blank canvas for new forms
+        this.clearAiNotes();
         this.schema.set({
           name: 'Untitled Form',
           description: '',
@@ -196,6 +281,11 @@ export class AdminDemoComponent implements OnInit {
 
   onSchemaChange(newSchema: DocumentDefinition) {
     this.schema.set(newSchema);
+    this.syncAiNotesFromSchema(newSchema);
+  }
+
+  toggleAiNotes() {
+    this.aiNotesExpanded.update(expanded => !expanded);
   }
 
   onMetadataInput(value: string) {
@@ -236,6 +326,7 @@ export class AdminDemoComponent implements OnInit {
   }
 
   private resetToBlank() {
+    this.clearAiNotes();
     this.schema.set({
       name: 'Untitled Form',
       description: '',
@@ -246,6 +337,42 @@ export class AdminDemoComponent implements OnInit {
         columns: [{ id: 'col_' + Math.random().toString(36).substring(2, 9), fields: [] }]
       }]
     });
+  }
+
+  private getReferenceFileFromQuery(): AiScaffoldReferenceFile | null {
+    const fileId = String(this.route.snapshot.queryParams['referenceFileId'] || '').trim();
+    if (!fileId) return null;
+
+    const name = String(this.route.snapshot.queryParams['referenceFileName'] || 'reference-form').trim();
+    const type = String(this.route.snapshot.queryParams['referenceFileType'] || 'application/octet-stream').trim();
+    const size = Number(this.route.snapshot.queryParams['referenceFileSize'] || 0);
+
+    return {
+      fileId,
+      name,
+      type,
+      size: Number.isFinite(size) ? size : undefined
+    };
+  }
+
+  private syncAiNotesFromSchema(schema: DocumentDefinition) {
+    const metadata = schema.metadata || {};
+    const assumptions = Array.isArray(metadata['ai_assumptions'])
+      ? metadata['ai_assumptions'].map(value => String(value))
+      : [];
+
+    this.aiAssumptions.set(assumptions);
+    this.aiSummary.set(typeof metadata['ai_summary'] === 'string' ? metadata['ai_summary'] : null);
+    this.aiProviderUsed.set(typeof metadata['generated_provider_used'] === 'string' ? metadata['generated_provider_used'] : null);
+    this.aiReferenceName.set(typeof metadata['generated_reference_name'] === 'string' ? metadata['generated_reference_name'] : null);
+  }
+
+  private clearAiNotes() {
+    this.aiSummary.set(null);
+    this.aiAssumptions.set([]);
+    this.aiProviderUsed.set(null);
+    this.aiReferenceName.set(null);
+    this.aiNotesExpanded.set(true);
   }
 
   private getDefaultMetadata() {

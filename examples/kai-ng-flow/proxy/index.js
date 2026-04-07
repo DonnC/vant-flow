@@ -3,6 +3,9 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { Client as McpClient } from '@modelcontextprotocol/sdk/client/index.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import sqlite3 from 'sqlite3';
@@ -39,6 +42,7 @@ function logToDisk(level, message, data = null) {
     const color = level === 'ERROR' ? '\x1b[31m' : level === 'WARN' ? '\x1b[33m' : '\x1b[32m';
     console.log(`${color}[${level}] ${timestamp}: ${message}\x1b[0m`);
     if (data && level === 'ERROR') console.error(data);
+    if (data && level === 'WARN') console.warn(data);
 
     fs.appendFile(PROXY_LOG_FILE, logString, (err) => {
         if (err) {
@@ -105,11 +109,15 @@ initDb().catch(err => {
 // Startup Check
 const startupOpenAiKey = process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim();
 const startupGeminiKey = process.env.GEMINI_API_KEY?.trim();
+const MCP_SERVER_URL = process.env.MCP_SERVER_URL?.trim() || 'http://localhost:3001/sse';
 logger.info('Startup Key Check:');
 logger.info(` - OpenAI: ${startupOpenAiKey ? 'OK (ends with ' + startupOpenAiKey.slice(-4) + ')' : 'MISSING'}`);
 logger.info(` - Gemini: ${startupGeminiKey ? 'OK (ends with ' + startupGeminiKey.slice(-4) + ')' : 'MISSING'}`);
+logger.info(` - MCP Server URL: ${MCP_SERVER_URL}`);
 
 const PORT = 3002;
+let mcpConnectionPromise = null;
+let mcpContextPromise = null;
 
 function getOpenAiKey() {
     return process.env.OPENAI_API_KEY?.trim() || process.env.OPEN_AI_KEY?.trim() || null;
@@ -147,12 +155,10 @@ function parseJsonSafely(content) {
     }
 }
 
-function buildFieldCatalog() {
-    return "Data, Text, Text Editor, Int, Float, Select, Check, Date, Datetime, Time, Password, Link, Attach, Signature, Button, Table.";
-}
-
-function buildFrmApiDocs() {
-    return "frm.get_value, frm.set_value, frm.set_df_property, frm.msgprint, frm.set_intro, frm.add_custom_button, frm.prompt, frm.confirm, frm.call, frm.add_row, frm.remove_row, frm.next_step, frm.prev_step, frm.go_to_step";
+function truncateText(value, maxLength = 1600) {
+    const text = String(value || '').trim();
+    if (!text) return '';
+    return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
 }
 
 function compactAssistSchema(schema) {
@@ -395,6 +401,210 @@ async function findStoredUploadByFileId(fileId) {
     };
 }
 
+async function loadStoredReferenceFile(referenceFile) {
+    if (!referenceFile?.fileId) return null;
+
+    const match = await findStoredUploadByFileId(referenceFile.fileId);
+    if (!match) return null;
+
+    const binary = await fs.promises.readFile(match.filePath);
+    const mimeType = referenceFile.type || 'application/octet-stream';
+    return {
+        ...referenceFile,
+        mimeType,
+        base64: binary.toString('base64'),
+        dataUrl: `data:${mimeType};base64,${binary.toString('base64')}`
+    };
+}
+
+function mapMessagePartsToGemini(role, content) {
+    const label = String(role || 'user').toUpperCase();
+    if (typeof content === 'string') {
+        return [{ text: `${label}:\n${content}` }];
+    }
+
+    if (!Array.isArray(content)) {
+        return [{ text: `${label}:\n${String(content || '')}` }];
+    }
+
+    const parts = [{ text: `${label}:` }];
+    for (const item of content) {
+        if (!item || typeof item !== 'object') continue;
+
+        if (item.type === 'text') {
+            parts.push({ text: item.text || '' });
+            continue;
+        }
+
+        if (item.type === 'image_url') {
+            const parsed = parseDataUrl(item.image_url?.url);
+            if (parsed?.base64) {
+                parts.push({
+                    inlineData: {
+                        mimeType: parsed.mimeType,
+                        data: parsed.base64
+                    }
+                });
+            }
+            continue;
+        }
+
+        if (item.type === 'input_file' && item.data) {
+            parts.push({
+                inlineData: {
+                    mimeType: item.mimeType || 'application/octet-stream',
+                    data: item.data
+                }
+            });
+        }
+    }
+
+    return parts;
+}
+
+function validatePlannerPayload(parsed) {
+    if (!parsed || typeof parsed !== 'object') {
+        return { ok: false, reason: 'Payload is not a JSON object.' };
+    }
+
+    if (typeof parsed.scaffold_prompt !== 'string' || !parsed.scaffold_prompt.trim()) {
+        return { ok: false, reason: 'Missing required "scaffold_prompt" string.' };
+    }
+
+    if (typeof parsed.summary !== 'string' || !parsed.summary.trim()) {
+        return { ok: false, reason: 'Missing required "summary" string.' };
+    }
+
+    if (!Array.isArray(parsed.assumptions)) {
+        return { ok: false, reason: 'Missing required "assumptions" array.' };
+    }
+
+    return { ok: true };
+}
+
+async function connectToMcpServer() {
+    if (mcpConnectionPromise) return mcpConnectionPromise;
+
+    mcpConnectionPromise = (async () => {
+        const serverUrl = new URL(MCP_SERVER_URL);
+        logger.info('Connecting to Vant MCP server', { url: serverUrl.toString() });
+
+        const trySse = async (targetUrl) => {
+            const transport = new SSEClientTransport(targetUrl);
+            const client = new McpClient({
+                name: 'vant-flow-example-proxy',
+                version: '1.0.0'
+            });
+            client.onerror = (error) => {
+                logger.warn('MCP client error', { error: String(error?.message || error) });
+            };
+            await client.connect(transport);
+            return { client, transport, transportType: 'sse', url: targetUrl.toString() };
+        };
+
+        try {
+            if (serverUrl.pathname.endsWith('/sse')) {
+                const sseConnection = await trySse(serverUrl);
+                logger.info('Connected to Vant MCP server', {
+                    transport: sseConnection.transportType,
+                    url: sseConnection.url
+                });
+                return sseConnection;
+            }
+
+            const transport = new StreamableHTTPClientTransport(serverUrl);
+            const client = new McpClient({
+                name: 'vant-flow-example-proxy',
+                version: '1.0.0'
+            });
+            client.onerror = (error) => {
+                logger.warn('MCP client error', { error: String(error?.message || error) });
+            };
+            await client.connect(transport);
+            logger.info('Connected to Vant MCP server', {
+                transport: 'streamable-http',
+                url: serverUrl.toString()
+            });
+            return { client, transport, transportType: 'streamable-http', url: serverUrl.toString() };
+        } catch (streamableError) {
+            const fallbackUrl = serverUrl.pathname.endsWith('/sse')
+                ? serverUrl
+                : new URL('/sse', serverUrl);
+            logger.warn('Streamable MCP connection failed, falling back to SSE', {
+                requestedUrl: serverUrl.toString(),
+                fallbackUrl: fallbackUrl.toString(),
+                error: String(streamableError?.message || streamableError)
+            });
+            const sseConnection = await trySse(fallbackUrl);
+            logger.info('Connected to Vant MCP server', {
+                transport: sseConnection.transportType,
+                url: sseConnection.url
+            });
+            return sseConnection;
+        }
+    })().catch((error) => {
+        mcpConnectionPromise = null;
+        throw error;
+    });
+
+    return mcpConnectionPromise;
+}
+
+async function callMcpTool(name, args = {}) {
+    const { client } = await connectToMcpServer();
+    logger.info('Calling Vant MCP tool', { name, args });
+    const result = await client.callTool({ name, arguments: args });
+    const text = Array.isArray(result?.content)
+        ? result.content
+            .filter(item => item?.type === 'text' && typeof item.text === 'string')
+            .map(item => item.text)
+            .join('\n')
+            .trim()
+        : '';
+    logger.info('Vant MCP tool completed', {
+        name,
+        textSnippet: text ? `${text.slice(0, 200)}${text.length > 200 ? '...' : ''}` : 'EMPTY'
+    });
+    return { result, text };
+}
+
+async function getMcpScaffoldContext() {
+    if (mcpContextPromise) return mcpContextPromise;
+
+    mcpContextPromise = (async () => {
+        const capabilitiesResponse = await callMcpTool('get_capabilities');
+        const modelsResponse = await callMcpTool('get_models');
+        const fieldTypesResponse = await callMcpTool('get_field_types');
+        const rendererContractResponse = await callMcpTool('get_renderer_contract');
+        const builderContractResponse = await callMcpTool('get_builder_contract');
+        const exampleSchemasResponse = await callMcpTool('get_example_schemas');
+        const capabilities = parseJsonSafely(capabilitiesResponse.text) || {};
+        const context = {
+            capabilities,
+            models: modelsResponse.text || '',
+            fieldTypes: fieldTypesResponse.text || '',
+            rendererContract: rendererContractResponse.text || '',
+            builderContract: builderContractResponse.text || '',
+            exampleSchemas: exampleSchemasResponse.text || ''
+        };
+        logger.info('Vant MCP context loaded', {
+            toolCount: Array.isArray(capabilities.tools) ? capabilities.tools.length : 0,
+            tools: Array.isArray(capabilities.tools) ? capabilities.tools.map(tool => tool.name) : [],
+            hasModels: !!context.models,
+            hasFieldTypes: !!context.fieldTypes,
+            hasRendererContract: !!context.rendererContract,
+            hasBuilderContract: !!context.builderContract,
+            hasExampleSchemas: !!context.exampleSchemas
+        });
+        return context;
+    })().catch((error) => {
+        mcpContextPromise = null;
+        throw error;
+    });
+
+    return mcpContextPromise;
+}
+
 async function callModel({ provider: requestedProvider, model: requestedModel, messages, config = {} }) {
     const provider = normalizeProvider(requestedProvider);
     const key = provider === 'openai' ? getOpenAiKey() : getGeminiKey();
@@ -423,7 +633,10 @@ async function callModel({ provider: requestedProvider, model: requestedModel, m
 
     const genAI = new GoogleGenerativeAI(key);
     const geminiModel = genAI.getGenerativeModel({ model: getDefaultModel(provider, requestedModel) });
-    const prompt = messages.map(m => `${String(m.role || 'user').toUpperCase()}:\n${m.content}`).join('\n\n');
+    const hasStructuredParts = messages.some(message => Array.isArray(message.content));
+    const prompt = hasStructuredParts
+        ? messages.flatMap(message => mapMessagePartsToGemini(message.role, message.content))
+        : messages.map(m => `${String(m.role || 'user').toUpperCase()}:\n${m.content}`).join('\n\n');
     const result = await geminiModel.generateContent(prompt);
     const response = await result.response;
     const content = response.text();
@@ -450,54 +663,241 @@ app.post('/ai/completion', async (req, res) => {
 });
 
 app.post('/api/ai/scaffold', async (req, res) => {
-    const { prompt, provider, model } = req.body;
+    const { prompt, provider, model, referenceFile } = req.body;
+    const trimmedPrompt = String(prompt || '').trim();
 
-    if (!prompt || typeof prompt !== 'string') {
-        return res.status(400).json({ error: 'Prompt is required.' });
+    if (!trimmedPrompt && !referenceFile?.fileId) {
+        return res.status(400).json({ error: 'Provide a prompt, a reference file, or both.' });
     }
 
-    const systemInstruction = `You are an expert Vant Flow architect.
-Field Types:
-${buildFieldCatalog()}
-
-Available frm API:
-${buildFrmApiDocs()}
-
-Generate forms that match what Vant Flow actually supports today:
-- Use stepper flows for onboarding, approvals, and multi-stage capture.
-- Use Table for line items, checklists, defect logs, votes, and approval matrices.
-- Use Signature for explicit sign-off steps, approver acknowledgment, or auditor confirmation.
-- Use Attach for evidence and supporting documents.
-- Do not invent nested tables or unsupported widgets.
-- If a prompt mentions approval, review, sign-off, committee, or authorization, include a clear review/signature area.
-
-Task: Create a JSON DocumentDefinition for: "${prompt}".
-Only return the JSON. No Markdown.`;
-
     try {
-        const result = await callModel({
-            provider,
-            model,
-            messages: [
-                { role: 'system', content: systemInstruction },
-                { role: 'user', content: `Create a complete, rich Vant Flow form schema for: "${prompt}"` }
-            ],
-            config: { temperature: 0.2 }
-        });
+        const mcpContext = await getMcpScaffoldContext();
+        let effectiveProvider = normalizeProvider(provider);
+        const loadedReference = await loadStoredReferenceFile(referenceFile);
 
-        const parsed = parseJsonSafely(result.content);
-        if (!parsed || typeof parsed !== 'object' || typeof parsed.name !== 'string') {
-            return res.status(502).json({ error: 'Model did not return a valid DocumentDefinition JSON payload.' });
+        if (loadedReference?.mimeType === 'application/pdf' && effectiveProvider === 'openai') {
+            if (!getGeminiKey()) {
+                return res.status(400).json({ error: 'PDF reference analysis in the demo proxy requires Gemini to be configured.' });
+            }
+            effectiveProvider = 'gemini';
         }
 
-        parsed.metadata = {
-            ...(parsed.metadata || {}),
+        let scaffoldPrompt = trimmedPrompt;
+        let assumptions = [];
+        let summary = '';
+
+        if (loadedReference) {
+            const systemInstruction = `You are helping an admin prepare the best possible prompt for the Vant Flow MCP tool "create_form_from_prompt".
+
+Your job is NOT to output a Vant schema.
+Your job is to study the admin instruction and optional uploaded form reference, then produce a strong natural-language scaffold prompt for the MCP tool.
+The MCP server already knows the Vant schema contract and field types, so do not try to describe JSON or schema syntax.
+
+Return JSON only in this exact shape:
+{
+  "scaffold_prompt": "detailed prompt to pass into create_form_from_prompt",
+  "summary": "short explanation of the form that will be scaffolded",
+  "assumptions": ["clear assumptions the admin should review"]
+}
+
+Rules:
+- Keep the scaffold_prompt explicit about sections, important fields, approvals, signatures, tables, and attachments.
+- If the reference file is unclear, make reasonable assumptions and list them.
+- If the prompt suggests approvals or sign-off, mention them clearly in scaffold_prompt.
+- If the form reference implies repeating line items, mention a table in scaffold_prompt.
+- Write the scaffold_prompt as a strong business requirements brief that the MCP tool can turn into a form.
+- Keep the scaffold_prompt grounded in the actual Vant MCP capabilities, contracts, and examples below.
+- Do not return Markdown.`;
+
+            const mcpGuidance = [
+                `MCP capabilities:\n${truncateText(JSON.stringify(mcpContext.capabilities || {}, null, 2), 2200)}`,
+                `MCP models and schema guidance:\n${truncateText(mcpContext.models, 2200)}`,
+                `MCP field type guidance:\n${truncateText(mcpContext.fieldTypes, 1800)}`,
+                `MCP renderer contract:\n${truncateText(mcpContext.rendererContract, 1200)}`,
+                `MCP builder contract:\n${truncateText(mcpContext.builderContract, 1200)}`,
+                `MCP example schema guidance:\n${truncateText(mcpContext.exampleSchemas, 1500)}`
+            ].join('\n\n');
+
+            const promptInstruction = trimmedPrompt
+                ? `Admin instruction: "${trimmedPrompt}".`
+                : 'No extra admin instruction was provided. Infer the likely form purpose from the uploaded reference.';
+            const referenceInstruction = `Reference file: ${loadedReference.name} (${loadedReference.mimeType}). Study the visual structure and business intent carefully.`;
+
+            const userContent = [
+                {
+                    type: 'text',
+                    text: [
+                        'Prepare the best possible scaffold prompt for Vant MCP.',
+                        promptInstruction,
+                        referenceInstruction,
+                        'Make the prompt detailed enough that create_form_from_prompt can build a strong first draft.',
+                        'If anything is ambiguous, choose a sensible default and record it in the assumptions array.',
+                        mcpGuidance
+                    ].join('\n\n')
+                }
+            ];
+
+            if (loadedReference.mimeType === 'application/pdf') {
+                userContent.push({
+                    type: 'input_file',
+                    mimeType: loadedReference.mimeType,
+                    data: loadedReference.base64
+                });
+            } else if (loadedReference.mimeType?.startsWith('image/')) {
+                userContent.push({
+                    type: 'image_url',
+                    image_url: { url: loadedReference.dataUrl }
+                });
+            }
+
+            const result = await callModel({
+                provider: effectiveProvider,
+                model,
+                messages: [
+                    { role: 'system', content: systemInstruction },
+                    {
+                        role: 'user',
+                        content: userContent
+                    }
+                ],
+                config: { temperature: 0.2 }
+            });
+
+            const parsed = parseJsonSafely(result.content);
+            const validation = validatePlannerPayload(parsed);
+
+            if (!validation.ok) {
+                const invalidPayloadLog = {
+                    reason: validation.reason,
+                    rawResponse: result.content,
+                    parsedPayload: parsed
+                };
+                logger.warn('AI scaffold prompt planner returned invalid payload shape', invalidPayloadLog);
+                console.log('[AI Scaffold Planner Invalid Raw Response]');
+                console.log(result.content || '<empty>');
+                console.log('[AI Scaffold Planner Invalid Parsed Payload]');
+                console.log(JSON.stringify(parsed ?? null, null, 2));
+                return res.status(502).json({
+                    error: `Model did not return a valid scaffold prompt payload. ${validation.reason}`
+                });
+            }
+
+            scaffoldPrompt = parsed.scaffold_prompt.trim();
+            assumptions = Array.isArray(parsed.assumptions)
+                ? parsed.assumptions.map(item => String(item)).filter(Boolean)
+                : [];
+            summary = typeof parsed.summary === 'string'
+                ? parsed.summary.trim()
+                : '';
+
+            console.log('[AI Scaffold Planner Response]');
+            console.log(JSON.stringify({
+                prompt: trimmedPrompt,
+                referenceFile: {
+                    fileId: loadedReference.fileId,
+                    name: loadedReference.name,
+                    mimeType: loadedReference.mimeType,
+                    size: loadedReference.size
+                },
+                provider_used: effectiveProvider,
+                scaffold_prompt: scaffoldPrompt,
+                assumptions,
+                summary
+            }, null, 2));
+        }
+
+        const mcpResponse = await callMcpTool('create_form_from_prompt', {
+            prompt: scaffoldPrompt
+        });
+        const schema = parseJsonSafely(mcpResponse.text);
+
+        if (!schema || typeof schema !== 'object') {
+            logger.warn('Vant MCP returned non-JSON schema payload', {
+                rawResponse: mcpResponse.text
+            });
+            console.log('[Vant MCP Invalid Schema]');
+            console.log(mcpResponse.text || '<empty>');
+            return res.status(502).json({
+                error: 'Vant MCP returned an invalid schema payload that could not be parsed as JSON.'
+            });
+        }
+
+        const verifyResponse = await callMcpTool('verify_schema', { schema });
+        const verification = parseJsonSafely(verifyResponse.text);
+        if (!verification || verification.valid !== true) {
+            logger.warn('Vant MCP verify_schema failed', {
+                verification,
+                rawSchema: schema
+            });
+            console.log('[Vant MCP verify_schema Failure]');
+            console.log(JSON.stringify({
+                verification,
+                schema
+            }, null, 2));
+            return res.status(502).json({
+                error: `Vant MCP generated a schema that did not pass verify_schema.${Array.isArray(verification?.issues) && verification.issues.length ? ` ${verification.issues.join(' | ')}` : ''}`
+            });
+        }
+
+        if (!summary) {
+            summary = loadedReference
+                ? 'Generated a Vant Flow form from your instruction and uploaded form reference via Vant MCP.'
+                : 'Generated a Vant Flow form from your prompt via Vant MCP.';
+        }
+
+        if (assumptions.length === 0) {
+            assumptions = loadedReference
+                ? [
+                    'The uploaded form reference was interpreted and converted into a first-pass scaffold prompt.',
+                    'Review section ordering, required fields, and any inferred approvals before saving.'
+                ]
+                : [
+                    'The form was scaffolded from your natural-language instruction using Vant MCP.',
+                    'Review field labels, required flags, and workflow order before saving.'
+                ];
+        }
+
+        schema.metadata = {
+            ...(schema.metadata || {}),
             is_ai_generated: true,
-            generated_from: prompt,
-            generated_via: 'proxy'
+            generated_from: trimmedPrompt || loadedReference?.name || scaffoldPrompt || 'reference-form',
+            generated_via: 'proxy',
+            generated_provider_used: effectiveProvider,
+            generated_reference_name: loadedReference?.name,
+            generated_scaffold_prompt: scaffoldPrompt,
+            ai_summary: summary,
+            ai_assumptions: assumptions
         };
 
-        return res.json(parsed);
+        const scaffoldDebugPayload = {
+            prompt: trimmedPrompt,
+            referenceFile: loadedReference ? {
+                fileId: loadedReference.fileId,
+                name: loadedReference.name,
+                mimeType: loadedReference.mimeType,
+                size: loadedReference.size
+            } : null,
+            provider_used: effectiveProvider,
+            scaffold_prompt: scaffoldPrompt,
+            assumptions,
+            schema
+        };
+
+        logger.info('AI scaffold generated', {
+            provider: effectiveProvider,
+            hasReferenceFile: !!loadedReference,
+            assumptionsCount: assumptions.length,
+            schemaName: schema.name
+        });
+        console.log('[AI Scaffold Response]');
+        console.log(JSON.stringify(scaffoldDebugPayload, null, 2));
+
+        return res.json({
+            schema,
+            summary,
+            assumptions,
+            provider_used: effectiveProvider
+        });
     } catch (err) {
         logger.error('AI Scaffold Error', { error: err.message, stack: err.stack });
         return res.status(500).json({ error: err.message });

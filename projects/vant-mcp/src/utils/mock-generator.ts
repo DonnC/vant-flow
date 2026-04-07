@@ -6,7 +6,8 @@ export class VantMockGenerator {
         const fields = this.getAllFields(schema);
 
         for (const field of fields) {
-            data[field.fieldname] = field.default !== undefined ? field.default : this.generateFieldValue(field);
+            const value = field.default !== undefined ? field.default : this.generateFieldValue(field);
+            this.assignFieldValue(data, field, value);
         }
 
         return data;
@@ -56,11 +57,26 @@ export class VantMockGenerator {
     }
 
     private generateTableRow(columns: any[]): any {
-        const row: any = {};
+        const row: any = { idx: 1 };
         for (const col of columns) {
             row[col.fieldname] = this.generateFieldValue(col);
         }
         return row;
+    }
+
+    private assignFieldValue(target: any, field: DocumentField, value: any) {
+        if (!field.data_group) {
+            target[field.fieldname] = value;
+            return;
+        }
+
+        const segments = field.data_group.split('.').filter(Boolean);
+        let cursor = target;
+        for (const segment of segments) {
+            cursor[segment] = cursor[segment] ?? {};
+            cursor = cursor[segment];
+        }
+        cursor[field.fieldname] = value;
     }
 
     private getAllFields(schema: DocumentDefinition): DocumentField[] {

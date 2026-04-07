@@ -381,6 +381,14 @@ The example app demonstrates two AI-assisted workflows:
 - admin-side prompt-to-schema generation
 - user-side assistant-driven form filling
 
+In the admin showcase, prompt-to-schema generation now supports three demo inputs without changing the core library:
+
+- prompt only
+- uploaded form image only
+- prompt plus uploaded form image or PDF
+
+The upload is limited to reference form images and PDFs on purpose. The example proxy uses that file as layout context, scaffolds a Vant Flow schema, and stores an explicit assumptions list on the generated schema metadata so the admin can review what the AI inferred.
+
 The repo also includes `projects/vant-mcp`, which exposes Vant Flow concepts through MCP tooling so agents can scaffold and manipulate forms in a structured way.
 
 If you want to explore the AI-facing architecture, start here:
@@ -419,7 +427,48 @@ That will:
 npm run dev:proxy
 ```
 
-Use this when you want the example upload and AI proxy flow without opening a second terminal.
+Use this when you want the full showcase flow for:
+
+- AI prompt-to-schema generation
+- uploaded reference form images and PDFs
+- demo upload storage
+- assistant-backed form filling
+
+The admin AI generator lives in the example app at `/admin`. Open `AI GENERATE`, then:
+
+- type a prompt
+- upload a form image or PDF
+- or do both
+
+The generated draft opens in the builder and shows an `AI Scaffold Notes` panel with the summary and assumptions the model made.
+
+Sample prompts you can try in the demo:
+
+- HR onboarding:
+  `Create a new employee onboarding form for a telecom company. Capture personal details, emergency contact, national ID, tax number, department, laptop request, line manager approval, and employee signature. Make IT equipment a table so multiple items can be requested.`
+- Procurement request:
+  `Build a procurement requisition form for branch operations. Include requester details, cost centre, urgency, vendor suggestion, a table of requested items with quantity and estimated cost, finance review, procurement review, and final approval signature.`
+- Incident reporting:
+  `Create an internal incident report form for office and field teams. Capture incident date and time, location, people involved, incident category, detailed narrative, immediate action taken, witness details, evidence attachments, supervisor review, and risk follow-up actions.`
+- Field service work order:
+  `Create a field service maintenance form for internet installation and repair teams. Include customer lookup, ticket number, service type, equipment used, checklist of work completed, before-and-after photo attachments, technician notes, customer signature, and supervisor sign-off.`
+- Compliance inspection:
+  `Generate a branch compliance inspection checklist for retail operations. Include branch details, inspection date, reviewer, opening checks, fire safety checks, cash handling controls, CCTV status, corrective actions table, branch manager acknowledgment, and inspector signature.`
+- Vehicle inspection:
+  `Create a daily fleet vehicle inspection form for drivers. Capture vehicle details, odometer, fuel level, tyre condition, lights, brakes, visible damage, safety equipment, defects table, driver declaration, and transport supervisor review.`
+- Customer application:
+  `Create a customer account opening form for a service provider. Include applicant details, company or individual selection, contact details, physical address, KYC document attachments, selected service package, billing contact, and approval section.`
+- Leave request:
+  `Build a staff leave application form. Capture employee details, leave type, start and end dates, handover notes, backup assignee, manager approval, HR approval, and employee acknowledgment.`
+
+Sample reference-file scenarios:
+
+- Upload a scanned paper onboarding form and prompt:
+  `Convert this paper form into a clean digital version. Keep the same sections, but add a final HR approval step and a required signature field.`
+- Upload a photographed inspection sheet and prompt:
+  `Use this inspection sheet as the base. Turn repeated checklist areas into structured fields and add photo attachments for each failed item.`
+- Upload only a PDF with no prompt:
+  The demo will infer the likely sections and field types from the uploaded form and list the assumptions it made.
 
 ### Run the full local stack
 
@@ -460,6 +509,12 @@ npm run mcp
 ```
 
 If you want live AI providers in the example app, copy `.env.example` to `.env` and provide the relevant keys. The demo supports both OpenAI and Gemini-based flows.
+
+Notes for the current demo:
+
+- Image references work with both OpenAI and Gemini in the proxy flow.
+- PDF references are routed through Gemini in the demo proxy, because that is the multimodal path configured here for PDF understanding.
+- If the proxy is not running, the UI falls back to the existing mock AI scaffold behavior.
 
 ## Best places to start in this repo
 
