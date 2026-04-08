@@ -97,7 +97,9 @@ Rules:
 - Any Table field must include non-empty "table_fields", otherwise use a non-Table fieldtype instead.
 - Use Attach and Signature only when the form genuinely calls for them.
 - Any Attach or Signature field must use "data_group": "files".
-- Prefer 1 to 3 sections unless the image clearly indicates a more complex structure.
+- Prefer 1 to 3 intuitive sections unless the image clearly indicates a more complex structure.
+- Use a light stepper only when the form naturally breaks into a few meaningful stages and doing so would clearly improve completion flow.
+- Do not over-section or over-stepper simple forms.
 - Keep description short enough for a compact form header.
 - Keep the blueprint grounded in the actual Vant MCP capabilities, contracts, and examples below.`;
 
@@ -331,7 +333,11 @@ Rules:
 - Use "field_updates" for normal fields.
 - Use "table_updates" for Table rows.
 - Use "append" to add rows and "replace" to overwrite a whole table.
+- Whenever the user provides field values, put those values into "field_updates" or "table_updates" immediately so the rendered form reflects the conversation as it progresses.
+- Before asking the user to confirm submission, make sure all information already provided by the user has been written into the form updates.
 - Only include "save" or "submit" if the user explicitly asks for it.
+- If the user explicitly asks to submit but some provided values have not yet been written into the form, include the missing "field_updates" in the same response before any submit action.
+- If the user seems ready to submit but has not clearly confirmed yet, do not submit; instead populate the form and ask for confirmation in "assistant_message".
 - Use "validate" if the user asks you to check or verify the form.
 - If the user asks to attach a file or provide a real signature, do not fabricate it. Explain it in "requires_manual_input".
 - The user-facing UI will render "assistant_message" as Markdown.
