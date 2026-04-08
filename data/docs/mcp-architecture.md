@@ -174,6 +174,36 @@ The example app’s `AiFormService` can connect to the MCP server over SSE. That
 - the UI and MCP server can share one schema vocabulary
 - future AI workflows can move from plain prompt completion to richer tool-driven orchestration
 
+## Orchestration Model
+
+The current demo architecture uses explicit orchestration, not fully autonomous MCP tool use.
+
+That means the example proxy decides which MCP tools to call and in what order. A typical flow is:
+
+1. call discovery tools such as `get_capabilities`
+2. optionally call deeper guidance tools such as `get_models` or `get_field_types`
+3. call `create_form_from_prompt`
+4. call `verify_schema`
+
+This is different from a fully agent-driven setup where the model itself decides when to call tools during a live conversation.
+
+Both patterns are valid:
+
+- explicit orchestration is easier to debug, log, and productize
+- agent-driven orchestration is more flexible but more complex to operate
+
+For the example app, explicit orchestration is the right default because it keeps the integration understandable for developers.
+
+## Internal Hosting Model
+
+For internal organizations, the normal deployment pattern is:
+
+- host `projects/vant-mcp` as a long-lived internal service
+- expose it over SSE or another supported MCP transport
+- configure internal clients with `MCP_SERVER_URL`
+
+Once hosted, the demo app usually only changes in configuration, not structure. The example proxy simply points to the internal MCP URL instead of a localhost endpoint.
+
 ## Current Constraints
 
 The current implementation is still intentionally lightweight in a few places.

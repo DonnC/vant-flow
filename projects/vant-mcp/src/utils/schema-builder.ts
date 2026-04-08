@@ -107,7 +107,7 @@ export class VantSchemaBuilder {
 
         const blueprint: FormBlueprint = {
             title,
-            description: `Generated from: "${cleanedPrompt}"`,
+            description: this.buildPromptDescription(cleanedPrompt, title),
             is_stepper: isStepper,
             sections
         };
@@ -179,6 +179,21 @@ export class VantSchemaBuilder {
         }
 
         return "New Vant Form";
+    }
+
+    private buildPromptDescription(prompt: string, title: string): string {
+        const compact = prompt.replace(/\s+/g, ' ').trim();
+        const withoutLead = compact
+            .replace(/^(create|build|generate|draft|scaffold)\s+(?:a|an|new)?\s*/i, '')
+            .replace(/\bform\b/gi, '')
+            .replace(/["']/g, '')
+            .trim();
+
+        const sentence = withoutLead
+            ? this.capitalize(withoutLead.replace(/\s+/g, ' '))
+            : `${title} generated from a natural-language prompt`;
+
+        return sentence.length > 140 ? `${sentence.slice(0, 137).trimEnd()}...` : sentence;
     }
 
     private parseSection(text: string): SectionBlueprint {

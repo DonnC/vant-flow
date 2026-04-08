@@ -1,0 +1,169 @@
+{
+  "name": "Cash Withdrawal Form",
+  "module": "General",
+  "version": "1.0.0",
+  "description": "Cash withdrawal form capturing account details, withdrawal amount, authorization, and teller stamp.",
+  "is_stepper": false,
+  "intro_text": "Complete the withdrawal request and submit it with the required signature.",
+  "intro_color": "blue",
+  "sections": [
+    {
+      "id": "section_account_details",
+      "label": "Account Details",
+      "columns_count": 1,
+      "columns": [
+        {
+          "id": "column_account_details",
+          "fields": [
+            {
+              "id": "field_branch",
+              "label": "Branch",
+              "fieldname": "branch",
+              "fieldtype": "Data",
+              "mandatory": true,
+              "read_only": false,
+              "hidden": false
+            },
+            {
+              "id": "field_account_name",
+              "label": "Account Name",
+              "fieldname": "account_name",
+              "fieldtype": "Data",
+              "mandatory": true,
+              "read_only": false,
+              "hidden": false
+            },
+            {
+              "id": "field_account_type",
+              "label": "Account Type",
+              "fieldname": "account_type",
+              "fieldtype": "Select",
+              "mandatory": true,
+              "read_only": false,
+              "hidden": false,
+              "options": "Current\nSavings\nFCA\nOther"
+            },
+            {
+              "id": "field_uid_particulars",
+              "label": "UID Particulars",
+              "fieldname": "uid_particulars",
+              "fieldtype": "Data",
+              "mandatory": false,
+              "read_only": false,
+              "hidden": false
+            },
+            {
+              "id": "field_account_number",
+              "label": "Account Number",
+              "fieldname": "account_number",
+              "fieldtype": "Data",
+              "mandatory": true,
+              "read_only": false,
+              "hidden": false
+            }
+          ]
+        }
+      ],
+      "collapsible": false,
+      "collapsed": false
+    },
+    {
+      "id": "section_withdrawal_details",
+      "label": "Withdrawal Details",
+      "columns_count": 2,
+      "columns": [
+        {
+          "id": "column_withdrawal_left",
+          "fields": [
+            {
+              "id": "field_date",
+              "label": "Date",
+              "fieldname": "date",
+              "fieldtype": "Date",
+              "mandatory": true,
+              "read_only": false,
+              "hidden": false
+            },
+            {
+              "id": "field_amount_in_figures",
+              "label": "Amount In Figures",
+              "fieldname": "amount_in_figures",
+              "fieldtype": "Float",
+              "mandatory": true,
+              "read_only": false,
+              "hidden": false
+            }
+          ]
+        },
+        {
+          "id": "column_withdrawal_right",
+          "fields": [
+            {
+              "id": "field_amount_in_words",
+              "label": "Amount In Words",
+              "fieldname": "amount_in_words",
+              "fieldtype": "Text",
+              "mandatory": false,
+              "read_only": false,
+              "hidden": false
+            }
+          ]
+        }
+      ],
+      "collapsible": false,
+      "collapsed": false
+    },
+    {
+      "id": "section_authorization",
+      "label": "Authorization",
+      "columns_count": 2,
+      "columns": [
+        {
+          "id": "column_authorization_left",
+          "fields": [
+            {
+              "id": "field_authorised_signature",
+              "label": "Authorised Signature",
+              "fieldname": "authorised_signature",
+              "fieldtype": "Signature",
+              "mandatory": true,
+              "read_only": false,
+              "hidden": false,
+              "data_group": "files"
+            }
+          ]
+        },
+        {
+          "id": "column_authorization_right",
+          "fields": [
+            {
+              "id": "field_tellers_stamp_and_initials",
+              "label": "Teller's Stamp And Initials",
+              "fieldname": "tellers_stamp_and_initials",
+              "fieldtype": "Attach",
+              "mandatory": false,
+              "read_only": false,
+              "hidden": false,
+              "data_group": "files",
+              "options": ".png,.jpg,.jpeg,.pdf | 5MB | 1"
+            }
+          ]
+        }
+      ],
+      "collapsible": false,
+      "collapsed": false
+    }
+  ],
+  "actions": {
+    "submit": {
+      "label": "Submit",
+      "visible": true,
+      "type": "primary"
+    }
+  },
+  "client_script": "",
+  "metadata": {
+    "reference_source": "manual_comparison_schema",
+    "reference_form_type": "cash_withdrawal"
+  }
+}
