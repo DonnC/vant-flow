@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vant Flow Add Field"
+  short_description: "Workflow for adding or extending Vant Flow field types safely."
+  default_prompt: "Use this skill when adding a new field type or extending field behavior across schema, builder, renderer, runtime, and tests."

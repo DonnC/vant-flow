@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vant Flow Core"
+  short_description: "Architecture and feature map for the Vant Flow platform."
+  default_prompt: "Use this skill to understand Vant Flow architecture, schema features, and repo conventions before making platform changes."
