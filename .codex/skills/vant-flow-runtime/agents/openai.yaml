@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vant Flow Runtime"
+  short_description: "Renderer and frm runtime guidance for Vant Flow."
+  default_prompt: "Use this skill for VfRenderer, VfFormContext, client scripts, actions, validation, link fields, media hooks, and host runtime integration."

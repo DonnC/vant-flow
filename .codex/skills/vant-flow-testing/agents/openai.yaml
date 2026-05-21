@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vant Flow Testing"
+  short_description: "Test strategy and coverage expectations for Vant Flow changes."
+  default_prompt: "Use this skill when adding or changing Vant Flow behavior and you need to extend specs for builder, renderer, form context, or examples."

@@ -14,6 +14,17 @@ interface DemoStorageUploadResponse {
     size?: number;
 }
 
+export interface DemoUploadedReferenceFile {
+    fileId: string;
+    name: string;
+    type: string;
+    size: number;
+    publicUrl: string;
+    previewUrl: string;
+    downloadUrl: string;
+    metadata?: Record<string, any>;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DemoMediaService {
     private http = inject(HttpClient);
@@ -59,6 +70,32 @@ export class DemoMediaService {
             metadata: uploaded.metadata
         } satisfies VfStoredMedia;
     };
+
+    async uploadReferenceFile(file: File, metadata: Record<string, any> = {}): Promise<DemoUploadedReferenceFile> {
+        const dataUrl = await this.readFileAsDataUrl(file);
+        const uploaded = await firstValueFrom(this.http.post<DemoStorageUploadResponse>(this.API_URL, {
+            fieldtype: 'Attach',
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            dataUrl,
+            metadata: {
+                purpose: 'ai-form-reference',
+                ...metadata
+            }
+        }));
+
+        return {
+            fileId: uploaded.fileId,
+            name: uploaded.name || file.name,
+            type: uploaded.type || file.type,
+            size: uploaded.size || file.size,
+            publicUrl: uploaded.publicUrl,
+            previewUrl: uploaded.previewUrl || uploaded.publicUrl,
+            downloadUrl: uploaded.downloadUrl || uploaded.publicUrl,
+            metadata: uploaded.metadata
+        };
+    }
 
     private readFileAsDataUrl(file: File): Promise<string> {
         return new Promise((resolve, reject) => {

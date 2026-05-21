@@ -120,6 +120,8 @@ export class VfScriptEditor {
         { label: 'frm.on(refresh)', code: "frm.on('refresh', () => {\n  // Logic on load\n});" },
         { label: 'frm.on(validate)', code: "frm.on('validate', () => {\n  if (!frm.get_value('email')) {\n    frm.throw('Email is mandatory');\n    return false;\n  }\n});" },
         { label: 'frm.on(field change)', code: "frm.on('fieldname', (val) => {\n  frm.msgprint('Value changed to ' + val);\n});" },
+        { label: 'frm.validate', code: "if (!frm.validate()) {\n  return false;\n}" },
+        { label: 'frm.validate_step', code: "if (!frm.validate_step()) {\n  return false;\n}" },
       ]
     },
     {
@@ -235,6 +237,10 @@ export class VfScriptEditor {
         prompt(fields: DocumentField[], callback: (values: any) => void, title?: string): void;
         /** Show error and stop execution */
         throw(message: string): void;
+        /** Run full-form validation from scripts and host hooks */
+        validate(): boolean;
+        /** Run step validation for steppers */
+        validate_step(): boolean;
         /** Listen to field or form events */
         on(event: 'refresh' | 'validate' | string, callback: (val: any, frm: VfFormContext) => void): void;
         

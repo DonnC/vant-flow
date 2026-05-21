@@ -176,6 +176,7 @@ The runtime is intentionally constrained.
 - Dangerous browser globals are documented as unavailable in the sandbox model
 - Backend access should go through `frm.call` rather than arbitrary browser networking
 - The script can mutate allowed form state rather than the whole application shell
+- Validation can be invoked from both host code and form scripts through `VfRenderer.validate()` and `frm.validate()`
 
 ## Example Deployment Patterns in This Repo
 

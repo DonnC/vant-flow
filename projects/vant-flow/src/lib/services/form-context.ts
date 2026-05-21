@@ -30,6 +30,10 @@ export class VfFormContext {
     public linkDataSource?: VfLinkDataSource;
     public linkRequestObserver?: VfLinkRequestObserver;
     public linkRefreshSignals = new Map<string, WritableSignal<number>>();
+    private validationHookDepth = 0;
+    private validateHandler?: () => boolean;
+    private validateBaseHandler?: () => boolean;
+    private validateStepHandler?: () => boolean;
 
     constructor(
         private appUtility: VfUtilityService,
@@ -87,6 +91,10 @@ export class VfFormContext {
     destroy() {
         this.eventListeners.clear();
         this.queries.clear();
+        this.validationHookDepth = 0;
+        this.validateHandler = undefined;
+        this.validateBaseHandler = undefined;
+        this.validateStepHandler = undefined;
     }
 
     // ── Scripting API ──────────────────────────────────────────
@@ -114,6 +122,7 @@ export class VfFormContext {
             fields,
             title,
             read_only,
+            this,
             this.mediaHandler,
             this.mediaResolver,
             this.linkDataSource,
@@ -161,6 +170,42 @@ export class VfFormContext {
             return;
         }
         s.update(current => ({ ...current, [prop]: val }));
+    }
+
+    set_validation_handlers(validate: () => boolean, baseValidate?: () => boolean, validateStep?: () => boolean) {
+        this.validateHandler = validate;
+        this.validateBaseHandler = baseValidate;
+        this.validateStepHandler = validateStep;
+    }
+
+    begin_validation_hook() {
+        this.validationHookDepth += 1;
+    }
+
+    end_validation_hook() {
+        this.validationHookDepth = Math.max(0, this.validationHookDepth - 1);
+    }
+
+    validate() {
+        if (!this.validateHandler) {
+            console.warn('[frm] Validation handler is not available yet.');
+            return false;
+        }
+
+        if (this.validationHookDepth > 0) {
+            return this.validateBaseHandler ? this.validateBaseHandler() : this.validateHandler();
+        }
+
+        return this.validateHandler();
+    }
+
+    validate_step() {
+        if (!this.validateStepHandler) {
+            console.warn('[frm] Step validation handler is not available yet.');
+            return false;
+        }
+
+        return this.validateStepHandler();
     }
 
     set_readonly(readOnly: boolean) {
@@ -366,7 +411,7 @@ export class VfFormContext {
         this.appUtility.unfreeze();
     }
 
-    set_button_action(id: string, action: (frm: any) => void) {
+    set_button_action(id: string, action: (frm: VfFormContext) => void) {
         const config: FormActionsConfig = { submit: { ...DEFAULT_FORM_ACTIONS.submit! }, ...(this.actionsConfig() || {}) };
         const key = id.toLowerCase() as keyof FormActionsConfig;
         config[key] = { ...(config[key] || { label: id, visible: true }), runtimeAction: action };
@@ -456,23 +501,16 @@ export class VfFormContext {
 
     execute(script: string, event: string, value?: any): any {
         if (!script) return;
-        let setupResult: any = undefined;
 
         try {
             const fn = new Function('frm', script);
-            fn(this);
-
-            // Important: We DON'T trigger(event, value) here anymore if we want to run script once 
-            // and trigger events separately. 
-            // BUT, if we are running the script for the FIRST time (refresh), we want setupResult.
-            // When trigger() is called from outside, it will hit the listeners registered above.
-
-            if (setupResult === false) return false;
+            const result = fn(this);
+            if (result === false) return false;
         } catch (e) {
             console.error(`[FormContext] Error in client script (${event}):`, e);
             if (e instanceof Error && e.message === 'Script Execution Stopped') return false;
         }
 
-        return setupResult;
+        return true;
     }
 }

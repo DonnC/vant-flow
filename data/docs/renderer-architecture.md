@@ -42,8 +42,42 @@ Owns the Angular component lifecycle and presentation. It:
 - initializes `formData`
 - emits `formReady`, `formChange`, `formAction`, and `formError`
 - manages full-form and per-step validation
+- exposes `validate()` and `validateStep()` for host-side callers
 - packs flat runtime state back into nested output using `data_group`
 - exposes a single default `Submit` button unless teams add more buttons at runtime
+
+The emitted host callbacks follow a consistent pattern:
+
+- `formAction` includes `frm`
+- `formChange` includes `frm`
+- `mediaHandler` receives a context object with `frm`
+- `linkDataSource` request objects include `frm`
+- `linkRequestObserver` state objects include `frm`
+
+Example host usage:
+
+```ts
+onFormAction(event: VfRendererButtonEvent) {
+  if (!event.frm.validate()) {
+    return false;
+  }
+}
+
+onFormChange(event: VfRendererChangeEvent) {
+  if (event.fieldname === 'approval_comment') {
+    event.frm.validate();
+  }
+}
+
+mediaHandler: VfMediaHandler = async (payload, context) => {
+  if (!context.frm.validate()) {
+    throw new Error('Fix validation first.');
+  }
+  return `mock://${context.fieldname}`;
+};
+```
+
+If a custom button callback or runtime action returns `false`, the renderer does not emit `formAction`. That makes failed validation behave like the default submit flow: invalid fields are shown, and the action stops there.
 
 ### `VfFormContext`
 
@@ -72,6 +106,7 @@ The current implementation supports patterns like:
 - `frm.set_df_property(...)`
 - `frm.set_df_property([...], ...)`
 - `frm.set_section_property(...)`
+- `frm.validate()` and `frm.validate_step()`
 - `frm.set_intro(...)`
 - `frm.add_row(...)` and `frm.remove_row(...)`
 - `frm.next_step()` and `frm.go_to_step(...)`
@@ -260,8 +295,50 @@ The runtime validates:
 - mandatory table cells
 - regex rules inside table cells
 - optional scripted `validate` event logic
+- host-side `VfRenderer.validate()` and script-side `frm.validate()` both invoke the same validation flow as the default submit button
 
 Validation respects runtime state, so hidden sections and hidden fields are skipped.
+
+### Validation Examples
+
+Host-side usage:
+
+```ts
+@ViewChild(VfRenderer) renderer?: VfRenderer;
+
+runApprovalCheck() {
+  const ok = this.renderer?.validate();
+  if (!ok) {
+    return;
+  }
+  this.workflowApi.advance();
+}
+```
+
+Script-side usage:
+
+```js
+frm.on('approve', () => {
+  if (!frm.validate()) {
+    return false;
+  }
+
+  frm.msgprint('Form is valid. Continue with approval logic.');
+});
+```
+
+Use `frm.on('validate', ...)` when you want to add custom validation rules that run after the built-in field checks:
+
+```js
+frm.on('validate', () => {
+  if (!frm.get_value('approval_comment')) {
+    frm.msgprint('Approval comment is required');
+    return false;
+  }
+});
+```
+
+`frm.validate()` is safe to call from other hooks like `refresh`, custom button actions, and `before_step_change`. If it is called from inside the `validate` hook itself, it falls back to the base field checks so it does not recurse.
 
 ## Backend and Host Integration
 

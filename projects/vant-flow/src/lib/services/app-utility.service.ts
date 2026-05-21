@@ -2,7 +2,7 @@ import { Injectable, signal, ApplicationRef, EnvironmentInjector, createComponen
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { DocumentField, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver } from '../models/document.model';
-import { VfPromptModal } from '../components/prompt-modal.component';
+import { VfFormContext } from './form-context';
 
 export type ToastIndicator = 'success' | 'error' | 'info' | 'warning';
 
@@ -59,13 +59,15 @@ export class VfUtilityService {
     fields: DocumentField[],
     title: string = 'Enter Data',
     readOnly: boolean = false,
+    frm: VfFormContext,
     mediaHandler?: VfMediaHandler,
     mediaResolver?: VfMediaResolver,
     linkDataSource?: VfLinkDataSource,
     linkRequestObserver?: VfLinkRequestObserver,
     formMetadata?: any
   ): Promise<Record<string, any> | null> {
-    return new Promise(resolve => {
+    return new Promise(async resolve => {
+      const { VfPromptModal } = await import('../components/prompt-modal.component');
       const initialValues: Record<string, any> = {};
       fields.forEach(f => { initialValues[f.fieldname] = f.default ?? ''; });
 
@@ -82,6 +84,7 @@ export class VfUtilityService {
       componentRef.instance.linkDataSource = linkDataSource;
       componentRef.instance.linkRequestObserver = linkRequestObserver;
       componentRef.instance.formMetadata = formMetadata;
+      componentRef.instance.frm = frm;
 
       componentRef.instance.result.subscribe(res => {
         this.appRef.detachView(componentRef.hostView);

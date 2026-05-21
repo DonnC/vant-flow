@@ -1,0 +1,4 @@
+interface:
+  display_name: "Vant Flow Builder"
+  short_description: "Builder and authoring workflow guidance."
+  default_prompt: "Use this skill for builder state, property editing, preview metadata, import or export, palette changes, and script authoring surfaces."

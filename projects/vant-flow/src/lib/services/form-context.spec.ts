@@ -151,6 +151,25 @@ describe('VfFormContext', () => {
     expect(context.actionsConfig()?.approve?.disable_on_readonly).toBeTrue();
   });
 
+  it('exposes a validate API that can be delegated by the renderer', () => {
+    const validateSpy = jasmine.createSpy('validateSpy').and.returnValue(true);
+    const validateBaseSpy = jasmine.createSpy('validateBaseSpy').and.returnValue(true);
+    const validateStepSpy = jasmine.createSpy('validateStepSpy').and.returnValue(true);
+
+    context.set_validation_handlers(validateSpy, validateBaseSpy, validateStepSpy);
+
+    expect(context.validate()).toBeTrue();
+    expect(validateSpy).toHaveBeenCalledTimes(1);
+
+    context.begin_validation_hook();
+    expect(context.validate()).toBeTrue();
+    expect(validateBaseSpy).toHaveBeenCalledTimes(1);
+    context.end_validation_hook();
+
+    expect(context.validate_step()).toBeTrue();
+    expect(validateStepSpy).toHaveBeenCalledTimes(1);
+  });
+
   it('skips hidden steps when moving to the next step', () => {
     const document: DocumentDefinition = {
       name: 'Stepper Form',

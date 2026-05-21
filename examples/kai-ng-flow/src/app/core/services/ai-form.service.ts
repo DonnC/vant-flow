@@ -3,6 +3,28 @@ import { DocumentDefinition } from 'vant-flow';
 
 export type AiProvider = 'gemini' | 'openai';
 
+export interface AiScaffoldReferenceFile {
+    fileId: string;
+    name: string;
+    type: string;
+    size?: number;
+    publicUrl?: string;
+    previewUrl?: string;
+    downloadUrl?: string;
+}
+
+export interface AiScaffoldRequest {
+    prompt?: string;
+    referenceFile?: AiScaffoldReferenceFile | null;
+}
+
+export interface AiScaffoldResponse {
+    schema: DocumentDefinition;
+    assumptions: string[];
+    summary: string;
+    provider_used: AiProvider;
+}
+
 export interface AiAssistantTableUpdate {
     fieldname: string;
     mode?: 'append' | 'replace';
@@ -45,14 +67,18 @@ export class AiFormService {
         return await response.json() as T;
     }
 
-    async scaffoldFormFromPrompt(prompt: string): Promise<DocumentDefinition> {
+    async scaffoldFormFromPrompt(request: AiScaffoldRequest): Promise<AiScaffoldResponse> {
+        const prompt = String(request.prompt || '').trim();
+        const referenceFile = request.referenceFile || null;
+
         if (!this.isAiEnabled()) {
-            return this.getMockedScaffoldResponse(prompt);
+            return this.getMockedScaffoldResponse(prompt, referenceFile);
         }
 
         try {
-            return await this.postJson<DocumentDefinition>(`${this.AI_API_URL}/scaffold`, {
+            return await this.postJson<AiScaffoldResponse>(`${this.AI_API_URL}/scaffold`, {
                 prompt,
+                referenceFile,
                 provider: this.selectedProvider()
             });
         } catch (err) {
@@ -61,30 +87,52 @@ export class AiFormService {
         }
     }
 
-    private async getMockedScaffoldResponse(prompt: string): Promise<DocumentDefinition> {
+    private async getMockedScaffoldResponse(prompt: string, referenceFile: AiScaffoldReferenceFile | null): Promise<AiScaffoldResponse> {
         return new Promise((resolve) => {
             setTimeout(() => {
+                const assumptions = [
+                    referenceFile ? `Used ${referenceFile.type === 'application/pdf' ? 'PDF' : 'image'} reference "${referenceFile.name}" as a layout hint.` : 'No reference file was provided.',
+                    prompt ? 'Used the typed instruction as the main source of business intent.' : 'Inferred intent from the uploaded form reference only.'
+                ];
+
                 resolve({
-                    name: `AI Mock Form: ${prompt.slice(0, 15)}...`,
-                    description: `This is a mocked form payload. Run 'npm run example:proxy' to use real AI.`,
-                    version: '1.0.0',
-                    metadata: { is_ai_generated: true, mocked: true, generated_from: prompt },
-                    sections: [{
-                        id: 'section_ai_mock_1',
-                        label: 'Basic Information',
-                        columns: [{
-                            id: 'col_mock_1',
-                            fields: [
-                                {
-                                    id: 'field_mock_1',
-                                    fieldname: 'mock_field',
-                                    label: 'Example Field: ' + prompt,
-                                    fieldtype: 'Data',
-                                    mandatory: true,
-                                }
-                            ]
+                    schema: {
+                        name: `AI Mock Form: ${(prompt || referenceFile?.name || 'Untitled Form').slice(0, 24)}...`,
+                        description: `This is a mocked form payload. Run 'npm run example:proxy' to use real AI.`,
+                        version: '1.0.0',
+                        metadata: {
+                            is_ai_generated: true,
+                            mocked: true,
+                            generated_from: prompt || referenceFile?.name || 'mock-ai',
+                            ai_assumptions: assumptions,
+                            ai_summary: referenceFile
+                                ? 'Mock AI used the uploaded form reference plus your instruction to scaffold a draft.'
+                                : 'Mock AI used your text instruction to scaffold a draft.',
+                            generated_reference_name: referenceFile?.name,
+                            generated_provider_used: this.selectedProvider()
+                        },
+                        sections: [{
+                            id: 'section_ai_mock_1',
+                            label: 'Basic Information',
+                            columns: [{
+                                id: 'col_mock_1',
+                                fields: [
+                                    {
+                                        id: 'field_mock_1',
+                                        fieldname: 'mock_field',
+                                        label: 'Example Field: ' + (prompt || referenceFile?.name || 'Uploaded form'),
+                                        fieldtype: 'Data',
+                                        mandatory: true,
+                                    }
+                                ]
+                            }]
                         }]
-                    }]
+                    },
+                    assumptions,
+                    summary: referenceFile
+                        ? 'Mock AI drafted a form from your prompt and uploaded reference.'
+                        : 'Mock AI drafted a form from your text prompt.',
+                    provider_used: this.selectedProvider()
                 });
             }, 1000);
         });
