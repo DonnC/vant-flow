@@ -17,7 +17,7 @@ These docs cover:
 
 - The core library in `projects/vant-flow`
 - The MCP server in `projects/vant-mcp`
-- The example implementation in `examples/kai-ng-flow`
+- The example implementation in `examples/vant-flow-demo`
 - The AI-assisted and storage-backed workflows demonstrated in the repo
 
 ## Core Idea

@@ -19,11 +19,11 @@
 
 ## Example App
 
-- `examples/kai-ng-flow/src/app/demo-pages/*`
+- `examples/vant-flow-demo/src/app/demo-pages/*`
   Real host usage across landing, admin, builder, renderer, and user flows.
-- `examples/kai-ng-flow/src/app/core/services/*`
+- `examples/vant-flow-demo/src/app/core/services/*`
   AI scaffolding, mock storage, and demo media integration examples.
-- `examples/kai-ng-flow/proxy/*`
+- `examples/vant-flow-demo/proxy/*`
   Demo backend and AI/MCP proxy behaviors.
 
 ## Docs And Samples

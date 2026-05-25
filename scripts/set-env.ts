@@ -4,10 +4,10 @@ import * as dotenv from 'dotenv';
 // Load environment variables from .env file
 dotenv.config();
 
-const targetPath = './examples/kai-ng-flow/src/environments/environment.ai.ts';
+const targetPath = './examples/vant-flow-demo/src/environments/environment.ai.ts';
 
 // Create directory if it doesn't exist
-const dir = './examples/kai-ng-flow/src/environments';
+const dir = './examples/vant-flow-demo/src/environments';
 if (!existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
 }

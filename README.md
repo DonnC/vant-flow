@@ -41,6 +41,7 @@ That gives teams a practical split:
 - Support rich fields like `Attach`, `Signature`, `Text Editor`, `Table`, and `Link`
 - Inject runtime host metadata into scripts through `[metadata]`
 - Connect `Link` fields to remote autocomplete endpoints
+- Use regex presets like `Email`, `Url`, and `Phone` or provide raw regex patterns
 - Plug attachments and signatures into app-owned upload/storage pipelines
 - Reuse the same schema in admin, preview, user, and readonly audit experiences
 
@@ -60,7 +61,7 @@ flowchart LR
 In this repo, that architecture is demonstrated in three layers:
 
 - `projects/vant-flow`: the reusable Angular library
-- `examples/kai-ng-flow`: a reference app with admin, preview, user, and submission history flows
+- `examples/vant-flow-demo`: a reference app with admin, preview, user, and submission history flows
 - `projects/vant-mcp`: MCP tooling for AI-assisted schema generation and validation workflows
 
 ## Quick start
@@ -537,7 +538,7 @@ Useful sample schemas:
 
 - `projects/vant-flow`: Angular library source
 - `projects/vant-mcp`: MCP server and tool logic
-- `examples/kai-ng-flow`: reference application
+- `examples/vant-flow-demo`: reference application
 - `data/docs`: architecture and product notes
 - `data/examples`: importable sample schemas
 - `data/screenshots`: README/demo assets

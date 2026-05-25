@@ -9,6 +9,8 @@
   },
   "include": [
     "src/**/*.spec.ts",
-    "src/**/*.d.ts"
+    "src/**/*.d.ts",
+    "../../projects/vant-flow/src/**/*.spec.ts",
+    "../../projects/vant-flow/src/**/*.d.ts"
   ]
 }

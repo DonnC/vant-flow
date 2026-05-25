@@ -2,9 +2,10 @@ import { Component, effect, EventEmitter, inject, Input, OnChanges, OnDestroy, O
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuillModule } from 'ngx-quill';
-import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver, VfRendererButtonEvent, VfRendererChangeEvent } from '../../models/document.model';
+import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, VfButtonActionContext, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver, VfRendererButtonEvent, VfRendererChangeEvent } from '../../models/document.model';
 import { VfFormContext } from '../../services/form-context';
 import { VfUtilityService } from '../../services/app-utility.service';
+import { resolveRegexPattern } from '../../utils/regex-presets';
 
 import { VfField } from '../form-field.component';
 import { VfUiPrimitivesModule } from '../../ui/ui-primitives.module';
@@ -957,17 +958,19 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     });
   }
 
-  onCustomButtonClick(btn: { id: string; label: string; action: Function }) {
+  async onCustomButtonClick(btn: { id: string; label: string; action: (frm: VfFormContext, context?: VfButtonActionContext) => boolean | void | Promise<boolean | void> }) {
     if (this.disabled) return;
 
-    const result = btn.action(this.ctx);
-    if (result === false) {
+    const allowEmit = await this.resolveActionDecision(
+      btn.action(this.ctx, { action: btn.id, label: btn.label, source: 'custom' })
+    );
+    if (!allowEmit) {
       return;
     }
     this.emitButtonEvent(btn.id, btn.label, this.packData(), 'custom');
   }
 
-  onAction(action: string) {
+  async onAction(action: string) {
     if (this.disabled) return;
 
     if (action === 'delete') {
@@ -980,8 +983,13 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     } else {
       const config = (this.ctx.actionsConfig() as any)?.[action.toLowerCase()];
       let allowEmit = true;
+      const actionContext: VfButtonActionContext = {
+        action,
+        label: config?.label || action,
+        source: 'custom'
+      };
       if (config?.runtimeAction) {
-        allowEmit = config.runtimeAction(this.ctx) !== false;
+        allowEmit = await this.resolveActionDecision(config.runtimeAction(this.ctx, actionContext));
       } else if (config?.action && this.runFormScripts) {
         allowEmit = this.ctx.execute(config.action, action) !== false;
       }
@@ -993,11 +1001,22 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     }
   }
 
+  private async resolveActionDecision(result: unknown): Promise<boolean> {
+    const resolved = result && typeof (result as Promise<unknown>).then === 'function'
+      ? await (result as Promise<unknown>)
+      : result;
+    return resolved !== false;
+  }
+
   isValidRegex(fieldname: string, pattern: string, customValue?: any): boolean {
     const value = customValue !== undefined ? customValue : this.formData[fieldname];
     if (value === undefined || value === null || value === '') return true;
     try {
-      const regex = new RegExp(pattern);
+      const resolvedPattern = resolveRegexPattern(pattern);
+      if (!resolvedPattern) {
+        return true;
+      }
+      const regex = new RegExp(resolvedPattern);
       return regex.test(String(value));
     } catch (e) {
       return false;

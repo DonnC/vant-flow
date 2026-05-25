@@ -2,7 +2,7 @@
 
 ## Purpose
 
-`examples/kai-ng-flow` is not just a demo page. It is a reference application that shows how the Vant Flow library can be used as a small product platform with:
+`examples/vant-flow-demo` is not just a demo page. It is a reference application that shows how the Vant Flow library can be used as a small product platform with:
 
 - admin authoring
 - user-facing execution

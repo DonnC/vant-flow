@@ -143,4 +143,63 @@ describe('VfBuilderState', () => {
     expect(field.indexed).toBeFalse();
     expect(state.document().sections[0].columns[0].fields[0].indexed).toBeFalse();
   });
+
+  it('collapses a section back to one column and drops fields from removed columns', () => {
+    state.document.set({
+      name: 'Layout Form',
+      sections: [{
+        id: 'section_1',
+        columns_count: 2,
+        columns: [
+          {
+            id: 'column_1',
+            fields: [{ id: 'field_1', fieldname: 'first_name', fieldtype: 'Data', label: 'First Name' }]
+          },
+          {
+            id: 'column_2',
+            fields: [{ id: 'field_2', fieldname: 'last_name', fieldtype: 'Data', label: 'Last Name' }]
+          }
+        ]
+      }]
+    });
+
+    state.updateSectionColumns('section_1', 1);
+
+    const section = state.document().sections[0];
+    expect(section.columns_count).toBe(1);
+    expect(section.columns.length).toBe(1);
+    expect(section.columns[0].fields.map(field => field.fieldname)).toEqual(['first_name']);
+  });
+
+  it('removes a free-added column and drops the deleted column fields', () => {
+    state.document.set({
+      name: 'Columns Form',
+      sections: [{
+        id: 'section_1',
+        columns_count: 3,
+        columns: [
+          {
+            id: 'column_1',
+            fields: [{ id: 'field_1', fieldname: 'alpha', fieldtype: 'Data', label: 'Alpha' }]
+          },
+          {
+            id: 'column_2',
+            fields: [{ id: 'field_2', fieldname: 'beta', fieldtype: 'Data', label: 'Beta' }]
+          },
+          {
+            id: 'column_3',
+            fields: []
+          }
+        ]
+      }]
+    });
+
+    state.removeColumn('section_1', 'column_2');
+
+    const section = state.document().sections[0];
+    expect(section.columns_count).toBe(2);
+    expect(section.columns.length).toBe(2);
+    expect(section.columns[0].fields.map(field => field.fieldname)).toEqual(['alpha']);
+    expect(section.columns.some(column => column.fields.some(field => field.fieldname === 'beta'))).toBeFalse();
+  });
 });
