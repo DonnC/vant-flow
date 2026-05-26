@@ -21,10 +21,10 @@
   body {
     margin: 0;
     height: 100%;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, sans-serif;
     font-size: 14px;
-    color: #1a1a1a;
-    background-color: #f8f9fa;
+    color: #e4e4e7;
+    background-color: #0a0c10;
     -webkit-font-smoothing: antialiased;
   }
 }
