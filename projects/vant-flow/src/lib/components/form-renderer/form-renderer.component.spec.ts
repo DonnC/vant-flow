@@ -470,6 +470,32 @@ describe('VfRenderer', () => {
         });
     });
 
+    describe('readonly preset links', () => {
+        it('does not add a blocking readonly overlay for readonly url preset fields', () => {
+            const readonlySignal = signal(true);
+            mockFormContext.getFieldSignal.and.callFake((fieldname: string, prop: string) => {
+                if (fieldname === 'website' && prop === 'read_only') return readonlySignal;
+                return signal(false);
+            });
+
+            component.document = {
+                name: 'Readonly Links',
+                sections: [{
+                    id: 's1',
+                    columns: [{
+                        id: 'c1',
+                        fields: [
+                            { id: 'f1', fieldtype: 'Data', fieldname: 'website', label: 'Website', regex: 'Url', read_only: true }
+                        ]
+                    }]
+                }]
+            };
+            component.formData = { website: 'example.com' };
+
+            expect(component.shouldShowReadonlyOverlay(component.document.sections[0].columns[0].fields[0])).toBeFalse();
+        });
+    });
+
     describe('getIntroClass()', () => {
         it('should return blue class for blue', () => {
             expect(component.getIntroClass('blue')).toContain('blue');

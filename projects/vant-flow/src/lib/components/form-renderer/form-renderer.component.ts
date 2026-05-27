@@ -5,7 +5,7 @@ import { QuillModule } from 'ngx-quill';
 import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, VfButtonActionContext, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver, VfRendererButtonEvent, VfRendererChangeEvent } from '../../models/document.model';
 import { VfFormContext } from '../../services/form-context';
 import { VfUtilityService } from '../../services/app-utility.service';
-import { resolveRegexPattern } from '../../utils/regex-presets';
+import { getRegexPresetOption, resolveRegexPattern } from '../../utils/regex-presets';
 
 import { VfField } from '../form-field.component';
 import { VfUiPrimitivesModule } from '../../ui/ui-primitives.module';
@@ -24,7 +24,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
       <div class="card bg-white shadow-2xl">
         <!-- Combined Sticky Header (Frappe style) -->
         <div
-          class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-zinc-100 px-8 py-5 flex items-center justify-between rounded-t-[1.5rem]">
+          class="sticky top-0 z-40 bg-white border-b border-zinc-100 shadow-sm px-8 py-5 flex items-center justify-between rounded-t-[1.5rem]">
           <div class="flex flex-col gap-0.5">
             <div class="flex items-center gap-3">
               <h2 class="text-xl font-bold text-zinc-900 tracking-tight">{{ document.name }}</h2>
@@ -372,7 +372,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                         }
 
                                         <!-- Read Only Overlay if needed -->
-                                        @if (ctx.getFieldSignal(field.fieldname, 'read_only')()) {
+                                        @if (shouldShowReadonlyOverlay(field)) {
                                           <div class="absolute inset-0 bg-zinc-50/10 cursor-not-allowed"></div>
                                         }
                                       </div>
@@ -1006,6 +1006,21 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       ? await (result as Promise<unknown>)
       : result;
     return resolved !== false;
+  }
+
+  shouldShowReadonlyOverlay(field: DocumentField): boolean {
+    if (!this.ctx.getFieldSignal(field.fieldname, 'read_only')()) {
+      return false;
+    }
+
+    const value = this.formData[field.fieldname];
+    if (value === undefined || value === null || value === '') {
+      return true;
+    }
+
+    const runtimeRegex = this.ctx.getFieldSignal(field.fieldname, 'regex')();
+    const presetKind = getRegexPresetOption(runtimeRegex ?? field.regex)?.kind;
+    return presetKind !== 'email' && presetKind !== 'url';
   }
 
   isValidRegex(fieldname: string, pattern: string, customValue?: any): boolean {
