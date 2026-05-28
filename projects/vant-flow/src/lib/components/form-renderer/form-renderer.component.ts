@@ -24,7 +24,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
       <div class="card bg-white shadow-2xl">
         <!-- Combined Sticky Header (Frappe style) -->
         <div
-          class="sticky top-0 z-40 bg-white border-b border-zinc-100 shadow-sm px-8 py-5 flex items-center justify-between rounded-t-[1.5rem]">
+          class="bg-white border-b border-zinc-100 shadow-sm px-8 py-5 flex items-center justify-between rounded-t-[1.5rem]">
           <div class="flex flex-col gap-0.5">
             <div class="flex items-center gap-3">
               <h2 class="text-xl font-bold text-zinc-900 tracking-tight">{{ document.name }}</h2>
