@@ -184,7 +184,7 @@ But it also introduces:
 
 Right now:
 - `projects/vant-mcp` is a tool server
-- `examples/kai-ng-flow/proxy` is an explicit orchestrator
+- `examples/vant-flow-demo/proxy` is an explicit orchestrator
 
 So the current example is not "the AI automatically decides all MCP tool calls at runtime."
 Instead, the example proxy chooses a controlled sequence of MCP calls on purpose.

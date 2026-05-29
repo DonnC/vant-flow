@@ -2,7 +2,9 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VfBuilderState } from '../../services/builder-state.service';
+import { VfUtilityService } from '../../services/app-utility.service';
 import { DocumentField, FieldType, TableColumnDef } from '../../models/document.model';
+import { VF_REGEX_PRESET_OPTIONS } from '../../utils/regex-presets';
 import { VfUiPrimitivesModule } from '../../ui/ui-primitives.module';
 import { VfChoiceGroup, VfChoiceOption } from './shared/choice-group.component';
 import { VfToggleCard } from './shared/toggle-card.component';
@@ -458,10 +460,16 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
               type="text" 
               [ngModel]="field()!.regex" 
               (ngModelChange)="update('regex', $event)" 
-              placeholder="e.g. ^\\d+$"
+              list="vfRegexPresetOptions"
+              placeholder="Email, Url, Phone, or ^\\d+$"
               class="ui-input font-mono text-xs py-2 bg-indigo-50/30 border-indigo-100 focus:border-indigo-300"
             >
-            <p class="text-[9px] text-zinc-400 italic">Enforces validation at runtime</p>
+            <datalist id="vfRegexPresetOptions">
+              @for (preset of regexPresets; track preset.label) {
+                <option [value]="preset.label">{{ preset.label }}</option>
+              }
+            </datalist>
+            <p class="text-[9px] text-zinc-400 italic">Supports presets like Email, Url, Phone, Slug, Alphanumeric or any raw regex.</p>
           </div>
         </div>
 
@@ -586,7 +594,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
         <div>
           <label class="ui-label text-zinc-400">Layout Columns</label>
           <div class="flex bg-zinc-100 p-1 rounded-lg gap-1">
-            <button (click)="state.updateSectionColumns(section()!.id, 1)" 
+            <button (click)="updateSectionColumns(1)" 
               class="flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5"
               [class.bg-white]="section()!.columns_count === 1"
               [class.shadow-sm]="section()!.columns_count === 1"
@@ -596,7 +604,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" /></svg>
               Single
             </button>
-            <button (click)="state.updateSectionColumns(section()!.id, 2)" 
+            <button (click)="updateSectionColumns(2)" 
               class="flex-1 py-1.5 text-xs font-medium rounded-md transition-all flex items-center justify-center gap-1.5"
               [class.bg-white]="section()!.columns_count !== 1"
               [class.shadow-sm]="section()!.columns_count !== 1"
@@ -636,7 +644,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
         <div class="ui-sep"></div>
 
         <!-- Delete -->
-        <button (click)="state.removeSection(section()!.id)" class="ui-btn-destructive w-full justify-center">
+        <button (click)="deleteSection()" class="ui-btn-destructive w-full justify-center">
           Remove Section
         </button>
       </div>
@@ -672,12 +680,14 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
 })
 export class VfPropertyEditor {
   state = inject(VfBuilderState);
+  utils = inject(VfUtilityService);
   field = this.state.selectedField;
   section = this.state.selectedSection;
   step = this.state.selectedStep;
   fieldTypes = FIELD_TYPES;
   tableChildTypes = ['Data', 'Int', 'Float', 'Text', 'Select', 'Link', 'Check', 'Date', 'Datetime', 'Time', 'Password', 'Text Editor', 'Attach', 'Signature'];
   actionButtonIds: Array<'submit'> = ['submit'];
+  regexPresets = VF_REGEX_PRESET_OPTIONS;
   buttonStyleOptions: VfChoiceOption<string>[] = [
     { value: 'primary', label: 'primary' },
     { value: 'secondary', label: 'secondary' },
@@ -826,5 +836,39 @@ export class VfPropertyEditor {
   deleteField() {
     const f = this.field();
     if (f) this.state.removeField(f.id);
+  }
+
+  updateSectionColumns(columnsCount: 1 | 2) {
+    const section = this.section();
+    if (!section || section.columns_count === columnsCount) return;
+
+    if (columnsCount < section.columns.length) {
+      const removedFields = section.columns.slice(columnsCount).reduce((count, column) => count + column.fields.length, 0);
+      if (removedFields > 0) {
+        this.utils.confirm(
+          `Switching to ${columnsCount} column${columnsCount === 1 ? '' : 's'} will permanently remove ${removedFields} field${removedFields === 1 ? '' : 's'} from the discarded column${section.columns.length - columnsCount > 1 ? 's' : ''}.`,
+          () => this.state.updateSectionColumns(section.id, columnsCount)
+        );
+        return;
+      }
+    }
+
+    this.state.updateSectionColumns(section.id, columnsCount);
+  }
+
+  deleteSection() {
+    const section = this.section();
+    if (!section) return;
+
+    const fieldCount = section.columns.reduce((count, column) => count + column.fields.length, 0);
+    if (fieldCount === 0) {
+      this.state.removeSection(section.id);
+      return;
+    }
+
+    this.utils.confirm(
+      `This section contains ${fieldCount} field${fieldCount === 1 ? '' : 's'}. Deleting it will permanently remove them from the form.`,
+      () => this.state.removeSection(section.id)
+    );
   }
 }

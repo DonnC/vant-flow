@@ -130,7 +130,7 @@ export class VfScriptEditor {
         { label: 'frm.msgprint', code: "frm.msgprint('Success!', 'success');" },
         { label: 'frm.throw', code: "frm.throw('Error message');" },
         { label: 'frm.confirm', code: "frm.confirm('Proceed?', () => {\n  frm.msgprint('Confirmed');\n});" },
-        { label: 'frm.prompt', code: "frm.prompt([\n  { label: 'Reason', fieldname: 'reason', fieldtype: 'Data', mandatory: 1 }\n], (vals) => {\n  console.log(vals);\n}, 'Provide Reason');" },
+        { label: 'frm.prompt', code: "const vals = await frm.prompt([\n  { label: 'Reason', fieldname: 'reason', fieldtype: 'Data', mandatory: 1 }\n], undefined, 'Provide Reason');\nif (vals?.reason) {\n  console.log(vals.reason);\n}" },
         { label: 'frm.set_intro', code: "frm.set_intro('Welcome to VantFlow', 'blue');" },
       ]
     },
@@ -152,9 +152,9 @@ export class VfScriptEditor {
       name: 'Actions & API',
       items: [
         { label: 'frm.call (Remote Method)', code: "frm.call({\n  method: 'my_method',\n  args: {},\n  freeze: true,\n  callback: (r) => {\n    console.log(r);\n  }\n});" },
-        { label: 'frm.add_custom_button', code: "frm.add_custom_button('Custom Button', () => {\n  frm.msgprint('Clicked');\n}, 'primary');" },
+        { label: 'frm.add_custom_button', code: "frm.add_custom_button('Custom Button', async (frm) => {\n  const vals = await frm.prompt([\n    { label: 'Reason', fieldname: 'reason', fieldtype: 'Data', mandatory: 1 }\n  ], undefined, 'Provide Reason');\n  if (!vals?.reason) return false;\n  frm.msgprint('Captured: ' + vals.reason);\n}, 'primary');" },
         { label: 'frm.set_button_label', code: "frm.set_button_label('submit', 'Send Now');" },
-        { label: 'frm.set_button_action', code: "frm.set_button_action('submit', (frm) => {\n  frm.msgprint('Custom submit logic');\n});" },
+        { label: 'frm.set_button_action', code: "frm.set_button_action('decline', async (frm) => {\n  if (frm.get_value('comment')) return true;\n  const vals = await frm.prompt([\n    { label: 'Reason', fieldname: 'comment', fieldtype: 'Text', mandatory: 1 }\n  ], undefined, 'Decline Reason');\n  if (!vals?.comment) return false;\n  frm.set_value('comment', vals.comment);\n  return true;\n});" },
         { label: 'frm.set_button_property', code: "frm.set_button_property(['submit', 'approve'], 'visible', false);" },
       ]
     },
@@ -212,6 +212,12 @@ export class VfScriptEditor {
         };
       }
 
+      declare interface VfButtonActionContext {
+        action: string;
+        label: string;
+        source: 'default' | 'custom';
+      }
+
       declare interface VfFormContext {
         /** Set value of a field */
         set_value(fieldname: string, value: any): void;
@@ -234,7 +240,7 @@ export class VfScriptEditor {
         /** Show a confirmation dialog */
         confirm(message: string, on_confirm?: () => void, on_cancel?: () => void): void;
         /** Show a prompt dialog with fields */
-        prompt(fields: DocumentField[], callback: (values: any) => void, title?: string): void;
+        prompt(fields: DocumentField[], callback?: (values: any) => void, title?: string, read_only?: boolean): Promise<any | null>;
         /** Show error and stop execution */
         throw(message: string): void;
         /** Run full-form validation from scripts and host hooks */
@@ -247,13 +253,13 @@ export class VfScriptEditor {
         /** Control global readonly state */
         set_readonly(readonly: boolean): void;
         /** Add a custom button to the header */
-        add_custom_button(label: string, action: () => void, type?: 'primary' | 'secondary' | 'danger' | 'ghost'): void;
+        add_custom_button(label: string, action: (frm: VfFormContext, context?: VfButtonActionContext) => boolean | void | Promise<boolean | void>, type?: 'primary' | 'secondary' | 'danger' | 'ghost', disable_on_readonly?: boolean): void;
         /** Clear all custom buttons */
         clear_custom_buttons(): void;
         /** Dynamically change a default button label */
         set_button_label(id: 'save' | 'submit' | 'approve' | 'decline', label: string): void;
         /** Override a default button action */
-        set_button_action(id: 'save' | 'submit' | 'approve' | 'decline', action: (frm: VfFormContext) => void): void;
+        set_button_action(id: string, action: (frm: VfFormContext, context?: VfButtonActionContext) => boolean | void | Promise<boolean | void>): void;
         /** Set one property across one or many default action buttons */
         set_button_property(id: ('save' | 'submit' | 'approve' | 'decline') | Array<'save' | 'submit' | 'approve' | 'decline'>, prop: 'label' | 'visible' | 'type' | 'disable_on_readonly', value: any): void;
         

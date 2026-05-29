@@ -392,4 +392,15 @@ describe('VfFormContext', () => {
     });
     expect(context.getLinkRefreshSignal('item')()).toBe(before + 1);
   });
+
+  it('returns prompt values so button scripts can await user input before continuing', async () => {
+    appUtility.prompt.and.resolveTo({ reason: 'Insufficient documents' });
+
+    const values = await context.prompt([
+      { id: 'field_1', fieldname: 'reason', fieldtype: 'Data', label: 'Reason' }
+    ], undefined, 'Provide Reason');
+
+    expect(appUtility.prompt).toHaveBeenCalled();
+    expect(values).toEqual({ reason: 'Insufficient documents' });
+  });
 });

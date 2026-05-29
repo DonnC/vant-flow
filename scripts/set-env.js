@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
-const targetPath = path.join(__dirname, '../examples/kai-ng-flow/src/environments/environment.ai.ts');
+const targetPath = path.join(__dirname, '../examples/vant-flow-demo/src/environments/environment.ai.ts');
 
 const envConfigFile = `export const aiConfig = {
   geminiApiKey: '${process.env.GEMINI_API_KEY || ''}',

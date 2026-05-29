@@ -6,6 +6,7 @@ import { QuillModule } from 'ngx-quill';
 import { firstValueFrom } from 'rxjs';
 import { DocumentField, VfLinkDataSource, VfLinkFieldConfig, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver, VfStoredMedia } from '../models/document.model';
 import { VfFormContext } from '../services/form-context';
+import { getRegexPresetOption, resolveRegexPattern } from '../utils/regex-presets';
 import { VfUiPrimitivesModule } from '../ui/ui-primitives.module';
 import { VfIconButton } from './shared/icon-button.component';
 
@@ -415,14 +416,33 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
               [disabled]="disabled">
           }
           @default {
-            <input
-              [type]="field.fieldtype === 'Int' || field.fieldtype === 'Float' ? 'number' : 'text'"
-              class="ui-input"
-              (click)="onInputClick($event)"
-              [ngModel]="value"
-              (ngModelChange)="onValueChange($event)"
-              [placeholder]="placeholder"
-              [disabled]="disabled">
+            <div class="space-y-2">
+              @if (disabled && showInlineActionLink) {
+                <div class="ui-input flex items-center min-h-[42px]">
+                  <span class="truncate">{{ value || placeholder }}</span>
+                </div>
+              } @else {
+                <input
+                  [type]="resolvedTextInputType"
+                  class="ui-input"
+                  (click)="onInputClick($event)"
+                  [ngModel]="value"
+                  (ngModelChange)="onValueChange($event)"
+                  [placeholder]="placeholder"
+                  [disabled]="disabled">
+              }
+
+              @if (showInlineActionLink) {
+                <a
+                  class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-indigo-600 hover:text-indigo-700"
+                  [href]="actionableHref!"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  (click)="$event.stopPropagation()">
+                  {{ actionableLabel }}
+                </a>
+              }
+            </div>
           }
         }
 
@@ -432,7 +452,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
           </div>
         }
 
-        @if (disabled && !isEditor && field.fieldtype !== 'Attach') {
+        @if (disabled && !isEditor && field.fieldtype !== 'Attach' && !showInlineActionLink) {
           <div class="absolute inset-0 bg-transparent cursor-not-allowed"></div>
         }
       </div>
@@ -603,6 +623,51 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     return this.ctx?.getFieldSignal(this.field.fieldname, 'regex')() ?? this.field.regex;
   }
 
+  get regexPresetKind() {
+    return getRegexPresetOption(this.regex)?.kind ?? null;
+  }
+
+  get resolvedTextInputType() {
+    if (this.field.fieldtype === 'Int' || this.field.fieldtype === 'Float') {
+      return 'number';
+    }
+    if (this.regexPresetKind === 'email') {
+      return 'email';
+    }
+    if (this.regexPresetKind === 'url') {
+      return 'url';
+    }
+    return 'text';
+  }
+
+  get actionableHref() {
+    const rawValue = String(this.value ?? '').trim();
+    if (!rawValue) {
+      return null;
+    }
+
+    if (this.regexPresetKind === 'email') {
+      return `mailto:${rawValue}`;
+    }
+
+    if (this.regexPresetKind === 'url') {
+      return /^https?:\/\//i.test(rawValue) ? rawValue : `https://${rawValue}`;
+    }
+
+    return null;
+  }
+
+  get actionableLabel() {
+    if (this.regexPresetKind === 'email') {
+      return `Email ${this.value}`;
+    }
+    return `Open ${this.value}`;
+  }
+
+  get showInlineActionLink() {
+    return !this.compact && !!this.actionableHref;
+  }
+
   get resolvedLinkConfig(): VfLinkFieldConfig | undefined {
     return this.ctx?.getFieldSignal(this.field.fieldname, 'link_config')() ?? this.field.link_config;
   }
@@ -719,7 +784,8 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   isInvalidByRegex() {
     if (!this.regex || !this.value) return false;
     try {
-      return !new RegExp(this.regex).test(String(this.value));
+      const pattern = resolveRegexPattern(this.regex);
+      return pattern ? !new RegExp(pattern).test(String(this.value)) : false;
     } catch {
       return false;
     }

@@ -240,7 +240,7 @@ describe('VfRenderer', () => {
     });
 
     describe('formAction output', () => {
-        it('emits a custom action event and runs the configured runtime action', () => {
+        it('emits a custom action event and runs the configured runtime action', async () => {
             component.document = {
                 name: 'Custom Action Form',
                 sections: [{
@@ -274,9 +274,13 @@ describe('VfRenderer', () => {
             let emitted: any;
             component.formAction.subscribe((d: unknown) => emitted = d);
 
-            component.onAction('approve');
+            await component.onAction('approve');
 
-            expect(runtimeAction).toHaveBeenCalledWith(mockFormContext as any);
+            expect(runtimeAction).toHaveBeenCalledWith(mockFormContext as any, {
+                action: 'approve',
+                label: 'Approve',
+                source: 'custom'
+            });
             expect(emitted.action).toBe('approve');
             expect(emitted.buttonName).toBe('Approve');
             expect(emitted.data).toEqual({ status: 'Pending' });
@@ -285,13 +289,13 @@ describe('VfRenderer', () => {
             expect(emitted.frm).toBe(mockFormContext as any);
         });
 
-        it('does not emit when a custom button callback returns false', () => {
+        it('does not emit when a custom button callback returns false', async () => {
             fixture.detectChanges();
 
             let emitted: any;
             component.formAction.subscribe((d: unknown) => emitted = d);
 
-            component.onCustomButtonClick({
+            await component.onCustomButtonClick({
                 id: 'custom_button',
                 label: 'Custom Button',
                 action: () => false
@@ -300,7 +304,7 @@ describe('VfRenderer', () => {
             expect(emitted).toBeUndefined();
         });
 
-        it('skips schema button action scripts when runFormScripts is false', () => {
+        it('skips schema button action scripts when runFormScripts is false', async () => {
             fixture.detectChanges();
 
             (mockFormContext as any).actionsConfig.set({
@@ -311,12 +315,12 @@ describe('VfRenderer', () => {
             mockFormContext.execute.calls.reset();
             component.runFormScripts = false;
 
-            component.onAction('approve');
+            await component.onAction('approve');
 
             expect(mockFormContext.execute).not.toHaveBeenCalled();
         });
 
-        it('does not emit when a runtime action returns false', () => {
+        it('does not emit when a runtime action returns false', async () => {
             fixture.detectChanges();
 
             const runtimeAction = jasmine.createSpy('runtimeAction').and.returnValue(false);
@@ -328,9 +332,35 @@ describe('VfRenderer', () => {
             let emitted: any;
             component.formAction.subscribe((d: unknown) => emitted = d);
 
-            component.onAction('approve');
+            await component.onAction('approve');
 
-            expect(runtimeAction).toHaveBeenCalledWith(mockFormContext as any);
+            expect(runtimeAction).toHaveBeenCalledWith(mockFormContext as any, {
+                action: 'approve',
+                label: 'Approve',
+                source: 'custom'
+            });
+            expect(emitted).toBeUndefined();
+        });
+
+        it('waits for async runtime actions before emitting to the host', async () => {
+            fixture.detectChanges();
+
+            const runtimeAction = jasmine.createSpy('runtimeAction').and.returnValue(Promise.resolve(false));
+            (mockFormContext as any).actionsConfig.set({
+                submit: { label: 'Submit', visible: true, type: 'primary' },
+                decline: { label: 'Decline', visible: true, runtimeAction }
+            });
+
+            let emitted: any;
+            component.formAction.subscribe((d: unknown) => emitted = d);
+
+            await component.onAction('decline');
+
+            expect(runtimeAction).toHaveBeenCalledWith(mockFormContext as any, {
+                action: 'decline',
+                label: 'Decline',
+                source: 'custom'
+            });
             expect(emitted).toBeUndefined();
         });
     });
@@ -422,6 +452,13 @@ describe('VfRenderer', () => {
             expect(component.isValidRegex('f', '[0-9]+', '')).toBeTrue();
         });
 
+        it('resolves built-in regex presets such as Url', () => {
+            component.formData['website'] = 'example.com/path';
+            expect(component.isValidRegex('website', 'Url')).toBeTrue();
+            component.formData['website'] = 'not a valid address';
+            expect(component.isValidRegex('website', 'Url')).toBeFalse();
+        });
+
         it('should return true when value matches regex', () => {
             component.formData['phone'] = '12345';
             expect(component.isValidRegex('phone', '^[0-9]+$')).toBeTrue();
@@ -430,6 +467,32 @@ describe('VfRenderer', () => {
         it('should return false when value does not match regex', () => {
             component.formData['phone'] = 'abc';
             expect(component.isValidRegex('phone', '^[0-9]+$')).toBeFalse();
+        });
+    });
+
+    describe('readonly preset links', () => {
+        it('does not add a blocking readonly overlay for readonly url preset fields', () => {
+            const readonlySignal = signal(true);
+            mockFormContext.getFieldSignal.and.callFake((fieldname: string, prop: string) => {
+                if (fieldname === 'website' && prop === 'read_only') return readonlySignal;
+                return signal(false);
+            });
+
+            component.document = {
+                name: 'Readonly Links',
+                sections: [{
+                    id: 's1',
+                    columns: [{
+                        id: 'c1',
+                        fields: [
+                            { id: 'f1', fieldtype: 'Data', fieldname: 'website', label: 'Website', regex: 'Url', read_only: true }
+                        ]
+                    }]
+                }]
+            };
+            component.formData = { website: 'example.com' };
+
+            expect(component.shouldShowReadonlyOverlay(component.document.sections[0].columns[0].fields[0])).toBeFalse();
         });
     });
 
