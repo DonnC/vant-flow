@@ -3,26 +3,26 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "kai-ng-flow": {
+    "vant-flow-demo": {
       "projectType": "application",
       "schematics": {},
-      "root": "examples/kai-ng-flow",
-      "sourceRoot": "examples/kai-ng-flow/src",
+      "root": "examples/vant-flow-demo",
+      "sourceRoot": "examples/vant-flow-demo/src",
       "prefix": "app",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/kai-ng-flow",
-            "index": "examples/kai-ng-flow/src/index.html",
-            "browser": "examples/kai-ng-flow/src/main.ts",
+            "outputPath": "dist/vant-flow-demo",
+            "index": "examples/vant-flow-demo/src/index.html",
+            "browser": "examples/vant-flow-demo/src/main.ts",
             "polyfills": [
               "zone.js"
             ],
-            "tsConfig": "examples/kai-ng-flow/tsconfig.app.json",
+            "tsConfig": "examples/vant-flow-demo/tsconfig.app.json",
             "assets": [
-              "examples/kai-ng-flow/src/favicon.ico",
-              "examples/kai-ng-flow/src/assets",
+              "examples/vant-flow-demo/src/favicon.ico",
+              "examples/vant-flow-demo/src/assets",
               {
                 "glob": "**/*",
                 "input": "node_modules/monaco-editor/min",
@@ -30,7 +30,7 @@
               }
             ],
             "styles": [
-              "examples/kai-ng-flow/src/styles.css",
+              "examples/vant-flow-demo/src/styles.css",
               "node_modules/quill/dist/quill.snow.css"
             ],
             "scripts": []
@@ -63,10 +63,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "kai-ng-flow:build:production"
+                "buildTarget": "vant-flow-demo:build:production"
             },
             "development": {
-              "buildTarget": "kai-ng-flow:build:development"
+                "buildTarget": "vant-flow-demo:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -74,7 +74,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "buildTarget": "kai-ng-flow:build"
+            "buildTarget": "vant-flow-demo:build"
           }
         },
         "test": {
@@ -84,10 +84,10 @@
               "zone.js",
               "zone.js/testing"
             ],
-            "tsConfig": "examples/kai-ng-flow/tsconfig.spec.json",
+            "tsConfig": "examples/vant-flow-demo/tsconfig.spec.json",
             "assets": [
-              "examples/kai-ng-flow/src/favicon.ico",
-              "examples/kai-ng-flow/src/assets",
+              "examples/vant-flow-demo/src/favicon.ico",
+              "examples/vant-flow-demo/src/assets",
               {
                 "glob": "**/*",
                 "input": "node_modules/monaco-editor",
@@ -95,7 +95,7 @@
               }
             ],
             "styles": [
-              "examples/kai-ng-flow/src/styles.css"
+              "examples/vant-flow-demo/src/styles.css"
             ],
             "scripts": []
           }

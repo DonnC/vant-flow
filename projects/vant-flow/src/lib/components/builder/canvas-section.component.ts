@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { DragDropModule } from '@angular/cdk/drag-drop';
 import { DocumentSection } from '../../models/document.model';
 import { VfBuilderState } from '../../services/builder-state.service';
+import { VfUtilityService } from '../../services/app-utility.service';
 import { VfCanvasColumn } from './canvas-column.component';
 import { VfUiPrimitivesModule } from '../../ui/ui-primitives.module';
 import { VfIconButton } from '../shared/icon-button.component';
@@ -75,6 +76,7 @@ export class VfCanvasSection {
   @Input() allColumnIds: string[] = [];
 
   private state = inject(VfBuilderState);
+  private utils = inject(VfUtilityService);
   editing = signal(false);
   editValue = '';
 
@@ -97,7 +99,18 @@ export class VfCanvasSection {
   }
 
   addColumn() { this.state.addColumn(this.section.id); }
-  removeSection() { this.state.removeSection(this.section.id); }
+  removeSection() {
+    const fieldCount = this.section.columns.reduce((count, column) => count + column.fields.length, 0);
+    if (fieldCount === 0) {
+      this.state.removeSection(this.section.id);
+      return;
+    }
+
+    this.utils.confirm(
+      `This section contains ${fieldCount} field${fieldCount === 1 ? '' : 's'}. Deleting it will permanently remove them from the form.`,
+      () => this.state.removeSection(this.section.id)
+    );
+  }
 
   getConnectedLists() {
     return ['palette-list', ...this.allColumnIds];

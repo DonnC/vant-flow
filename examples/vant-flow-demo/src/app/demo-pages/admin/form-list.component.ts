@@ -80,7 +80,7 @@ import { DemoMediaService, DemoUploadedReferenceFile } from '../../core/services
                     </span>
                   }
                 </div>
-                <p class="text-[11px] text-zinc-400 line-clamp-2 mb-6 h-8 leading-snug">{{ form.schema.description || 'No description provided.' }}</p>
+                <p class="text-[11px] text-zinc-400 line-clamp-2 mb-6 leading-snug min-h-[2.5rem]">{{ form.schema.description || 'No description provided.' }}</p>
 
                 <div class="flex items-center justify-between pt-6 border-t border-zinc-50">
                    <div class="flex flex-col">

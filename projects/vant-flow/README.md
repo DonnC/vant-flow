@@ -171,6 +171,14 @@ frm.set_df_property('items_table', 'options', '.pdf,.jpg', 'attachment_col');
 frm.set_df_property('items_table', 'hidden', true, 'rate_col');
 ```
 
+### Regex Presets And Action Gating
+
+`Data` fields can keep using raw regular expressions, but common presets now work too. Set `regex` to values like `Email`, `Url`, `Phone`, `Slug`, or `Alphanumeric`.
+
+- `Url` values render with an "Open ..." helper link in editable and readonly experiences.
+- `Email` values render with a mailto helper link.
+- Button actions can now `await frm.prompt(...)` inside `frm.add_custom_button(...)` or `frm.set_button_action(...)` and return `false` to stop host emission when validation or a reason prompt fails.
+
 ### Link Field Data Sources
 
 `Link` fields can now behave like Frappe-style autocomplete lookups backed by a remote endpoint. Unlike `Select`, a `Link` field stores the full selected object in form data.

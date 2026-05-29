@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { DragDropModule, CdkDropList, CdkDrag, CdkDragDrop, transferArrayItem, moveItemInArray } from '@angular/cdk/drag-drop';
 import { DocumentField, FieldType, DocumentColumn, DocumentSection } from '../../models/document.model';
 import { VfBuilderState } from '../../services/builder-state.service';
+import { VfUtilityService } from '../../services/app-utility.service';
 import { VfIconButton } from '../shared/icon-button.component';
 
 @Component({
@@ -19,6 +20,21 @@ import { VfIconButton } from '../shared/icon-button.component';
       class="min-h-[140px] p-4 flex flex-col gap-3 transition-colors duration-200"
       [ngClass]="{ 'bg-zinc-50/30': !column.fields.length }"
     >
+      <div class="flex items-center justify-between gap-2">
+        <span class="text-[10px] font-bold uppercase tracking-[0.18em] text-zinc-400">
+          Column {{ section.columns.indexOf(column) + 1 }}
+        </span>
+        @if (canRemoveColumn()) {
+          <vf-icon-button
+            (pressed)="removeColumn($event)"
+            tone="danger"
+            [soft]="true"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </vf-icon-button>
+        }
+      </div>
+
       @if (column.fields.length === 0) {
         <div class="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-zinc-200 rounded-xl py-8 px-4 text-center group-hover:border-indigo-200 transition-colors">
           <div class="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center mb-2">
@@ -117,6 +133,7 @@ export class VfCanvasColumn {
   @Input() isLast = false;
 
   private state = inject(VfBuilderState);
+  private utils = inject(VfUtilityService);
 
   isSelected(field: DocumentField) {
     return this.state.selectedFieldId() === field.id;
@@ -130,6 +147,24 @@ export class VfCanvasColumn {
   removeField(e: Event, id: string) {
     e.stopPropagation();
     this.state.removeField(id);
+  }
+
+  canRemoveColumn() {
+    return this.section.columns.length > 1;
+  }
+
+  removeColumn(e?: Event) {
+    e?.stopPropagation();
+    const fieldCount = this.column.fields.length;
+    if (fieldCount === 0) {
+      this.state.removeColumn(this.section.id, this.column.id);
+      return;
+    }
+
+    this.utils.confirm(
+      `This column contains ${fieldCount} field${fieldCount === 1 ? '' : 's'}. Deleting the column will permanently remove those fields.`,
+      () => this.state.removeColumn(this.section.id, this.column.id)
+    );
   }
 
   getButtonClass(style?: string): string {

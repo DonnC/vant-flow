@@ -239,14 +239,46 @@ export class VfBuilderState {
     }
 
     updateSectionColumns(sectionId: string, columns_count: 1 | 2) {
-        this.updateSectionProperty(sectionId, 'columns_count', columns_count);
+        this.document.update(doc => {
+            const updateSections = (sects: DocumentSection[]) => sects.map(section => {
+                if (section.id !== sectionId) return section;
+
+                const columns = [...section.columns];
+                if (columns.length < columns_count) {
+                    while (columns.length < columns_count) {
+                        columns.push({ id: uid(), fields: [] });
+                    }
+                } else if (columns.length > columns_count) {
+                    return {
+                        ...section,
+                        columns_count,
+                        columns: columns.slice(0, columns_count).map(column => ({ ...column, fields: [...column.fields] }))
+                    };
+                }
+
+                return {
+                    ...section,
+                    columns_count,
+                    columns
+                };
+            });
+
+            if (doc.is_stepper && doc.steps) {
+                return { ...doc, steps: doc.steps.map(st => ({ ...st, sections: updateSections(st.sections) })) };
+            }
+            return { ...doc, sections: updateSections(doc.sections) };
+        });
     }
 
     // ── Columns ───────────────────────────────────────────────
     addColumn(sectionId: string) {
         const column = { id: uid(), fields: [] };
         this.document.update(doc => {
-            const updateSections = (sects: DocumentSection[]) => sects.map(s => s.id === sectionId ? { ...s, columns: [...s.columns, column] } : s);
+            const updateSections = (sects: DocumentSection[]) => sects.map(s => s.id === sectionId ? {
+                ...s,
+                columns: [...s.columns, column],
+                columns_count: (s.columns?.length ?? 0) + 1
+            } : s);
             if (doc.is_stepper && doc.steps) {
                 return { ...doc, steps: doc.steps.map(st => ({ ...st, sections: updateSections(st.sections) })) };
             }
@@ -256,7 +288,26 @@ export class VfBuilderState {
 
     removeColumn(sectionId: string, colId: string) {
         this.document.update(doc => {
-            const updateSections = (sects: DocumentSection[]) => sects.map(s => s.id === sectionId ? { ...s, columns: s.columns.filter(c => c.id !== colId) } : s);
+            const updateSections = (sects: DocumentSection[]) => sects.map(section => {
+                if (section.id !== sectionId || section.columns.length <= 1) {
+                    return section;
+                }
+
+                const removedIndex = section.columns.findIndex(column => column.id === colId);
+                if (removedIndex === -1) {
+                    return section;
+                }
+
+                const remainingColumns = section.columns
+                    .filter(column => column.id !== colId)
+                    .map(column => ({ ...column, fields: [...column.fields] }));
+
+                return {
+                    ...section,
+                    columns: remainingColumns,
+                    columns_count: remainingColumns.length
+                };
+            });
             if (doc.is_stepper && doc.steps) {
                 return { ...doc, steps: doc.steps.map(st => ({ ...st, sections: updateSections(st.sections) })) };
             }

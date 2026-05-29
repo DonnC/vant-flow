@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { VfField } from './form-field.component';
 
-describe('VfField Attach Camera Capture', () => {
+describe('VfField', () => {
   let fixture: ComponentFixture<VfField>;
   let component: VfField;
 
@@ -56,5 +56,24 @@ describe('VfField Attach Camera Capture', () => {
     expect(emitted.length).toBe(1);
     expect(emitted[0].name).toBe('captured-photo.jpg');
     expect(emitted[0].type).toBe('image/jpeg');
+  });
+
+  it('renders url preset data fields with a clickable helper link', () => {
+    component.field = {
+      id: 'data_1',
+      fieldname: 'website',
+      fieldtype: 'Data',
+      label: 'Website',
+      regex: 'Url'
+    };
+    component.value = 'example.com';
+
+    fixture.detectChanges();
+
+    const input = fixture.nativeElement.querySelector('input');
+    const anchor = fixture.nativeElement.querySelector('a');
+
+    expect(input?.type).toBe('url');
+    expect(anchor?.getAttribute('href')).toBe('https://example.com');
   });
 });

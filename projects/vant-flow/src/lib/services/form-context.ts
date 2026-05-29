@@ -1,6 +1,6 @@
 import { FormGroup, Validators } from '@angular/forms';
 import { WritableSignal, signal, Injectable } from '@angular/core';
-import { DEFAULT_FORM_ACTIONS, DocumentField, DocumentSection, DocumentDefinition, FormActionButton, FormActionsConfig, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver } from '../models/document.model';
+import { DEFAULT_FORM_ACTIONS, DocumentField, DocumentSection, DocumentDefinition, FormActionButton, FormActionsConfig, VfButtonActionContext, VfLinkDataSource, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver } from '../models/document.model';
 import { VfUtilityService } from './app-utility.service';
 import { VfBuilderState } from './builder-state.service';
 
@@ -17,7 +17,7 @@ export class VfFormContext {
     private formData: any;
 
     public isReadOnly = signal<boolean>(false);
-    public customButtons = signal<{ id: string; label: string; action: Function; type?: string; disable_on_readonly?: boolean }[]>([]);
+    public customButtons = signal<{ id: string; label: string; action: (frm: VfFormContext, context?: VfButtonActionContext) => boolean | void | Promise<boolean | void>; type?: string; disable_on_readonly?: boolean }[]>([]);
     public actionsConfig = signal<FormActionsConfig | undefined>(undefined);
 
     // Stepper state
@@ -117,8 +117,8 @@ export class VfFormContext {
         throw new Error(message);
     }
 
-    prompt(fields: DocumentField[], callback: (values: any) => void, title?: string, read_only: boolean = false) {
-        this.appUtility.prompt(
+    prompt(fields: DocumentField[], callback?: (values: any) => void, title?: string, read_only: boolean = false) {
+        return this.appUtility.prompt(
             fields,
             title,
             read_only,
@@ -129,7 +129,8 @@ export class VfFormContext {
             this.linkRequestObserver,
             this.metadata
         ).then((values: any) => {
-            if (values) callback(values);
+            if (values && callback) callback(values);
+            return values ?? null;
         });
     }
 
@@ -332,7 +333,12 @@ export class VfFormContext {
         return () => s ? (s() as any)[prop] : undefined;
     }
 
-    add_custom_button(label: string, action: Function, type: string = 'secondary', disable_on_readonly: boolean = true) {
+    add_custom_button(
+        label: string,
+        action: (frm: VfFormContext, context?: VfButtonActionContext) => boolean | void | Promise<boolean | void>,
+        type: string = 'secondary',
+        disable_on_readonly: boolean = true
+    ) {
         const id = label.toLowerCase().replace(/\s+/g, '_');
         this.customButtons.update(btns => {
             const existing = btns.findIndex(b => b.id === id);
@@ -411,7 +417,7 @@ export class VfFormContext {
         this.appUtility.unfreeze();
     }
 
-    set_button_action(id: string, action: (frm: VfFormContext) => void) {
+    set_button_action(id: string, action: (frm: VfFormContext, context?: VfButtonActionContext) => boolean | void | Promise<boolean | void>) {
         const config: FormActionsConfig = { submit: { ...DEFAULT_FORM_ACTIONS.submit! }, ...(this.actionsConfig() || {}) };
         const key = id.toLowerCase() as keyof FormActionsConfig;
         config[key] = { ...(config[key] || { label: id, visible: true }), runtimeAction: action };

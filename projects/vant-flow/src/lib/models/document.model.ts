@@ -161,7 +161,7 @@ export interface FormActionButton {
   type?: string;
   action?: string; // Custom script event to trigger
   disable_on_readonly?: boolean;
-  runtimeAction?: (frm: VfFormContext) => void;
+  runtimeAction?: (frm: VfFormContext, context?: VfButtonActionContext) => boolean | void | Promise<boolean | void>;
 }
 
 export interface FormActionsConfig {
@@ -178,6 +178,12 @@ export interface VfRendererButtonEvent {
   data: any;
   rawData: Record<string, any>;
   frm: VfFormContext;
+  source: 'default' | 'custom';
+}
+
+export interface VfButtonActionContext {
+  action: string;
+  label: string;
   source: 'default' | 'custom';
 }
 

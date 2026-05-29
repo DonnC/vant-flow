@@ -1,8 +1,8 @@
 {
-  "name": "README Demo - Field Service Work Order",
+  "name": "Field Service Work Order",
   "module": "Operations",
   "version": "1.0.0",
-  "description": "Purpose-built showcase schema for the README and short product demo video. Demonstrates stepper flow, Link lookups, metadata-aware scripts, Attach, Signature, conditional logic, and table calculations in a compact real-world workflow.",
+  "description": "Purpose-built showcase demonstrating vant's compact real-world workflow.",
   "is_stepper": true,
   "intro_text": "Capture dispatch, diagnostics, proof of work, and customer sign-off in one guided flow.",
   "intro_color": "blue",

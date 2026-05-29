@@ -24,7 +24,7 @@ Treat Vant Flow as one schema-driven platform with four cooperating layers:
 - `projects/vant-flow/src/lib/models/document.model.ts` defines the schema and runtime contracts.
 - `projects/vant-flow/src/lib/components/builder/*` and `services/builder-state.service.ts` author that schema.
 - `projects/vant-flow/src/lib/components/form-renderer/*`, `form-field.component.ts`, and `services/form-context.ts` execute that schema.
-- `examples/kai-ng-flow/*` demonstrates real host usage, preview flows, AI scaffolding, and persistence patterns.
+- `examples/vant-flow-demo/*` demonstrates real host usage, preview flows, AI scaffolding, and persistence patterns.
 
 Prefer changes that preserve that separation. Do not bury host-owned concerns inside the schema layer when they belong to renderer inputs or host callbacks.
 
