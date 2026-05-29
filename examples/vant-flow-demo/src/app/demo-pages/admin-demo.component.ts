@@ -107,7 +107,7 @@ import { DemoMediaService } from '../core/services/demo-media.service';
               </div>
             </div>
           } @else {
-            <div class="h-full overflow-y-auto bg-zinc-50 p-10 animate-in fade-in duration-500">
+            <div class="h-full overflow-y-auto bg-zinc-50 p-10 animate-in fade-in duration-500 text-zinc-900 selection:bg-indigo-500/20">
                <div class="max-w-4xl mx-auto py-10">
                   @if (aiSummary() || aiAssumptions().length) {
                     <div class="mb-8 rounded-3xl border border-amber-200 bg-white shadow-sm overflow-hidden">
@@ -143,14 +143,28 @@ import { DemoMediaService } from '../core/services/demo-media.service';
                   <div class="mb-8 rounded-2xl border border-sky-200 bg-white shadow-sm overflow-hidden">
                     <div class="px-5 py-4 border-b border-sky-100 bg-sky-50/80 flex items-start justify-between gap-4">
                       <div>
-                        <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700">Test frm.metadata</p>
-                        <p class="text-xs text-sky-900/80 mt-1">Use this JSON to feed <code>frm.metadata</code> in preview so client scripts that depend on metadata can run properly. It stays client-side and is never saved with the builder schema.</p>
+                        <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700">Renderer Controls</p>
+                        <p class="text-xs text-sky-900/80 mt-1">Toggle native PDF support and the section navigator for this preview.</p>
                       </div>
-                      <span class="px-2 py-1 rounded-full border border-sky-200 bg-white text-[10px] font-bold uppercase tracking-widest text-sky-700">Not Saved</span>
+                      <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2 border-l border-sky-200 pl-4">
+                           <span class="text-[10px] font-bold text-sky-700 uppercase tracking-widest">Navigator</span>
+                           <button type="button" (click)="showSectionNavigator = !showSectionNavigator"
+                            class="relative w-8 h-4 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0"
+                            [class.bg-sky-600]="showSectionNavigator" [class.bg-zinc-200]="!showSectionNavigator">
+                            <span class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow-sm transition-transform duration-200"
+                              [class.translate-x-4]="showSectionNavigator"></span>
+                          </button>
+                        </div>
+                      </div>
                     </div>
                     <div class="p-5 space-y-3">
+                      <div class="flex items-center justify-between gap-4 mb-2">
+                         <p class="text-[11px] font-bold uppercase tracking-[0.22em] text-sky-700 opacity-60">Test frm.metadata</p>
+                         <span class="px-2 py-1 rounded-full border border-sky-200 bg-white text-[9px] font-bold uppercase tracking-widest text-sky-700">Runtime JSON</span>
+                      </div>
                       <textarea
-                        class="w-full min-h-44 rounded-xl border bg-zinc-950 text-emerald-300 font-mono text-[11px] leading-relaxed p-4 outline-none transition-all"
+                        class="w-full min-h-32 rounded-xl border bg-zinc-950 text-emerald-300 font-mono text-[11px] leading-relaxed p-4 outline-none transition-all"
                         [class.border-red-300]="metadataError"
                         [class.focus:border-red-400]="metadataError"
                         [class.border-zinc-800]="!metadataError"
@@ -163,15 +177,16 @@ import { DemoMediaService } from '../core/services/demo-media.service';
                         <div class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">
                           {{ metadataError }}
                         </div>
-                      } @else {
-                        <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-xs text-emerald-700">
-                          Preview is currently using the JSON above as runtime metadata.
-                        </div>
                       }
                     </div>
                   </div>
 
-                  <vf-renderer [document]="schema()" [metadata]="runtimeMetadata" [mediaHandler]="demoMedia.mediaHandler"></vf-renderer>
+                  <vf-renderer
+                    [document]="schema()"
+                    [metadata]="runtimeMetadata"
+                    [mediaHandler]="demoMedia.mediaHandler"
+                    [showSectionNavigator]="showSectionNavigator">
+                  </vf-renderer>
                </div>
             </div>
           }
@@ -191,6 +206,8 @@ export class AdminDemoComponent implements OnInit {
 
   formId: string | null = null;
   activeTab: 'builder' | 'renderer' = 'builder';
+  showSectionNavigator = true;
+
   schema = signal<DocumentDefinition>({
     name: 'Untitled Form',
     description: '',

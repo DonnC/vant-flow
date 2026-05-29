@@ -103,7 +103,6 @@ export class VfFormContext {
         this.dynamicIntro.set({ message, color });
     }
 
-
     msgprint(message: string, indicator: any = 'info') {
         this.appUtility.show_alert(message, indicator);
     }
@@ -115,6 +114,10 @@ export class VfFormContext {
     throw(message: string) {
         this.appUtility.show_alert(message, 'error');
         throw new Error(message);
+    }
+
+    print() {
+        this.trigger('print');
     }
 
     prompt(fields: DocumentField[], callback?: (values: any) => void, title?: string, read_only: boolean = false) {

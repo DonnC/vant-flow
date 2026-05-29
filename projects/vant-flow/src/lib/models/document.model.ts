@@ -208,6 +208,7 @@ export interface DocumentDefinition {
   description?: string;
   version?: string;
   is_stepper?: boolean;
+  show_section_navigator?: boolean;
   intro_text?: string;
   intro_color?: 'blue' | 'orange' | 'red' | 'gray';
   sections: DocumentSection[]; // Sections for legacy/flat forms
