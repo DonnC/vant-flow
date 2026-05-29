@@ -1,106 +1,58 @@
-# Vant Flow Documentation
+# Vant Flow — Documentation
 
-This folder documents how `vant-flow` works from the code that exists in this repository today.
+This index is organized by what you are trying to do. Pick your path.
 
-## Documents
+---
 
-- [Architecture Overview](./architecture-overview.md)
-- [Builder Architecture](./builder-architecture.md)
-- [Renderer Architecture](./renderer-architecture.md)
-- [MCP Architecture](./mcp-architecture.md)
-- [Example Showcase Architecture](./example-showcase-architecture.md)
-- [Business Use Cases](./business-use-cases.md)
+## I want to use the library in my app
 
-## Scope
+1. **[README → Quick Start](../../README.md#quick-start)** — install, register, render your first form in 5 minutes
+2. **[README → Core Concepts](../../README.md#core-concepts)** — understand `DocumentDefinition`, the `frm` API, and host inputs
+3. **[Renderer Architecture](renderer-architecture.md)** — deep reference for all renderer inputs, outputs, and hook points
+4. **[Business Use Cases](business-use-cases.md)** — real-world patterns: approvals, KYC, inspections, work orders
 
-These docs cover:
+**Sample schemas to import and experiment with:**
 
-- The core library in `projects/vant-flow`
-- The MCP server in `projects/vant-mcp`
-- The example implementation in `examples/vant-flow-demo`
-- The AI-assisted and storage-backed workflows demonstrated in the repo
+- [`field-service-work-order.json`](../examples/field-service-work-order.json)
+- [`example-stepper-onboarding.json`](../examples/example-stepper-onboarding.json)
+- [`inspection-report.json`](../examples/inspection-report.json)
+- [`example-signature-attach.json`](../examples/example-signature-attach.json)
 
-## Core Idea
+---
 
-Vant Flow separates form delivery into two layers:
+## I want to understand how it is built
 
-1. A schema-driven builder that produces a `DocumentDefinition`
-2. A renderer that executes that document, form state, validation rules, and client scripts at runtime
+1. **[Architecture Overview](architecture-overview.md)** — the full platform: library, renderer, builder, frm context, MCP
+2. **[Renderer Architecture](renderer-architecture.md)** — how the renderer evaluates schema, scripts, and host inputs
+3. **[Builder Architecture](builder-architecture.md)** — how the visual builder works and how schemas are authored
+4. **[Example Showcase Architecture](example-showcase-architecture.md)** — how the reference app is structured
+5. **[MCP Architecture](mcp-architecture.md)** — how the MCP server exposes Vant Flow to AI agents
 
-That split is what gives developers freedom:
+---
 
-- Ship the renderer once and update forms from data
-- Change layout, fields, step flows, and actions without redeploying UI code
-- Keep business behavior dynamic through client scripts and injected metadata
-- Reuse one rendering engine across very different business processes
+## I want to contribute
 
-## Form Script Button Actions
-Solid real use cases
+1. **[CONTRIBUTING.md](../../CONTRIBUTING.md)** — setup, repo orientation, PR checklist, commit conventions
+2. **[Architecture Overview](architecture-overview.md)** — understand the full system before diving into code
+3. **[Builder Architecture](builder-architecture.md)** or **[Renderer Architecture](renderer-architecture.md)** — dive into the area you are working on
 
-1. `Decline` requires a comment first  
-The host app owns the real decline action, but the script blocks it until `comment` has a value.
-```js
-frm.set_button_action('decline', async (frm) => {
-  if (frm.get_value('comment')) return true;
-  frm.msgprint('Please add a comment before declining.', 'warning');
-  return false;
-});
-```
+---
 
-2. `Decline` opens a reason prompt, then allows host submission  
-Useful when you don’t want the reason field always visible on the form.
-```js
-frm.set_button_action('decline', async (frm) => {
-  const vals = await frm.prompt([
-    { label: 'Reason', fieldname: 'reason', fieldtype: 'Text', mandatory: 1 }
-  ], undefined, 'Decline Reason');
+## I want to integrate AI or MCP tooling
 
-  if (!vals?.reason) return false;
-  frm.set_value('comment', vals.reason);
-  return true;
-});
-```
+1. **[MCP Architecture](mcp-architecture.md)** — how the MCP server is structured and how to add tools
+2. **[Architecture Overview](architecture-overview.md)** — how `vant-mcp` sits alongside the library
+3. **[Example Showcase Architecture](example-showcase-architecture.md)** — how the demo proxy connects AI to the builder
 
-3. `Approve` only works when another field is valid  
-Example: supervisor code or checklist must be completed first.
-```js
-frm.set_button_action('approve', (frm) => {
-  if (!frm.get_value('supervisor_code')) {
-    frm.msgprint('Supervisor code is required before approval.', 'error');
-    return false;
-  }
-  return true;
-});
-```
+---
 
-4. Host-defined custom button with script-side gate  
-If the host listens for a custom button like `Escalate`, script can still intercept first.
-```js
-frm.add_custom_button('Escalate', async (frm) => {
-  if (!frm.validate()) return false;
+## All documents
 
-  const vals = await frm.prompt([
-    { label: 'Escalation Note', fieldname: 'note', fieldtype: 'Text', mandatory: 1 }
-  ], undefined, 'Escalation');
-
-  if (!vals?.note) return false;
-  frm.set_value('escalation_note', vals.note);
-  return true;
-}, 'danger');
-```
-
-5. Confirmation before irreversible host action  
-Good for actions like cancel, archive, write-off, blacklist.
-```js
-frm.set_button_action('submit', async (frm) => {
-  if (frm.get_value('status') !== 'Write Off') return true;
-
-  return await new Promise((resolve) => {
-    frm.confirm(
-      'This will mark the record as written off. Continue?',
-      () => resolve(true),
-      () => resolve(false)
-    );
-  });
-});
-```
+| Document | Description |
+|---|---|
+| [Architecture Overview](architecture-overview.md) | Full platform architecture |
+| [Builder Architecture](builder-architecture.md) | Visual schema builder internals |
+| [Renderer Architecture](renderer-architecture.md) | Runtime renderer, inputs, hooks, and scripting |
+| [MCP Architecture](mcp-architecture.md) | AI/MCP server tooling |
+| [Example Showcase Architecture](example-showcase-architecture.md) | Reference application structure |
+| [Business Use Cases](business-use-cases.md) | Real-world pattern reference |
