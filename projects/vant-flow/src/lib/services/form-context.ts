@@ -457,7 +457,36 @@ export class VfFormContext {
         return this.formData[fieldname];
     }
 
-    has_field(fieldname: string, child_fieldname?: string): boolean {
+    has_field(
+        fieldname: string,
+        child_fieldname?: string
+    ): boolean;
+    has_field(
+        fields: Array<string | { field: string; child?: string }>,
+        options?: { mode?: 'all' | 'any' }
+    ): boolean;
+    has_field(
+        fieldnameOrFields: string | Array<string | { field: string; child?: string }>,
+        childOrOptions?: string | { mode?: 'all' | 'any' }
+    ): boolean {
+        if (Array.isArray(fieldnameOrFields)) {
+            const checks = fieldnameOrFields.map(entry => {
+                if (typeof entry === 'string') {
+                    return this.hasSingleField(entry);
+                }
+                return this.hasSingleField(entry.field, entry.child);
+            });
+
+            const mode = childOrOptions && typeof childOrOptions === 'object' ? childOrOptions.mode ?? 'all' : 'all';
+            return mode === 'any'
+                ? checks.some(Boolean)
+                : checks.every(Boolean);
+        }
+
+        return this.hasSingleField(fieldnameOrFields, typeof childOrOptions === 'string' ? childOrOptions : undefined);
+    }
+
+    private hasSingleField(fieldname: string, child_fieldname?: string): boolean {
         const fieldSignal = this.fieldSignals.get(fieldname);
         if (!fieldSignal) {
             return false;

@@ -12,7 +12,7 @@ const FRM_METHOD_COMPLETIONS = [
   { label: 'validate_step', insertText: 'validate_step()', documentation: 'Run current step validation.' },
   { label: 'set_value', insertText: "set_value('${1:fieldname}', ${2:value})", documentation: 'Set a field value.' },
   { label: 'get_value', insertText: "get_value('${1:fieldname}')", documentation: 'Read a field value.' },
-  { label: 'has_field', insertText: "has_field('${1:fieldname}')", documentation: 'Check whether a field exists. Optionally check a table child column via the second argument.' },
+  { label: 'has_field', insertText: "has_field('${1:fieldname}')", documentation: 'Check whether a field exists. Also supports arrays with { mode: \"all\" | \"any\" }.' },
   { label: 'set_df_property', insertText: "set_df_property('${1:fieldname}', '${2:read_only}', ${3:true})", documentation: 'Change runtime field properties.' },
   { label: 'set_filter', insertText: "set_filter('${1:fieldname}', { ${2:key}: ${3:value} })", documentation: 'Replace a Link field filter set.' },
   { label: 'refresh_link', insertText: "refresh_link('${1:fieldname}')", documentation: 'Force a Link field to reload.' },
@@ -176,6 +176,7 @@ export class VfScriptEditor {
         { label: 'frm.set_value', code: "frm.set_value('fieldname', 'value');" },
         { label: 'frm.get_value', code: "const val = frm.get_value('fieldname');" },
         { label: 'frm.has_field', code: "if (frm.has_field('comment')) {\n  frm.set_df_property('comment', 'reqd', 1);\n}" },
+        { label: 'frm.has_field (Many)', code: "if (frm.has_field(['comment', { field: 'items', child: 'reason' }], { mode: 'any' })) {\n  frm.msgprint('At least one reason surface exists');\n}" },
         { label: 'frm.set_readonly', code: "frm.set_readonly(true);" },
         { label: 'frm.set_df_property', code: "frm.set_df_property('fieldname', 'read_only', 1);" },
         { label: 'frm.set_df_property (Bulk)', code: "frm.set_df_property(['reviewer', 'manager', 'finance'], 'read_only', 1);" },
@@ -249,6 +250,11 @@ export class VfScriptEditor {
         };
       }
 
+      declare interface VfFieldQuery {
+        field: string;
+        child?: string;
+      }
+
       declare interface VfButtonActionContext {
         action: string;
         label: string;
@@ -264,6 +270,8 @@ export class VfScriptEditor {
         get_value(fieldname: string): any;
         /** Check whether a field exists, or whether a table child column exists */
         has_field(fieldname: string, child_fieldname?: string): boolean;
+        /** Check many field references at once. mode defaults to 'all'. */
+        has_field(fields: Array<string | VfFieldQuery>, options?: { mode?: 'all' | 'any' }): boolean;
         /** Set a property of one field or many fields (hidden, read_only, mandatory/reqd, etc.) */
         set_df_property(fieldname: string | string[], prop: 'hidden' | 'read_only' | 'mandatory' | 'reqd' | 'label' | 'options' | 'link_config', val: any, child_fieldname?: string): void;
         /** Set or replace filters for a Link field data source */

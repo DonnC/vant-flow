@@ -434,5 +434,10 @@ describe('VfFormContext', () => {
     expect(context.has_field('items', 'reason')).toBeTrue();
     expect(context.has_field('items', 'missing_reason')).toBeFalse();
     expect(context.has_field('comment', 'reason')).toBeFalse();
+    expect(context.has_field(['comment', 'items'])).toBeTrue();
+    expect(context.has_field(['comment', 'missing_comment'])).toBeFalse();
+    expect(context.has_field(['comment', 'missing_comment'], { mode: 'any' })).toBeTrue();
+    expect(context.has_field([{ field: 'items', child: 'reason' }, 'comment'])).toBeTrue();
+    expect(context.has_field([{ field: 'items', child: 'missing_reason' }, 'missing_comment'], { mode: 'any' })).toBeFalse();
   });
 });
