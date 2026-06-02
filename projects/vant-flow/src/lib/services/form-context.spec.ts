@@ -403,4 +403,36 @@ describe('VfFormContext', () => {
     expect(appUtility.prompt).toHaveBeenCalled();
     expect(values).toEqual({ reason: 'Insufficient documents' });
   });
+
+  it('checks whether a field or table child column exists', () => {
+    const document: DocumentDefinition = {
+      name: 'Exists Form',
+      sections: [{
+        id: 'section_1',
+        columns: [{
+          id: 'column_1',
+          fields: [
+            { id: 'field_1', fieldname: 'comment', fieldtype: 'Text', label: 'Comment' },
+            {
+              id: 'field_2',
+              fieldname: 'items',
+              fieldtype: 'Table',
+              label: 'Items',
+              table_fields: [
+                { id: 'col_1', fieldname: 'reason', fieldtype: 'Data', label: 'Reason' }
+              ]
+            }
+          ]
+        }]
+      }]
+    };
+
+    context.initialize(document, formData);
+
+    expect(context.has_field('comment')).toBeTrue();
+    expect(context.has_field('missing_comment')).toBeFalse();
+    expect(context.has_field('items', 'reason')).toBeTrue();
+    expect(context.has_field('items', 'missing_reason')).toBeFalse();
+    expect(context.has_field('comment', 'reason')).toBeFalse();
+  });
 });

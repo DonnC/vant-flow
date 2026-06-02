@@ -457,6 +457,24 @@ export class VfFormContext {
         return this.formData[fieldname];
     }
 
+    has_field(fieldname: string, child_fieldname?: string): boolean {
+        const fieldSignal = this.fieldSignals.get(fieldname);
+        if (!fieldSignal) {
+            return false;
+        }
+
+        if (!child_fieldname) {
+            return true;
+        }
+
+        const field = fieldSignal();
+        if (field.fieldtype !== 'Table' || !field.table_fields?.length) {
+            return false;
+        }
+
+        return field.table_fields.some(column => column.fieldname === child_fieldname);
+    }
+
     set_value(fieldnameOrObj: string | Record<string, any>, value?: any) {
         if (typeof fieldnameOrObj === 'object' && fieldnameOrObj !== null) {
             Object.entries(fieldnameOrObj).forEach(([fieldname, val]) => {

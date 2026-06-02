@@ -6,6 +6,40 @@ import { VfBuilderState } from '../../services/builder-state.service';
 import { VfUiPrimitivesModule } from '../../ui/ui-primitives.module';
 import { VfEyebrow } from '../shared/eyebrow.component';
 
+const FRM_METHOD_COMPLETIONS = [
+  { label: 'on', insertText: "on('${1:event}', (${2:val}, ${3:frm}) => {\n  $0\n})", documentation: 'Listen to field or form events.' },
+  { label: 'validate', insertText: 'validate()', documentation: 'Run full-form validation.' },
+  { label: 'validate_step', insertText: 'validate_step()', documentation: 'Run current step validation.' },
+  { label: 'set_value', insertText: "set_value('${1:fieldname}', ${2:value})", documentation: 'Set a field value.' },
+  { label: 'get_value', insertText: "get_value('${1:fieldname}')", documentation: 'Read a field value.' },
+  { label: 'has_field', insertText: "has_field('${1:fieldname}')", documentation: 'Check whether a field exists. Optionally check a table child column via the second argument.' },
+  { label: 'set_df_property', insertText: "set_df_property('${1:fieldname}', '${2:read_only}', ${3:true})", documentation: 'Change runtime field properties.' },
+  { label: 'set_filter', insertText: "set_filter('${1:fieldname}', { ${2:key}: ${3:value} })", documentation: 'Replace a Link field filter set.' },
+  { label: 'refresh_link', insertText: "refresh_link('${1:fieldname}')", documentation: 'Force a Link field to reload.' },
+  { label: 'set_section_property', insertText: "set_section_property('${1:sectionId}', '${2:hidden}', ${3:true})", documentation: 'Change section runtime properties.' },
+  { label: 'set_intro', insertText: "set_intro('${1:message}', '${2:blue}')", documentation: 'Show a top intro banner.' },
+  { label: 'msgprint', insertText: "msgprint('${1:message}', '${2:info}')", documentation: 'Show a toast message.' },
+  { label: 'confirm', insertText: "confirm('${1:message}', () => {\n  $0\n})", documentation: 'Show a confirm dialog.' },
+  { label: 'prompt', insertText: "prompt([\n  { label: '${1:Reason}', fieldname: '${2:reason}', fieldtype: 'Data', mandatory: 1 }\n], undefined, '${3:Provide Reason}')", documentation: 'Show a prompt dialog and resolve entered values.' },
+  { label: 'throw', insertText: "throw('${1:message}')", documentation: 'Show an error and stop execution.' },
+  { label: 'set_readonly', insertText: 'set_readonly(true)', documentation: 'Toggle whole-form readonly mode.' },
+  { label: 'add_custom_button', insertText: "add_custom_button('${1:Label}', async (frm) => {\n  $0\n}, '${2:primary}')", documentation: 'Add a custom action button to the renderer header.' },
+  { label: 'clear_custom_buttons', insertText: 'clear_custom_buttons()', documentation: 'Remove all custom buttons.' },
+  { label: 'set_button_label', insertText: "set_button_label('${1:submit}', '${2:New Label}')", documentation: 'Change a default button label.' },
+  { label: 'set_button_action', insertText: "set_button_action('${1:decline}', async (frm) => {\n  $0\n})", documentation: 'Override a default action button handler.' },
+  { label: 'set_button_property', insertText: "set_button_property('${1:submit}', '${2:visible}', ${3:false})", documentation: 'Change default action button properties.' },
+  { label: 'call', insertText: "call({\n  method: '${1:my_method}',\n  args: { ${2:key}: ${3:value} }\n})", documentation: 'Call a host/backend method.' },
+  { label: 'reset', insertText: 'reset()', documentation: 'Reset the form to defaults.' },
+  { label: 'add_row', insertText: "add_row('${1:tableFieldname}', { ${2:key}: ${3:value} })", documentation: 'Add a row to a table field.' },
+  { label: 'remove_row', insertText: "remove_row('${1:tableFieldname}', ${2:index})", documentation: 'Remove a table row.' },
+  { label: 'next_step', insertText: 'next_step()', documentation: 'Go to the next visible step.' },
+  { label: 'prev_step', insertText: 'prev_step()', documentation: 'Go to the previous visible step.' },
+  { label: 'go_to_step', insertText: "go_to_step('${1:step_id}')", documentation: 'Jump to a step by id or index.' },
+  { label: 'set_step_hidden', insertText: "set_step_hidden('${1:step_id}', true)", documentation: 'Hide or show a step.' },
+  { label: 'freeze', insertText: "freeze('${1:Loading...}')", documentation: 'Show a global loading overlay.' },
+  { label: 'unfreeze', insertText: 'unfreeze()', documentation: 'Hide the global loading overlay.' }
+] as const;
+
 @Component({
   selector: 'vf-script-editor',
   standalone: true,
@@ -79,6 +113,8 @@ import { VfEyebrow } from '../shared/eyebrow.component';
 export class VfScriptEditor {
   state = inject(VfBuilderState);
   editorInstance: any;
+  private frmCompletionProviderDisposable: { dispose(): void } | null = null;
+  private dtsDisposable: { dispose(): void } | null = null;
 
   insertOnRefresh() {
     this.insertSnippet("frm.on('refresh', (val, frm) => {\n  \n});");
@@ -139,6 +175,7 @@ export class VfScriptEditor {
       items: [
         { label: 'frm.set_value', code: "frm.set_value('fieldname', 'value');" },
         { label: 'frm.get_value', code: "const val = frm.get_value('fieldname');" },
+        { label: 'frm.has_field', code: "if (frm.has_field('comment')) {\n  frm.set_df_property('comment', 'reqd', 1);\n}" },
         { label: 'frm.set_readonly', code: "frm.set_readonly(true);" },
         { label: 'frm.set_df_property', code: "frm.set_df_property('fieldname', 'read_only', 1);" },
         { label: 'frm.set_df_property (Bulk)', code: "frm.set_df_property(['reviewer', 'manager', 'finance'], 'read_only', 1);" },
@@ -225,6 +262,8 @@ export class VfScriptEditor {
         set_value(values: Record<string, any>): void;
         /** Get value of a field */
         get_value(fieldname: string): any;
+        /** Check whether a field exists, or whether a table child column exists */
+        has_field(fieldname: string, child_fieldname?: string): boolean;
         /** Set a property of one field or many fields (hidden, read_only, mandatory/reqd, etc.) */
         set_df_property(fieldname: string | string[], prop: 'hidden' | 'read_only' | 'mandatory' | 'reqd' | 'label' | 'options' | 'link_config', val: any, child_fieldname?: string): void;
         /** Set or replace filters for a Link field data source */
@@ -306,12 +345,40 @@ export class VfScriptEditor {
       noSyntaxValidation: false,
     });
 
+    monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
     monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
       target: monaco.languages.typescript.ScriptTarget.ESNext,
       allowNonTsExtensions: true,
+      checkJs: true,
+      lib: ['esnext', 'dom']
     });
 
-    monaco.languages.typescript.javascriptDefaults.addExtraLib(dts, 'ts:filename/factories.d.ts');
+    this.dtsDisposable?.dispose?.();
+    this.dtsDisposable = monaco.languages.typescript.javascriptDefaults.addExtraLib(dts, 'ts:vant-flow/form-script-api.d.ts');
+
+    this.frmCompletionProviderDisposable?.dispose?.();
+    this.frmCompletionProviderDisposable = monaco.languages.registerCompletionItemProvider('javascript', {
+      triggerCharacters: ['.', "'", '"'],
+      provideCompletionItems: (model: any, position: any) => {
+        const linePrefix = model.getLineContent(position.lineNumber).slice(0, position.column - 1);
+
+        if (!linePrefix.match(/\bfrm\.\w*$/)) {
+          return { suggestions: [] };
+        }
+
+        return {
+          suggestions: FRM_METHOD_COMPLETIONS.map((item, index) => ({
+            label: item.label,
+            kind: monaco.languages.CompletionItemKind.Method,
+            insertText: item.insertText,
+            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
+            documentation: item.documentation,
+            sortText: `000${index}`,
+            range: undefined
+          }))
+        };
+      }
+    });
   }
 
   insertSnippet(code: string) {
