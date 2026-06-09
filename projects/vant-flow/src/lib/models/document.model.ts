@@ -1,6 +1,12 @@
 import type { VfFormContext } from '../services/form-context';
 
-export type FieldType = 'Data' | 'Select' | 'Link' | 'Check' | 'Int' | 'Text' | 'Date' | 'Float' | 'Password' | 'Button' | 'Text Editor' | 'Table' | 'Datetime' | 'Time' | 'Signature' | 'Attach';
+export type FieldType = 'Data' | 'Select' | 'Url' | 'Link' | 'Check' | 'Int' | 'Text' | 'Date' | 'Float' | 'Password' | 'Button' | 'Text Editor' | 'Table' | 'JSONTable' | 'ChildTable' | 'Datetime' | 'Time' | 'Signature' | 'Attach';
+
+export interface VfBaobabFieldConfig {
+  index?: boolean;
+  unique?: boolean;
+  virtual?: boolean;
+}
 
 export interface VfStoredMedia {
   name: string;
@@ -99,12 +105,16 @@ export interface TableColumnDef {
   id: string;
   fieldname: string;
   label: string;
-  fieldtype: Exclude<FieldType, 'Table'>;
+  fieldtype: Exclude<FieldType, 'Table' | 'JSONTable' | 'ChildTable' | 'Button'>;
   mandatory?: boolean;
   hidden?: boolean;
   default?: any;
   options?: string;
   regex?: string;
+  indexed?: boolean;
+  unique?: boolean;
+  virtual?: boolean;
+  baobab?: VfBaobabFieldConfig;
   attach_config?: VfAttachFieldConfig;
 }
 
@@ -117,7 +127,9 @@ export interface DocumentField {
   mandatory?: boolean;
   reqd?: boolean;
   indexed?: boolean;
-  options?: string; // Newline-separated for Select, Link target for Link, button style for Button, content for Markdown
+  unique?: boolean;
+  virtual?: boolean;
+  options?: string; // Newline-separated for Select, target DocType for Link/ChildTable, button style for Button, content for Markdown
   hidden?: boolean;
   read_only?: boolean;
   depends_on?: string; // Visible if expression is truthy
@@ -127,6 +139,7 @@ export interface DocumentField {
   regex?: string; // Regex validator superpower
   table_fields?: TableColumnDef[]; // Only used by Table fieldtype
   data_group?: string; // Optional: nested object path (e.g. "user.profile")
+  baobab?: VfBaobabFieldConfig;
   link_config?: VfLinkFieldConfig;
   attach_config?: VfAttachFieldConfig;
 }
@@ -229,13 +242,16 @@ export interface PaletteItem {
 export const PALETTE_ITEMS: PaletteItem[] = [
   { fieldtype: 'Data', label: 'Data', icon: 'M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7', desc: 'Single line text input' },
   { fieldtype: 'Select', label: 'Select', icon: 'M19 9l-7 7-7-7', desc: 'Dropdown list of options' },
-  { fieldtype: 'Link', label: 'Link', icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101', desc: 'Relational link to another doc' },
+  { fieldtype: 'Url', label: 'Url', icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101', desc: 'Remote lookup field with autocomplete' },
+  { fieldtype: 'Link', label: 'Link', icon: 'M14 3h7v7M10 14L21 3M5 5h6M5 12h4M5 19h14', desc: 'Baobab document relationship field' },
   { fieldtype: 'Check', label: 'Check', icon: 'M5 13l4 4L19 7', desc: 'Boolean toggle / checkbox' },
   { fieldtype: 'Int', label: 'Integer', icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14', desc: 'Whole number input' },
   { fieldtype: 'Float', label: 'Float', icon: 'M9 15l3 3m0 0l3-3m-3 3V10m0 0l3 3m-3-3l-3 3', desc: 'Decimal number input' },
   { fieldtype: 'Text', label: 'Text', icon: 'M4 6h16M4 12h16M4 18h7', desc: 'Multi-line text area' },
   { fieldtype: 'Text Editor', label: 'Text Editor', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z', desc: 'Rich text with formatting' },
   { fieldtype: 'Table', label: 'Table', icon: 'M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', desc: 'Grid of child records' },
+  { fieldtype: 'JSONTable', label: 'JSON Table', icon: 'M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', desc: 'Inline table stored as flexible JSON' },
+  { fieldtype: 'ChildTable', label: 'Child Table', icon: 'M4 6h16M4 12h16M4 18h16M8 4v16M16 4v16', desc: 'Relational child document table' },
   { fieldtype: 'Date', label: 'Date', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', desc: 'Calendar date picker' },
   { fieldtype: 'Datetime', label: 'Datetime', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', desc: 'Date and time selector' },
   { fieldtype: 'Time', label: 'Time', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', desc: 'Time selection only' },

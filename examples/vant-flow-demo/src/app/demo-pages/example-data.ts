@@ -220,7 +220,7 @@ export const LINK_DATASOURCE_EXAMPLE_DOCUMENT: DocumentDefinition = {
     name: 'Voucher Catalog Request',
     module: 'Sales',
     version: '1.0.0',
-    description: 'Example schema showing a Frappe-style Link field backed by a remote data source.',
+    description: 'Example schema showing a Vant Url lookup field backed by a remote data source.',
     sections: [
         {
             id: 'sec_catalog',
@@ -241,7 +241,7 @@ export const LINK_DATASOURCE_EXAMPLE_DOCUMENT: DocumentDefinition = {
                         {
                             id: 'f_item',
                             fieldname: 'item',
-                            fieldtype: 'Link',
+                            fieldtype: 'Url',
                             label: 'Item',
                             mandatory: true,
                             placeholder: 'Search items...',

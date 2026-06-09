@@ -151,7 +151,7 @@ export class VfFormContext {
             if (child_fieldname) {
                 // Target a column within a table
                 s.update(current => {
-                    if (current.fieldtype !== 'Table' || !current.table_fields) return current;
+                    if (!this.isTableField(current.fieldtype) || !current.table_fields) return current;
                     const updatedCols = current.table_fields.map(col => {
                         if (col.fieldname === child_fieldname) {
                             return { ...col, [normalizedProp]: val };
@@ -236,7 +236,7 @@ export class VfFormContext {
     refresh_link(fieldname: string) {
         const tick = this.linkRefreshSignals.get(fieldname);
         if (!tick) {
-            console.warn(`[frm] Unknown link field: ${fieldname}`);
+            console.warn(`[frm] Unknown Url lookup field: ${fieldname}`);
             return;
         }
         tick.update(n => n + 1);
@@ -363,7 +363,7 @@ export class VfFormContext {
         this.document.sections.forEach(s => {
             s.columns.forEach(c => {
                 c.fields.forEach(f => {
-                    if (f.fieldtype === 'Table') {
+                    if (this.isTableField(f.fieldtype)) {
                         this.formData[f.fieldname] = f.default || [];
                     } else if (f.fieldtype === 'Check') {
                         this.formData[f.fieldname] = f.default ? 1 : 0;
@@ -497,7 +497,7 @@ export class VfFormContext {
         }
 
         const field = fieldSignal();
-        if (field.fieldtype !== 'Table' || !field.table_fields?.length) {
+        if (!this.isTableField(field.fieldtype) || !field.table_fields?.length) {
             return false;
         }
 
@@ -568,5 +568,9 @@ export class VfFormContext {
         }
 
         return true;
+    }
+
+    private isTableField(fieldtype: string | undefined): boolean {
+        return fieldtype === 'Table' || fieldtype === 'JSONTable' || fieldtype === 'ChildTable';
     }
 }

@@ -10,7 +10,7 @@ import { VfChoiceGroup, VfChoiceOption } from './shared/choice-group.component';
 import { VfToggleCard } from './shared/toggle-card.component';
 import { VfEyebrow } from '../shared/eyebrow.component';
 
-const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Text', 'Text Editor', 'Table', 'Date', 'Datetime', 'Time', 'Float', 'Password', 'Button', 'Signature', 'Attach'];
+const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Url', 'Link', 'Check', 'Int', 'Text', 'Text Editor', 'Table', 'JSONTable', 'ChildTable', 'Date', 'Datetime', 'Time', 'Float', 'Password', 'Button', 'Signature', 'Attach'];
 
 @Component({
   selector: 'vf-property-editor',
@@ -217,11 +217,13 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
           </select>
         </div>
 
-        <!-- Options (for Select / Attach) -->
-        @if (field()!.fieldtype === 'Select' || field()!.fieldtype === 'Attach') {
+        <!-- Options -->
+        @if (field()!.fieldtype === 'Select' || field()!.fieldtype === 'Attach' || field()!.fieldtype === 'ChildTable' || field()!.fieldtype === 'Link') {
           <div>
             <label class="ui-label">
               @if (field()!.fieldtype === 'Select') { Options (one per line) }
+              @else if (field()!.fieldtype === 'ChildTable') { Child DocType }
+              @else if (field()!.fieldtype === 'Link') { Target DocType }
               @else { Attach Config (extensions | maxSize | maxFiles) }
             </label>
             @if (field()!.fieldtype === 'Select') {
@@ -229,9 +231,12 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
                 [ngModel]="field()!.options" (ngModelChange)="update('options', $event)"
                 placeholder="Option 1&#10;Option 2&#10;Option 3">
               </textarea>
-            } @else {
+            } @else if (field()!.fieldtype === 'Attach') {
               <input class="ui-input" [ngModel]="field()!.options" (ngModelChange)="update('options', $event)" 
                 placeholder=".pdf,.jpg | 5MB | 1">
+            } @else {
+              <input class="ui-input font-mono" [ngModel]="field()!.options" (ngModelChange)="update('options', $event)" 
+                placeholder="Customer">
             }
           </div>
         }
@@ -252,10 +257,10 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
           </div>
         }
 
-        @if (field()!.fieldtype === 'Link') {
+        @if (field()!.fieldtype === 'Url') {
           <div class="space-y-4 p-3 rounded-xl border border-indigo-100 bg-indigo-50/30">
             <div class="space-y-1">
-              <label class="ui-label">Data Source Endpoint</label>
+              <label class="ui-label">Lookup Endpoint</label>
               <input class="ui-input font-mono" [ngModel]="field()!.link_config?.data_source" (ngModelChange)="updateLinkConfig({ data_source: $event })" placeholder="/api/items/search">
             </div>
 
@@ -322,11 +327,11 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
         }
 
         <!-- Table Column Configurator (only for Table) -->
-        @if (field()!.fieldtype === 'Table') {
+        @if (['Table', 'JSONTable'].includes(field()!.fieldtype)) {
           <div class="ui-sep"></div>
           <details class="group/table-main border border-zinc-200 rounded-lg overflow-hidden shadow-sm" open>
             <summary class="flex items-center justify-between px-3 py-2 bg-zinc-50 cursor-pointer hover:bg-zinc-100 transition-colors list-none">
-              <span class="text-xs font-black text-zinc-500 uppercase tracking-tighter">Table Columns ({{ field()!.table_fields?.length || 0 }})</span>
+              <span class="text-xs font-black text-zinc-500 uppercase tracking-tighter">{{ field()!.fieldtype === 'JSONTable' ? 'JSON Table Columns' : 'Table Columns' }} ({{ field()!.table_fields?.length || 0 }})</span>
               <div class="flex items-center gap-2">
                 <button (click)="$event.preventDefault(); $event.stopPropagation(); state.addTableColumn(field()!.id)" 
                         class="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded hover:bg-indigo-100 border border-indigo-100/50">+ Add Column</button>
@@ -691,7 +696,7 @@ export class VfPropertyEditor {
   section = this.state.selectedSection;
   step = this.state.selectedStep;
   fieldTypes = FIELD_TYPES;
-  tableChildTypes = ['Data', 'Int', 'Float', 'Text', 'Select', 'Link', 'Check', 'Date', 'Datetime', 'Time', 'Password', 'Text Editor', 'Attach', 'Signature'];
+  tableChildTypes = ['Data', 'Int', 'Float', 'Text', 'Select', 'Url', 'Link', 'Check', 'Date', 'Datetime', 'Time', 'Password', 'Text Editor', 'Attach', 'Signature'];
   actionButtonIds: Array<'submit'> = ['submit'];
   regexPresets = VF_REGEX_PRESET_OPTIONS;
   buttonStyleOptions: VfChoiceOption<string>[] = [
@@ -708,6 +713,8 @@ export class VfPropertyEditor {
   toggles: Array<{ label: string; prop: keyof DocumentField }> = [
     { label: 'Mandatory / Required', prop: 'mandatory' },
     { label: 'Indexed', prop: 'indexed' },
+    { label: 'Unique', prop: 'unique' },
+    { label: 'Virtual', prop: 'virtual' },
     { label: 'Hidden', prop: 'hidden' },
     { label: 'Read Only', prop: 'read_only' },
   ];

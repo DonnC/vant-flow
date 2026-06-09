@@ -77,7 +77,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
               }
             </select>
           }
-          @case ('Link') {
+          @case ('Url') {
             @if (compact) {
               <div class="ui-input cursor-pointer truncate" (click)="onInputClick($event)">
                 {{ getLinkDisplayValue(value) || placeholder }}
@@ -158,6 +158,22 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                 [ngModel]="value"
                 (ngModelChange)="onValueChange($event)"
                 [placeholder]="placeholder"
+                [disabled]="disabled">
+            }
+          }
+          @case ('Link') {
+            @if (compact) {
+              <div class="ui-input cursor-pointer truncate" (click)="onInputClick($event)">
+                {{ value || placeholder || (field.options ? 'Reference ' + field.options : 'Reference document') }}
+              </div>
+            } @else {
+              <input
+                type="text"
+                class="ui-input"
+                (click)="onInputClick($event)"
+                [ngModel]="value"
+                (ngModelChange)="onValueChange($event)"
+                [placeholder]="placeholder || (field.options ? 'Reference ' + field.options : 'Reference document')"
                 [disabled]="disabled">
             }
           }
@@ -673,7 +689,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   get hasLinkDataSource() {
-    return this.field.fieldtype === 'Link' && !!this.resolvedLinkConfig?.data_source;
+    return this.field.fieldtype === 'Url' && !!this.resolvedLinkConfig?.data_source;
   }
 
   get linkFilterSummary() {
@@ -814,7 +830,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   private lastCameraCaptureEnabled?: boolean;
 
   ngOnInit() {
-    if (this.field.fieldtype === 'Link') {
+    if (this.field.fieldtype === 'Url') {
       this.syncLinkInputWithValue();
     }
 
@@ -822,7 +838,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   ngDoCheck() {
-    if (this.field.fieldtype === 'Link' && !this.showLinkDropdown) {
+    if (this.field.fieldtype === 'Url' && !this.showLinkDropdown) {
       this.syncLinkInputWithValue();
     }
 
@@ -830,7 +846,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       this.refreshCameraSupportState();
     }
 
-    if (this.field.fieldtype !== 'Link' || !this.ctx) return;
+    if (this.field.fieldtype !== 'Url' || !this.ctx) return;
     const tick = this.ctx.getLinkRefreshSignal(this.field.fieldname)();
     if (tick !== this.lastLinkRefreshTick) {
       this.lastLinkRefreshTick = tick;

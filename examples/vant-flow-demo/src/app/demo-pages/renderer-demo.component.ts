@@ -2,7 +2,7 @@ import { Component, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { VfRenderer, VfBuilder, VfToastOutlet, VfUtilityService, VfMediaHandler, VfMediaHandlerContext, VfMediaHandlerPayload, VfRendererButtonEvent, VfRendererChangeEvent, VfFormContext } from 'vant-flow';
+import { VfRenderer, VfBuilder, VfToastOutlet, VfUtilityService, VfMediaHandler, VfMediaHandlerContext, VfMediaHandlerPayload, VfRendererButtonEvent, VfRendererChangeEvent, VfFormContext, extractBaobabContract } from 'vant-flow';
 import { EXAMPLE_DOCUMENT } from './example-data';
 
 @Component({
@@ -129,8 +129,33 @@ import { EXAMPLE_DOCUMENT } from './example-data';
                 </button>
               </div>
 
+              <div class="flex items-center justify-between px-3.5 py-3 rounded-2xl bg-white border border-zinc-200 hover:border-zinc-300 transition-all">
+                <div class="flex flex-col">
+                  <span class="text-[11px] font-bold text-zinc-700 tracking-tight">Show Baobab Contract</span>
+                  <span class="text-[9px] text-zinc-400 font-medium">Live extract of the current schema wrapper</span>
+                </div>
+                <button type="button" (click)="showBaobabContract = !showBaobabContract"
+                  class="relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0"
+                  [class.bg-zinc-900]="showBaobabContract" [class.bg-zinc-200]="!showBaobabContract">
+                  <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200"
+                    [class.translate-x-4]="showBaobabContract"></span>
+                </button>
+              </div>
+
             </div>
           </section>
+
+          @if (showBaobabContract) {
+            <section>
+              <div class="flex items-center justify-between mb-4">
+                <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Baobab Contract</p>
+                <span class="text-[9px] font-bold uppercase italic text-indigo-500">
+                  {{ baobabContract.length }} fields
+                </span>
+              </div>
+              <pre class="w-full max-h-80 overflow-auto rounded-2xl border border-zinc-800 bg-[#0a0c10] p-4 text-[10px] leading-relaxed text-cyan-300 custom-scrollbar">{{ baobabContractJson }}</pre>
+            </section>
+          }
 
           <!-- Metadata Editor -->
           <section>
@@ -282,6 +307,7 @@ export class RendererDemoComponent {
   runtimeMetadata = this.getDefaultMetadata();
   metadataInput = JSON.stringify(this.runtimeMetadata, null, 2);
   metadataError: string | null = null;
+  showBaobabContract = true;
 
   // View toggle: 'form' | 'builder'
   showSectionNavigator = true;
@@ -334,6 +360,14 @@ export class RendererDemoComponent {
 
   get hiddenActionButtons() {
     return this._hideSubmitAction ? ['submit'] : [];
+  }
+
+  get baobabContract() {
+    return extractBaobabContract(this.schema);
+  }
+
+  get baobabContractJson() {
+    return JSON.stringify(this.baobabContract, null, 2);
   }
 
   onMetadataInput(value: string) {

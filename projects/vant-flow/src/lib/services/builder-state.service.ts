@@ -319,9 +319,13 @@ export class VfBuilderState {
     addField(sectionId: string, colId: string, fieldtype: FieldType, index?: number) {
         const defaultLabels: Partial<Record<FieldType, string>> = {
             Check: 'Checkbox Field',
+            Url: 'Lookup Field',
+            Link: 'Linked Document',
             Button: 'Click Me',
             'Text Editor': 'Details',
             Table: 'Items',
+            JSONTable: 'Items',
+            ChildTable: 'Items',
         };
         const label = defaultLabels[fieldtype] ?? `${fieldtype} Field`;
         const fieldname = this.createUniqueFieldname(label);
@@ -334,7 +338,8 @@ export class VfBuilderState {
             hidden: false,
             read_only: false,
             mandatory: false,
-            indexed: false
+            indexed: false,
+            unique: false
         };
 
         this.document.update(doc => {

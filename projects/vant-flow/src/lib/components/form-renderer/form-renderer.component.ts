@@ -279,7 +279,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                     <div class="field-group transition-all duration-200">
                                       <div class="relative group/input"
                                            [class.regex-error]="field.regex && formData[field.fieldname] && !isValidRegex(field.fieldname, field.regex)">
-                                        @if (field.fieldtype === 'Table') {
+                                        @if (isTableField(field.fieldtype)) {
                                           <div class="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
                                             <div class="overflow-x-auto">
                                               <!-- Table -->
@@ -332,7 +332,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                               [compact]="true"
                                                               [hideLabel]="true">
                                                             </vf-field>
-                                                            @if (!['Data', 'Int', 'Float', 'Check', 'Select', 'Link', 'Date', 'Time'].includes(col.fieldtype)) {
+                                                            @if (!['Data', 'Int', 'Float', 'Check', 'Select', 'Url', 'Link', 'Date', 'Time'].includes(col.fieldtype)) {
                                                               <vf-icon-button (pressed)="$event.stopPropagation(); editTableRow(field, $index)"
                                                                       class="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100 rounded-md"
                                                                       tone="brand" [soft]="true">
@@ -814,7 +814,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
           let val = this.utils.getDeepValue(rawData, path);
           if (val === undefined) val = rawData[f.fieldname];
 
-          if (f.fieldtype === 'Table') {
+          if (this.isTableField(f.fieldtype)) {
             const defaultRows = val || f.default || [];
             this.formData[f.fieldname] = defaultRows.map((r: any, i: number) => ({
               ...r,
@@ -940,6 +940,10 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     return allSections;
   }
 
+  isTableField(fieldtype: string | undefined): boolean {
+    return fieldtype === 'Table' || fieldtype === 'JSONTable' || fieldtype === 'ChildTable';
+  }
+
   private collectValidationErrors(sections: DocumentSection[]): string[] {
     const invalidFields: string[] = [];
 
@@ -959,7 +963,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
             invalidFields.push(f.fieldname);
           }
 
-          if (f.fieldtype === 'Table' && this.formData[f.fieldname]) {
+          if (this.isTableField(f.fieldtype) && this.formData[f.fieldname]) {
             const rows = this.formData[f.fieldname] as any[];
             rows.forEach(row => {
               f.table_fields?.forEach((tf: any) => {
@@ -1269,7 +1273,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     const [parentFieldname, childFieldname] = path.split('.');
     const parentField = this.findField(parentFieldname);
 
-    if (childFieldname && parentField?.fieldtype === 'Table') {
+    if (childFieldname && parentField && this.isTableField(parentField.fieldtype)) {
       const childField = parentField.table_fields?.find(field => field.fieldname === childFieldname);
       const parentLabel = parentField.label || parentFieldname;
       const childLabel = childField?.label || childFieldname;
