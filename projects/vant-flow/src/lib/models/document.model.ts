@@ -108,6 +108,7 @@ export interface TableColumnDef {
   fieldtype: Exclude<FieldType, 'Table' | 'JSONTable' | 'ChildTable' | 'Button'>;
   mandatory?: boolean;
   hidden?: boolean;
+  in_list_view?: boolean;
   default?: any;
   options?: string;
   regex?: string;
@@ -127,6 +128,7 @@ export interface DocumentField {
   mandatory?: boolean;
   reqd?: boolean;
   indexed?: boolean;
+  in_list_view?: boolean;
   unique?: boolean;
   virtual?: boolean;
   options?: string; // Newline-separated for Select, target DocType for Link/ChildTable, button style for Button, content for Markdown
@@ -220,6 +222,7 @@ export interface DocumentDefinition {
   module?: string;
   description?: string;
   version?: string;
+  is_child_doctype?: boolean;
   is_stepper?: boolean;
   show_section_navigator?: boolean;
   intro_text?: string;
@@ -249,7 +252,6 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   { fieldtype: 'Float', label: 'Float', icon: 'M9 15l3 3m0 0l3-3m-3 3V10m0 0l3 3m-3-3l-3 3', desc: 'Decimal number input' },
   { fieldtype: 'Text', label: 'Text', icon: 'M4 6h16M4 12h16M4 18h7', desc: 'Multi-line text area' },
   { fieldtype: 'Text Editor', label: 'Text Editor', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z', desc: 'Rich text with formatting' },
-  { fieldtype: 'Table', label: 'Table', icon: 'M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', desc: 'Grid of child records' },
   { fieldtype: 'JSONTable', label: 'JSON Table', icon: 'M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', desc: 'Inline table stored as flexible JSON' },
   { fieldtype: 'ChildTable', label: 'Child Table', icon: 'M4 6h16M4 12h16M4 18h16M8 4v16M16 4v16', desc: 'Relational child document table' },
   { fieldtype: 'Date', label: 'Date', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', desc: 'Calendar date picker' },

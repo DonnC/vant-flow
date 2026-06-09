@@ -2,7 +2,7 @@ import { Component, inject, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { VfRenderer, VfBuilder, VfToastOutlet, VfUtilityService, VfMediaHandler, VfMediaHandlerContext, VfMediaHandlerPayload, VfRendererButtonEvent, VfRendererChangeEvent, VfFormContext, extractBaobabContract } from 'vant-flow';
+import { VfRenderer, VfBuilder, VfToastOutlet, VfUtilityService, VfMediaHandler, VfMediaHandlerContext, VfMediaHandlerPayload, VfRendererButtonEvent, VfRendererChangeEvent, VfFormContext, extractBaobabDocumentContract } from 'vant-flow';
 import { EXAMPLE_DOCUMENT } from './example-data';
 
 @Component({
@@ -150,7 +150,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
               <div class="flex items-center justify-between mb-4">
                 <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-zinc-400">Baobab Contract</p>
                 <span class="text-[9px] font-bold uppercase italic text-indigo-500">
-                  {{ baobabContract.length }} fields
+                  {{ baobabContract.fields.length }} fields
                 </span>
               </div>
               <pre class="w-full max-h-80 overflow-auto rounded-2xl border border-zinc-800 bg-[#0a0c10] p-4 text-[10px] leading-relaxed text-cyan-300 custom-scrollbar">{{ baobabContractJson }}</pre>
@@ -363,7 +363,7 @@ export class RendererDemoComponent {
   }
 
   get baobabContract() {
-    return extractBaobabContract(this.schema);
+    return extractBaobabDocumentContract(this.schema);
   }
 
   get baobabContractJson() {

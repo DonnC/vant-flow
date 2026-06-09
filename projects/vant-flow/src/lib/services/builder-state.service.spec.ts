@@ -144,6 +144,25 @@ describe('VfBuilderState', () => {
     expect(state.document().sections[0].columns[0].fields[0].indexed).toBeFalse();
   });
 
+  it('defaults new child tables to non-virtual and hides them from list view by default', () => {
+    state.document.set({
+      name: 'Child Table Defaults',
+      sections: [{
+        id: 'section_1',
+        columns: [{
+          id: 'column_1',
+          fields: []
+        }]
+      }]
+    });
+
+    const field = state.addField('section_1', 'column_1', 'ChildTable');
+
+    expect(field.virtual).toBeFalse();
+    expect(field.in_list_view).toBeFalse();
+    expect(field.label).toBe('Child Rows');
+  });
+
   it('collapses a section back to one column and drops fields from removed columns', () => {
     state.document.set({
       name: 'Layout Form',

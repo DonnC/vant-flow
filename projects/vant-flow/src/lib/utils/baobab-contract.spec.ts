@@ -1,4 +1,4 @@
-import { extractBaobabContract } from './baobab-contract';
+import { extractBaobabContract, extractBaobabDocumentContract } from './baobab-contract';
 import { DocumentDefinition } from '../models/document.model';
 
 describe('extractBaobabContract', () => {
@@ -24,7 +24,8 @@ describe('extractBaobabContract', () => {
                       label: 'Website',
                       default: 'https://example.com',
                       mandatory: true,
-                      indexed: true
+                      indexed: true,
+                      in_list_view: true
                     },
                     {
                       id: 'field_2',
@@ -60,6 +61,7 @@ describe('extractBaobabContract', () => {
         mandatory: true,
         default: 'https://example.com',
         index: true,
+        in_list_view: true,
         unique: false,
         virtual: false
       },
@@ -70,6 +72,7 @@ describe('extractBaobabContract', () => {
         mandatory: false,
         default: undefined,
         index: false,
+        in_list_view: false,
         unique: true,
         virtual: false
       },
@@ -80,6 +83,7 @@ describe('extractBaobabContract', () => {
         mandatory: false,
         default: undefined,
         index: false,
+        in_list_view: false,
         unique: false,
         virtual: true
       }
@@ -120,9 +124,49 @@ describe('extractBaobabContract', () => {
         mandatory: false,
         default: undefined,
         index: false,
+        in_list_view: false,
         unique: false,
         virtual: false
       }
     ]);
+  });
+
+  it('extracts document-level child doctype metadata', () => {
+    const document: Pick<DocumentDefinition, 'sections' | 'steps' | 'is_stepper' | 'is_child_doctype'> = {
+      is_stepper: false,
+      is_child_doctype: true,
+      sections: []
+    };
+
+    expect(extractBaobabDocumentContract(document)).toEqual({
+      is_child_doctype: true,
+      fields: []
+    });
+  });
+
+  it('normalizes legacy Table fields to JSONTable in the Baobab contract', () => {
+    const document: Pick<DocumentDefinition, 'sections' | 'steps' | 'is_stepper'> = {
+      is_stepper: false,
+      sections: [
+        {
+          id: 'section_1',
+          columns: [
+            {
+              id: 'column_1',
+              fields: [
+                {
+                  id: 'field_1',
+                  fieldname: 'legacy_rows',
+                  fieldtype: 'Table',
+                  label: 'Legacy Rows'
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    };
+
+    expect(extractBaobabContract(document)[0].fieldtype).toBe('JSONTable');
   });
 });

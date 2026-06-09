@@ -51,4 +51,16 @@ describe('VfPropertyEditor', () => {
     expect(component.state.selectedField()?.id).toBe(secondField.id);
     expect(component.state.selectedField()?.fieldname).toBe('status_2');
   });
+
+  it('keeps Table out of the normal field type selector while preserving legacy compatibility', () => {
+    const field = component.state.addField('section_1', 'column_1', 'Data');
+    fixture.detectChanges();
+
+    expect(component.getFieldTypesForSelection()).not.toContain('Table');
+
+    component.state.updateField(field.id, { fieldtype: 'Table' });
+    fixture.detectChanges();
+
+    expect(component.getFieldTypesForSelection()[0]).toBe('Table');
+  });
 });

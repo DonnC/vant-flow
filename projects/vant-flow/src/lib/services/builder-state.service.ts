@@ -12,6 +12,7 @@ export class VfBuilderState {
     readonly document: WritableSignal<DocumentDefinition> = signal({
         name: 'New Document',
         version: '1.0.0',
+        is_child_doctype: false,
         sections: [],
         client_script: '',
         intro_text: '',
@@ -324,8 +325,8 @@ export class VfBuilderState {
             Button: 'Click Me',
             'Text Editor': 'Details',
             Table: 'Items',
-            JSONTable: 'Items',
-            ChildTable: 'Items',
+            JSONTable: 'JSON Rows',
+            ChildTable: 'Child Rows',
         };
         const label = defaultLabels[fieldtype] ?? `${fieldtype} Field`;
         const fieldname = this.createUniqueFieldname(label);
@@ -339,6 +340,8 @@ export class VfBuilderState {
             read_only: false,
             mandatory: false,
             indexed: false,
+            in_list_view: false,
+            virtual: fieldtype === 'JSONTable' || fieldtype === 'Table',
             unique: false
         };
 

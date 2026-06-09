@@ -10,7 +10,7 @@ import { VfChoiceGroup, VfChoiceOption } from './shared/choice-group.component';
 import { VfToggleCard } from './shared/toggle-card.component';
 import { VfEyebrow } from '../shared/eyebrow.component';
 
-const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Url', 'Link', 'Check', 'Int', 'Text', 'Text Editor', 'Table', 'JSONTable', 'ChildTable', 'Date', 'Datetime', 'Time', 'Float', 'Password', 'Button', 'Signature', 'Attach'];
+const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Url', 'Link', 'Check', 'Int', 'Text', 'Text Editor', 'JSONTable', 'ChildTable', 'Date', 'Datetime', 'Time', 'Float', 'Password', 'Button', 'Signature', 'Attach'];
 
 @Component({
   selector: 'vf-property-editor',
@@ -68,7 +68,21 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Url', 'Link', 'Check', 'Int
             [checked]="!!state.document().show_section_navigator"
             (checkedChange)="state.setDocumentMetadata({ show_section_navigator: $event })">
           </vf-toggle-card>
+
+          <vf-toggle-card
+            title="Child DocType"
+            description="Marks this document as a child table target for Baobab relations"
+            [checked]="!!state.document().is_child_doctype"
+            (checkedChange)="state.setDocumentMetadata({ is_child_doctype: $event })">
+          </vf-toggle-card>
         </div>
+
+        @if (state.document().is_child_doctype) {
+          <div class="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-[11px] leading-relaxed text-amber-900/80">
+            Baobab child doctypes are expected to carry framework relation columns such as
+            <code>parent</code>, <code>parenttype</code>, <code>parentfield</code>, and <code>idx</code>.
+          </div>
+        }
 
         <div class="ui-sep"></div>
 
@@ -211,7 +225,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Url', 'Link', 'Check', 'Int
         <div>
           <label class="ui-label">Field Type</label>
           <select class="ui-select" [ngModel]="field()!.fieldtype" (ngModelChange)="update('fieldtype', $event)">
-            @for (t of fieldTypes; track t) {
+            @for (t of getFieldTypesForSelection(); track t) {
               <option [value]="t">{{ t }}</option>
             }
           </select>
@@ -713,6 +727,7 @@ export class VfPropertyEditor {
   toggles: Array<{ label: string; prop: keyof DocumentField }> = [
     { label: 'Mandatory / Required', prop: 'mandatory' },
     { label: 'Indexed', prop: 'indexed' },
+    { label: 'In List View', prop: 'in_list_view' },
     { label: 'Unique', prop: 'unique' },
     { label: 'Virtual', prop: 'virtual' },
     { label: 'Hidden', prop: 'hidden' },
@@ -742,6 +757,19 @@ export class VfPropertyEditor {
     if (!f) return;
 
     const patches: Partial<DocumentField> = { [prop]: value };
+
+    if (prop === 'fieldtype') {
+      if (value === 'JSONTable') {
+        patches.virtual = true;
+      }
+      if (value === 'ChildTable') {
+        patches.virtual = false;
+        patches.table_fields = undefined;
+      }
+      if (value === 'Table') {
+        patches.virtual = true;
+      }
+    }
 
     if (prop === 'label') {
       if (this.state.shouldAutoSyncFieldname(f.id)) {
@@ -844,6 +872,13 @@ export class VfPropertyEditor {
   toggle_val(prop: keyof DocumentField) {
     const f = this.field();
     if (f) this.state.updateField(f.id, { [prop]: !f[prop] });
+  }
+
+  getFieldTypesForSelection() {
+    const f = this.field();
+    return f?.fieldtype === 'Table'
+      ? ['Table', ...this.fieldTypes]
+      : this.fieldTypes;
   }
 
   deleteField() {
