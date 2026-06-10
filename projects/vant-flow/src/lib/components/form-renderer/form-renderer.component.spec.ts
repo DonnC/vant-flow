@@ -77,6 +77,19 @@ describe('VfRenderer', () => {
         expect(mockFormContext.trigger).toHaveBeenCalledWith('refresh');
     });
 
+    it('executes an injected client script instead of the schema script when provided', () => {
+        component.document = {
+            name: 'Injected Script Form',
+            client_script: "frm.msgprint('schema');",
+            sections: []
+        };
+        component.clientScript = "frm.msgprint('external');";
+
+        fixture.detectChanges();
+
+        expect(mockFormContext.execute).toHaveBeenCalledWith("frm.msgprint('external');", 'refresh');
+    });
+
     it('wires validate handlers into the form context', () => {
         fixture.detectChanges();
 

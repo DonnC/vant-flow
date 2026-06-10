@@ -209,6 +209,31 @@ export interface VfRendererChangeEvent {
   frm: VfFormContext;
 }
 
+export interface VfClientScriptDefinition {
+  id?: string;
+  document_type?: string;
+  enabled?: boolean;
+  script: string;
+  version?: number | string;
+  updated_by?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface VfRuntimeMetadata {
+  document_type?: string;
+  document_name?: string;
+  module?: string;
+  app?: string;
+  tenant?: Record<string, any>;
+  currentUser?: Record<string, any>;
+  permissions?: Record<string, any>;
+  lifecycle?: Record<string, any>;
+  naming?: Record<string, any>;
+  schema?: Record<string, any>;
+  host?: Record<string, any>;
+  [key: string]: any;
+}
+
 export const DEFAULT_FORM_ACTIONS: FormActionsConfig = {
   submit: {
     label: 'Submit',
@@ -231,7 +256,7 @@ export interface DocumentDefinition {
   steps?: DocumentStep[]; // Steps for multi-step forms
   client_script?: string;
   actions?: FormActionsConfig;
-  metadata?: { [key: string]: any }; // Injectable arbitrary metadata (e.g. is_ai_generated)
+  metadata?: { [key: string]: any }; // Schema-owned metadata, not host runtime context
 }
 
 // Palette items used by the left sidebar (not actual fields yet)

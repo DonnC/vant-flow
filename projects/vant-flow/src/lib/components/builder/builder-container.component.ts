@@ -9,7 +9,7 @@ import { VfCanvasSection } from './canvas-section.component';
 import { VfPropertyEditor } from './property-editor.component';
 import { VfScriptEditor } from './script-editor.component';
 import { VfRenderer } from '../form-renderer/form-renderer.component';
-import { DocumentDefinition } from '../../models/document.model';
+import { DocumentDefinition, VfRuntimeMetadata } from '../../models/document.model';
 import { VfUiPrimitivesModule } from '../../ui/ui-primitives.module';
 import { VfDashedAction } from '../shared/dashed-action.component';
 import { VfEmptyState } from '../shared/empty-state.component';
@@ -313,7 +313,7 @@ type RightTab = 'properties' | 'script';
               >
                 <span class="flex items-center justify-center gap-1">
                   Script
-                  @if (state.document().client_script?.trim()) {
+                  @if (state.activeClientScript().trim()) {
                     <span class="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>
                   }
                 </span>
@@ -387,7 +387,12 @@ type RightTab = 'properties' | 'script';
             }
           </div>
         </div>
-        <vf-renderer class="w-full" [document]="state.document()" [metadata]="previewMetadataValue" (formAction)="onFormAction($event)"></vf-renderer>
+        <vf-renderer
+          class="w-full"
+          [document]="state.document()"
+          [metadata]="previewMetadataValue"
+          [clientScript]="state.activeClientScript()"
+          (formAction)="onFormAction($event)"></vf-renderer>
 
         @if (lastSubmittedData) {
           <div class="w-full max-w-3xl px-4 py-8 border-t border-zinc-200 mt-auto bg-white shadow-inner animate-in slide-in-from-bottom-4 duration-300">
@@ -410,12 +415,18 @@ export class VfBuilder implements OnInit, OnChanges, OnDestroy {
   /** Initial form schema to load into the builder. */
   @Input() initialSchema?: DocumentDefinition;
   /** Optional runtime-only metadata used while testing scripts in preview mode. */
-  @Input() previewMetadata?: Record<string, any>;
+  @Input() previewMetadata?: VfRuntimeMetadata;
+  /** Optional detached script source resolved by the host rather than stored in the schema. */
+  @Input() detachedClientScript?: string | null;
+  /** When true, edits go to the detached script source instead of document.client_script. */
+  @Input() useDetachedClientScript = false;
   /** Controls whether the form script editor tab is available in builder mode. Defaults to true. */
   @Input() showScriptEditor = true;
 
   /** Emitted whenever the form schema is modified in the builder. */
   @Output() schemaChange = new EventEmitter<DocumentDefinition>();
+  /** Emitted whenever the active client script changes. */
+  @Output() clientScriptChange = new EventEmitter<string>();
 
   state = inject(VfBuilderState);
   utils = inject(VfUtilityService);
@@ -450,6 +461,10 @@ export class VfBuilder implements OnInit, OnChanges, OnDestroy {
       const doc = this.state.document();
       this.schemaChange.emit(doc);
     });
+
+    effect(() => {
+      this.clientScriptChange.emit(this.state.activeClientScript());
+    });
   }
 
   allColumnIds = computed(() => {
@@ -479,6 +494,8 @@ export class VfBuilder implements OnInit, OnChanges, OnDestroy {
 
   ngOnInit() {
     this.applyInitialSchema(this.initialSchema);
+    this.state.setScriptSourceMode(this.useDetachedClientScript);
+    this.state.setDetachedClientScript(this.detachedClientScript);
     this.applyPreviewMetadataInput(this.previewMetadata ?? this.getDefaultPreviewMetadata());
     // listen for palette's section add shortcut
     document.addEventListener('add-section', this.addSectionListener);
@@ -493,6 +510,12 @@ export class VfBuilder implements OnInit, OnChanges, OnDestroy {
     }
     if (changes['previewMetadata'] && !changes['previewMetadata'].firstChange) {
       this.applyPreviewMetadataInput(changes['previewMetadata'].currentValue ?? this.getDefaultPreviewMetadata());
+    }
+    if (changes['useDetachedClientScript'] && !changes['useDetachedClientScript'].firstChange) {
+      this.state.setScriptSourceMode(!!changes['useDetachedClientScript'].currentValue);
+    }
+    if (changes['detachedClientScript'] && !changes['detachedClientScript'].firstChange) {
+      this.state.setDetachedClientScript(changes['detachedClientScript'].currentValue);
     }
     if (changes['showScriptEditor'] && !this.showScriptEditor && this.rightTab === 'script') {
       this.rightTab = 'properties';

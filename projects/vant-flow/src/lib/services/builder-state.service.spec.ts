@@ -163,6 +163,16 @@ describe('VfBuilderState', () => {
     expect(field.label).toBe('Child Rows');
   });
 
+  it('writes to the detached script source when external mode is enabled', () => {
+    state.setScriptSourceMode(true);
+    state.setDetachedClientScript('frm.msgprint("old");');
+
+    state.setClientScript('frm.msgprint("new");');
+
+    expect(state.activeClientScript()).toBe('frm.msgprint("new");');
+    expect(state.document().client_script).toBe('');
+  });
+
   it('collapses a section back to one column and drops fields from removed columns', () => {
     state.document.set({
       name: 'Layout Form',

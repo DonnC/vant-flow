@@ -270,3 +270,22 @@ export const LINK_DATASOURCE_EXAMPLE_DOCUMENT: DocumentDefinition = {
     frm.refresh_link('item');
 });`
 };
+
+export const DETACHED_CLIENT_SCRIPT = `frm.on('refresh', (val, frm) => {
+    const tenant = frm.metadata?.tenant?.name || 'Unknown Tenant';
+    const user = frm.metadata?.currentUser?.name || 'Unknown User';
+    frm.msgprint('Detached script active for ' + user + '.', 'info');
+    frm.set_intro('Tenant: <b>' + tenant + '</b>. Reviewer: <b>' + user + '</b>.', 'blue');
+});
+
+frm.on('quality_score', (val, frm) => {
+    const strictMode = frm.metadata?.host?.mode === 'strict';
+
+    if (val < 50) {
+        frm.set_intro('CRITICAL QUALITY LEVEL: Batch rejection recommended.', 'red');
+    } else if (val < 80 || (strictMode && val < 90)) {
+        frm.set_intro('CAUTION: Manual clearance required for this quality score.', 'orange');
+    } else {
+        frm.set_intro('Detached script confirms the batch can proceed.', 'green');
+    }
+});`;

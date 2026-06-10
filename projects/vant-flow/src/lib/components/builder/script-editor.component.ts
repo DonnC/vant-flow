@@ -125,7 +125,7 @@ export class VfScriptEditor {
   }
 
   get clientScript(): string {
-    return this.state.document().client_script ?? '';
+    return this.state.activeClientScript();
   }
 
   set clientScript(value: string) {
@@ -401,7 +401,7 @@ export class VfScriptEditor {
       this.editorInstance.executeEdits('snippet-source', [op]);
     } else {
       console.warn('[ScriptEditor] Editor instance not ready for snippet insertion');
-      const current = this.state.document().client_script || '';
+      const current = this.state.activeClientScript() || '';
       this.state.setClientScript(current + (current ? '\n\n' : '') + code);
     }
   }

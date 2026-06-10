@@ -7,6 +7,8 @@ function uid() { return `id_${++_uid}_${Math.random().toString(36).slice(2, 7)}`
 @Injectable({ providedIn: 'root' })
 export class VfBuilderState {
     private autoFieldnameFieldIds = new Set<string>();
+    readonly detachedClientScript = signal<string | null>(null);
+    readonly useDetachedClientScript = signal(false);
 
     // Main Document state
     readonly document: WritableSignal<DocumentDefinition> = signal({
@@ -30,6 +32,12 @@ export class VfBuilderState {
 
     // Builder vs Preview mode toggle
     readonly mode: WritableSignal<'builder' | 'preview'> = signal('builder');
+    readonly activeClientScript = computed(() => {
+        if (this.useDetachedClientScript()) {
+            return this.detachedClientScript() ?? '';
+        }
+        return this.document().client_script ?? '';
+    });
 
     // Computed: find the selected field across all sections
     readonly selectedField = computed(() => {
@@ -88,7 +96,19 @@ export class VfBuilderState {
     }
 
     setClientScript(script: string) {
+        if (this.useDetachedClientScript()) {
+            this.detachedClientScript.set(script);
+            return;
+        }
         this.document.update(doc => ({ ...doc, client_script: script }));
+    }
+
+    setDetachedClientScript(script: string | null | undefined) {
+        this.detachedClientScript.set(script ?? null);
+    }
+
+    setScriptSourceMode(useDetached: boolean) {
+        this.useDetachedClientScript.set(useDetached);
     }
 
     setIntro(text: string, color?: 'blue' | 'orange' | 'red' | 'gray') {

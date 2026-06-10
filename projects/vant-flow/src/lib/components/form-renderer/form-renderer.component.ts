@@ -611,6 +611,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   @Input() submitLabel?: string;
   @Input() disabled: boolean = false;
   @Input() metadata?: any;
+  @Input() clientScript?: string | null;
   @Input() mediaHandler?: VfMediaHandler;
   @Input() mediaResolver?: VfMediaResolver;
   @Input() linkDataSource?: VfLinkDataSource;
@@ -786,7 +787,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       this.ctx.set_readonly(true);
     }
     if (this.runFormScripts) {
-      this.ctx.execute(this.document.client_script || '', 'refresh');
+      this.ctx.execute(this.resolveClientScript(), 'refresh');
     }
     this.ctx.trigger('refresh');
     this.ctx.on('print', () => this.onPrint());
@@ -938,6 +939,10 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       allSections.push(...this.document.sections);
     }
     return allSections;
+  }
+
+  private resolveClientScript(): string {
+    return this.clientScript ?? this.document.client_script ?? '';
   }
 
   isTableField(fieldtype: string | undefined): boolean {
