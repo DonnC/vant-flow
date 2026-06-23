@@ -571,6 +571,7 @@ export class VfBuilder implements OnInit, OnChanges, OnDestroy {
       }
 
       this.previewMetadataValue = parsed;
+      this.state.setRuntimeMetadata(parsed as VfRuntimeMetadata);
       this.previewMetadataError = null;
     } catch {
       this.previewMetadataError = 'Invalid JSON. Preview keeps using the last valid metadata object.';

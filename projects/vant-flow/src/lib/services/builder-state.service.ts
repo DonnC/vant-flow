@@ -1,5 +1,5 @@
 import { Injectable, signal, computed, WritableSignal } from '@angular/core';
-import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, DocumentColumn, FieldType, TableColumnDef } from '../models/document.model';
+import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, DocumentColumn, FieldType, TableColumnDef, VfRuntimeMetadata } from '../models/document.model';
 
 let _uid = 0;
 function uid() { return `id_${++_uid}_${Math.random().toString(36).slice(2, 7)}`; }
@@ -9,6 +9,7 @@ export class VfBuilderState {
     private autoFieldnameFieldIds = new Set<string>();
     readonly detachedClientScript = signal<string | null>(null);
     readonly useDetachedClientScript = signal(false);
+    readonly runtimeMetadata = signal<VfRuntimeMetadata>({});
 
     // Main Document state
     readonly document: WritableSignal<DocumentDefinition> = signal({
@@ -109,6 +110,10 @@ export class VfBuilderState {
 
     setScriptSourceMode(useDetached: boolean) {
         this.useDetachedClientScript.set(useDetached);
+    }
+
+    setRuntimeMetadata(metadata: VfRuntimeMetadata | null | undefined) {
+        this.runtimeMetadata.set((metadata ?? {}) as VfRuntimeMetadata);
     }
 
     setIntro(text: string, color?: 'blue' | 'orange' | 'red' | 'gray') {

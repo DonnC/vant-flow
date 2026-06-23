@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VfBuilderState } from '../../services/builder-state.service';
@@ -11,6 +11,13 @@ import { VfToggleCard } from './shared/toggle-card.component';
 import { VfEyebrow } from '../shared/eyebrow.component';
 
 const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Url', 'Link', 'Check', 'Int', 'Text', 'Text Editor', 'JSONTable', 'ChildTable', 'Date', 'Datetime', 'Time', 'Float', 'Password', 'Button', 'Signature', 'Attach'];
+
+interface DocumentOption {
+  value: string;
+  label: string;
+  module?: string;
+  isChild?: boolean;
+}
 
 @Component({
   selector: 'vf-property-editor',
@@ -70,7 +77,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Url', 'Link', 'Check', 'Int
           </vf-toggle-card>
 
           <vf-toggle-card
-            title="Child DocType"
+            title="Child Document"
             description="Marks this document as a child table target for Baobab relations"
             [checked]="!!state.document().is_child_doctype"
             (checkedChange)="state.setDocumentMetadata({ is_child_doctype: $event })">
@@ -79,7 +86,7 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Url', 'Link', 'Check', 'Int
 
         @if (state.document().is_child_doctype) {
           <div class="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-[11px] leading-relaxed text-amber-900/80">
-            Baobab child doctypes are expected to carry framework relation columns such as
+            Baobab child documents are expected to carry framework relation columns such as
             <code>parent</code>, <code>parenttype</code>, <code>parentfield</code>, and <code>idx</code>.
           </div>
         }
@@ -236,8 +243,8 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Url', 'Link', 'Check', 'Int
           <div>
             <label class="ui-label">
               @if (field()!.fieldtype === 'Select') { Options (one per line) }
-              @else if (field()!.fieldtype === 'ChildTable') { Child DocType }
-              @else if (field()!.fieldtype === 'Link') { Target DocType }
+              @else if (field()!.fieldtype === 'ChildTable') { Child Document }
+              @else if (field()!.fieldtype === 'Link') { Target Document }
               @else { Attach Config (extensions | maxSize | maxFiles) }
             </label>
             @if (field()!.fieldtype === 'Select') {
@@ -248,9 +255,18 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Url', 'Link', 'Check', 'Int
             } @else if (field()!.fieldtype === 'Attach') {
               <input class="ui-input" [ngModel]="field()!.options" (ngModelChange)="update('options', $event)" 
                 placeholder=".pdf,.jpg | 5MB | 1">
+            } @else if (hasDocumentOptions(field()!.fieldtype)) {
+              <select class="ui-select" [ngModel]="field()!.options" (ngModelChange)="update('options', $event)">
+                <option value="">Select a Document</option>
+                @for (option of getDocumentOptions(field()!.fieldtype); track option.value) {
+                  <option [value]="option.value">
+                    {{ option.label }}{{ option.module ? ' (' + option.module + ')' : '' }}
+                  </option>
+                }
+              </select>
             } @else {
               <input class="ui-input font-mono" [ngModel]="field()!.options" (ngModelChange)="update('options', $event)" 
-                placeholder="Customer">
+                placeholder="Selectable Document not available from runtime">
             }
           </div>
         }
@@ -709,6 +725,16 @@ export class VfPropertyEditor {
   field = this.state.selectedField;
   section = this.state.selectedSection;
   step = this.state.selectedStep;
+  runtimeDocumentOptions = computed<DocumentOption[]>(() => {
+    const runtimeMetadata = this.state.runtimeMetadata();
+    const rootOptions = this.readDocumentOptions(runtimeMetadata['documents']);
+    const baobabOptions =
+      runtimeMetadata['baobab'] && typeof runtimeMetadata['baobab'] === 'object'
+        ? this.readDocumentOptions((runtimeMetadata['baobab'] as Record<string, unknown>)['documents'])
+        : [];
+    const options = baobabOptions.length > 0 ? baobabOptions : rootOptions;
+    return options.sort((left, right) => left.label.localeCompare(right.label));
+  });
   fieldTypes = FIELD_TYPES;
   tableChildTypes = ['Data', 'Int', 'Float', 'Text', 'Select', 'Url', 'Link', 'Check', 'Date', 'Datetime', 'Time', 'Password', 'Text Editor', 'Attach', 'Signature'];
   actionButtonIds: Array<'submit'> = ['submit'];
@@ -881,6 +907,21 @@ export class VfPropertyEditor {
       : this.fieldTypes;
   }
 
+  hasDocumentOptions(fieldtype: FieldType) {
+    return ['Link', 'ChildTable'].includes(fieldtype) && this.getDocumentOptions(fieldtype).length > 0;
+  }
+
+  getDocumentOptions(fieldtype: FieldType) {
+    const options = this.runtimeDocumentOptions();
+    if (fieldtype === 'Link') {
+      const normalOptions = options.filter(option => !option.isChild);
+      return normalOptions.length > 0 ? normalOptions : options;
+    }
+
+    const childOptions = options.filter(option => option.isChild);
+    return childOptions.length > 0 ? childOptions : options;
+  }
+
   deleteField() {
     const f = this.field();
     if (f) this.state.removeField(f.id);
@@ -918,5 +959,41 @@ export class VfPropertyEditor {
       `This section contains ${fieldCount} field${fieldCount === 1 ? '' : 's'}. Deleting it will permanently remove them from the form.`,
       () => this.state.removeSection(section.id)
     );
+  }
+
+  private readDocumentOptions(value: unknown): DocumentOption[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const options: DocumentOption[] = [];
+
+    value.forEach(item => {
+      if (!item || typeof item !== 'object') {
+        return;
+      }
+
+      const record = item as Record<string, unknown>;
+      const valueToken = record['value'];
+      const labelToken = record['label'];
+
+      if (typeof valueToken !== 'string' || typeof labelToken !== 'string') {
+        return;
+      }
+
+      options.push({
+        value: valueToken,
+        label: labelToken,
+        module: typeof record['module'] === 'string' ? record['module'] : undefined,
+        isChild:
+          typeof record['isChild'] === 'boolean'
+            ? record['isChild']
+            : typeof record['is_child_doctype'] === 'boolean'
+              ? record['is_child_doctype']
+              : false
+      });
+    });
+
+    return options;
   }
 }
