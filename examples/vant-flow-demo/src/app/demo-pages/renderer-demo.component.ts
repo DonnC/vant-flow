@@ -115,6 +115,20 @@ import { EXAMPLE_DOCUMENT } from './example-data';
                 </button>
               </div>
 
+
+              <div class="flex items-center justify-between px-3.5 py-3 rounded-2xl bg-white border border-zinc-200 hover:border-zinc-300 transition-all">
+                <div class="flex flex-col">
+                  <span class="text-[11px] font-bold text-zinc-700 tracking-tight">Section Navigator</span>
+                  <span class="text-[9px] text-zinc-400 font-medium">Sticky sidebar for sections</span>
+                </div>
+                <button type="button" (click)="showSectionNavigator = !showSectionNavigator"
+                  class="relative w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none flex-shrink-0"
+                  [class.bg-zinc-900]="showSectionNavigator" [class.bg-zinc-200]="!showSectionNavigator">
+                  <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200"
+                    [class.translate-x-4]="showSectionNavigator"></span>
+                </button>
+              </div>
+
             </div>
           </section>
 
@@ -197,6 +211,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
                 [hiddenActionButtons]="hiddenActionButtons"
                 [metadata]="runtimeMetadata"
                 [mediaHandler]="mediaHandler"
+                [showSectionNavigator]="showSectionNavigator"
                 (formAction)="onFormAction($event)"
                 (formChange)="onFormChange($event)"
                 (formReady)="onFormReady($event)">
@@ -269,7 +284,10 @@ export class RendererDemoComponent {
   metadataError: string | null = null;
 
   // View toggle: 'form' | 'builder'
+  showSectionNavigator = true;
+
   activeView: 'form' | 'builder' = 'form';
+
 
   // Discrete state for controls
   private _runFormScripts = true;
@@ -362,6 +380,10 @@ export class RendererDemoComponent {
 
   onFormReady(frm: VfFormContext) {
     console.log('[Renderer Demo] Form initialized with API context.');
+
+    // Demonstrate scripted printing
+    // The user can now purely drive printing from a custom button action
+    frm.add_custom_button('Print Report', (f) => f.print(), 'secondary');
   }
 
   onSchemaChange(newSchema: any) {
