@@ -1,4 +1,4 @@
-import { Component, effect, EventEmitter, inject, Input, OnChanges, OnDestroy, OnInit, Output, QueryList, SimpleChanges, ViewChildren } from '@angular/core';
+import { Component, effect, EventEmitter, HostListener, inject, Input, OnChanges, OnDestroy, OnInit, Output, QueryList, SimpleChanges, ViewChildren } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { QuillModule } from 'ngx-quill';
@@ -20,9 +20,49 @@ import { VfSectionShell } from '../shared/section-shell.component';
   imports: [CommonModule, FormsModule, QuillModule, VfField, VfUiPrimitivesModule, VfAlertBox, VfDashedAction, VfIconButton, VfSectionShell],
   providers: [VfFormContext],
   template: `
-    <div class="w-full max-w-[1400px] mx-auto py-8 px-4">
-      <div class="card bg-white shadow-2xl">
+    <div class="vf-renderer-container w-full max-w-[1600px] mx-auto py-8 px-6 flex items-start gap-10 transition-all duration-500 relative"
+         [class.justify-center]="!navigatorVisible || !(showSectionNavigator || document.show_section_navigator) || allSections.length <= 1">
+      
+      <!-- Side Handle (shown when hidden) -->
+      @if ((showSectionNavigator || document.show_section_navigator) && !navigatorVisible && allSections.length > 1) {
+        <button (click)="navigatorVisible = true" 
+          class="fixed left-4 top-1/2 -translate-y-1/2 z-50 w-10 h-10 bg-white shadow-xl rounded-full border border-zinc-200 flex items-center justify-center text-indigo-600 hover:bg-indigo-50 transition-all hover:scale-110 group print:hidden"
+          title="Show Navigator">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          <div class="absolute left-12 px-2 py-1 bg-zinc-900 text-white text-[10px] rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap font-bold uppercase tracking-widest">Show Navigator</div>
+        </button>
+      }
+
+      <!-- Section Navigator (Sidebar) -->
+      @if ((showSectionNavigator || document.show_section_navigator) && navigatorVisible && allSections.length > 1) {
+        <div class="vf-section-navigator hidden lg:block w-64 shrink-0 transition-opacity duration-300 print:hidden">
+          <div class="sticky top-8 space-y-1">
+             <div class="px-4 py-3 mb-2 rounded-xl bg-indigo-600 shadow-lg shadow-indigo-100 flex items-center justify-between group">
+               <h4 class="text-[10px] font-bold text-white uppercase tracking-widest flex items-center gap-2">
+                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                 Sections
+               </h4>
+               <button (click)="navigatorVisible = false" class="text-white/60 hover:text-white transition-colors p-1 rounded-md hover:bg-white/10" title="Collapse Navigator">
+                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="15 18 9 12 15 6" /></svg>
+               </button>
+            </div>
+            <div class="space-y-1 overflow-y-auto max-h-[calc(100vh-160px)] pr-2 scrollbar-thin">
+              @for (section of allSections; track section.id) {
+                @if (ctx.getSectionSignal(section.id, 'hidden')() !== true) {
+                  <button (click)="scrollToSection(section.id)" 
+                          [class]="'w-full text-left px-4 py-2.5 rounded-xl text-[13px] font-semibold transition-all duration-300 ' + (activeSectionId === section.id ? 'bg-white text-indigo-600 shadow-md ring-1 ring-zinc-200 translate-x-1' : 'text-zinc-500 hover:text-zinc-900 hover:bg-white hover:shadow-sm')">
+                    {{ section.label }}
+                  </button>
+                }
+              }
+            </div>
+          </div>
+        </div>
+      }
+
+      <div class="vf-form-card flex-1 max-w-[1100px] min-w-0 card bg-white shadow-2xl transition-all duration-300">
         <!-- Combined Sticky Header (Frappe style) -->
+
         <div
           class="bg-white border-b border-zinc-100 shadow-sm px-8 py-5 flex items-center justify-between rounded-t-[1.5rem]">
           <div class="flex flex-col gap-0.5">
@@ -73,8 +113,10 @@ import { VfSectionShell } from '../shared/section-shell.component';
                 </button>
               }
             }
+
           </div>
         </div>
+
 
         <div class="p-8">
           @if (validationErrors.length > 0) {
@@ -220,6 +262,8 @@ import { VfSectionShell } from '../shared/section-shell.component';
         <ng-template #sectionTemplate let-section>
           @if (!ctx.getSectionSignal(section.id, 'hidden')()) {
             <vf-section-shell
+              [id]="'section-' + section.id"
+              class="section-anchor"
               [title]="section.label || ''"
               [description]="section.description || ''"
               [collapsible]="ctx.getSectionSignal(section.id, 'collapsible')()"
@@ -248,8 +292,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                   </th>
                                                   @for (col of (ctx.getFieldSignal(field.fieldname, 'table_fields')() || []).slice(0, 6); track col.id) {
                                                     @if (!col.hidden) {
-                                                      <th
-                                                        class="p-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                                                      <th class="p-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
                                                         {{ col.label }}
                                                         @if (col.mandatory) {
                                                           <span class="text-red-500">*</span>
@@ -448,6 +491,72 @@ import { VfSectionShell } from '../shared/section-shell.component';
       background-size: 10px 10px;
       background-repeat: no-repeat;
       background-position: bottom right;
+    }
+
+    @media print {
+      body.vf-printing > :not(vf-renderer),
+      body.vf-printing > * > :not(vf-renderer),
+      body.vf-printing > * > * > :not(vf-renderer) {
+        display: none !important;
+      }
+
+      :host {
+        padding: 0 !important;
+        margin: 0 !important;
+        background: white !important;
+      }
+      .vf-renderer-container {
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: block !important;
+      }
+      .vf-form-card {
+        max-width: 100% !important;
+        width: 100% !important;
+      }
+      .vf-section-navigator {
+        display: none !important;
+      }
+      .py-8 { padding-top: 0 !important; padding-bottom: 0 !important; }
+      .px-4 { padding-left: 0 !important; padding-right: 0 !important; }
+      .card {
+        box-shadow: none !important;
+        border: none !important;
+        background: white !important;
+        border-radius: 0 !important;
+      }
+      .bg-white { background-color: white !important; }
+      .shadow-2xl, .shadow-sm, .shadow-xl { box-shadow: none !important; }
+      .border-b { border-bottom: 1px solid #f4f4f5 !important; }
+      
+      /* Hide navigation components */
+      .hidden.lg\:block.w-64.shrink-0 { display: none !important; }
+      .flex.flex-wrap.items-center.justify-end.gap-2,
+      .mt-12.pt-8.border-t.border-zinc-100 {
+        display: none !important;
+      }
+
+      /* Table Print Improvements */
+      .overflow-x-auto { overflow: visible !important; }
+      table { width: 100% !important; table-layout: auto !important; }
+      th, td { border: 1px solid #f4f4f5 !important; }
+
+      /* Force expand all contents */
+      .ql-container { height: auto !important; max-height: none !important; }
+      .ql-editor { overflow: visible !important; height: auto !important; padding: 0 !important; }
+
+      /* Page breaks */
+      .vf-section-shell {
+        page-break-inside: avoid;
+        margin-bottom: 2rem !important;
+        border: 1px solid #f4f4f5 !important; 
+        display: block !important;
+      }
+      h2, h3 { page-break-after: avoid; }
+    }
+    
+    .ql-frappe-style .ql-container::-webkit-resizer {
       cursor: ns-resize;
     }
 
@@ -483,6 +592,10 @@ import { VfSectionShell } from '../shared/section-shell.component';
     .grid {
       transition: grid-template-rows 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
     }
+
+    .section-anchor {
+      scroll-margin-top: 150px;
+    }
   `]
 })
 export class VfRenderer implements OnInit, OnChanges, OnDestroy {
@@ -502,6 +615,8 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   @Input() mediaResolver?: VfMediaResolver;
   @Input() linkDataSource?: VfLinkDataSource;
   @Input() linkRequestObserver?: VfLinkRequestObserver;
+  @Input() showSectionNavigator = false;
+
 
   @Output() formAction = new EventEmitter<VfRendererButtonEvent>();
   @Output() formChange = new EventEmitter<VfRendererChangeEvent>();
@@ -509,14 +624,54 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   @Output() formReady = new EventEmitter<VfFormContext>();
   @ViewChildren(VfField) fieldComponents!: QueryList<VfField>;
 
+  navigatorVisible = true;
   formData: any = {};
   validationErrors: string[] = [];
   ctx = inject(VfFormContext);
   utils = inject(VfUtilityService);
+
   private appliedReadonlyFields = new Set<string>();
   private appliedHiddenFields = new Set<string>();
   private appliedDisabledActionButtons = new Set<string>();
   private appliedHiddenActionButtons = new Set<string>();
+
+  activeSectionId: string | null = null;
+
+  get allSections(): DocumentSection[] {
+    if (this.document.is_stepper && this.document.steps) {
+      const activeStep = this.document.steps[this.ctx.currentStepIndex()];
+      return activeStep ? activeStep.sections : [];
+    }
+    return this.document.sections || [];
+  }
+
+  scrollToSection(sectionId: string) {
+    const el = document.getElementById('section-' + sectionId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      this.activeSectionId = sectionId;
+    }
+  }
+
+  @HostListener('window:scroll', [])
+  onWindowScroll() {
+    if (!(this.showSectionNavigator || this.document.show_section_navigator)) return;
+
+    const sections = this.allSections;
+    let current: string | null = null;
+
+    for (const section of sections) {
+      const el = document.getElementById('section-' + section.id);
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        // If the top of the section is in the top part of the viewport
+        if (rect.top <= 200) {
+          current = section.id;
+        }
+      }
+    }
+    this.activeSectionId = current;
+  }
 
   get isLastStep(): boolean {
     if (!this.document.is_stepper || !this.document.steps) return true;
@@ -534,10 +689,39 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     return this.getSubmitActionConfig().type || 'primary';
   }
 
+  onPrint() {
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('vf-printing');
+
+      // Short delay to allow CSS to apply before browser captures print state
+      setTimeout(() => {
+        this.ctx.print();
+
+        // Remove class after print dialog is closed
+        // This is tricky as window.print() is blocking in some browsers
+        // Use a longer timeout or ideally the afterprint event
+        const clear = () => {
+          document.body.classList.remove('vf-printing');
+          window.removeEventListener('afterprint', clear);
+        };
+        window.addEventListener('afterprint', clear);
+
+        // Fallback for browsers that don't support afterprint reliably
+        setTimeout(clear, 1000);
+      }, 100);
+    }
+  }
+
   constructor() {
     effect(() => {
       this.evaluateDependsOn();
     }, { allowSignalWrites: true });
+
+    effect(() => {
+      // Reset active section when stepper index changes
+      this.ctx.currentStepIndex();
+      this.activeSectionId = null;
+    });
   }
 
   ngOnInit() {
@@ -605,6 +789,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       this.ctx.execute(this.document.client_script || '', 'refresh');
     }
     this.ctx.trigger('refresh');
+    this.ctx.on('print', () => this.onPrint());
     this.applyHostStateOverrides();
     if (emitReady) {
       this.formReady.emit(this.ctx);

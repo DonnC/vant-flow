@@ -2,6 +2,42 @@
 
 This document outlines how **Vant Flow** can be leveraged across a diversified Zimbabwean Holdings Company to digitize paper-intensive processes, enforce hierarchical governance, and ensure regulatory agility.
 
+## Scripts
+
+## Form Script Button Actions
+Solid real use cases
+
+1. `Decline` requires a comment first  
+The host app owns the real decline action, but the script blocks it until `comment` has a value.
+```js
+frm.set_button_action('decline', async (frm) => {
+  if (frm.get_value('comment')) return true;
+  frm.msgprint('Please add a comment before declining.', 'warning');
+  return false;
+});
+```
+
+2. `Decline` opens a reason prompt, then allows host submission  
+Useful when you don’t want the reason field always visible on the form.
+```js
+frm.set_button_action('decline', async (frm) => {
+  const vals = await frm.prompt([
+    { label: 'Reason', fieldname: 'reason', fieldtype: 'Text', mandatory: 1 }
+  ], undefined, 'Decline Reason');
+```
+
+3. Check if field exist
+```js
+if (frm.has_field('comment')) {
+  frm.set_df_property('comment', 'reqd', 1);
+}
+
+// table items
+if (frm.has_field('items', 'reason')) {
+  frm.msgprint('Reason column exists');
+}
+```
+
 ---
 
 ## 🏢 1. Group-Wide Infrastructure (Shared Services)

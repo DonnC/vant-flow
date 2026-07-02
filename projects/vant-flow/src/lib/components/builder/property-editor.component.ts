@@ -53,14 +53,20 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
           <label class="ui-label font-bold text-zinc-600">Description</label>
           <textarea class="ui-textarea text-xs" rows="2" [ngModel]="state.document().description" (ngModelChange)="updateFormMetadata({ description: $event })" placeholder="Overview of this Document..."></textarea>
         </div>
-
-        <!-- Stepper Toggle -->
-        <div class="space-y-3 pt-2">
+        <!-- Form Toggles -->
+        <div class="space-y-4 pt-2">
           <vf-toggle-card
             title="Stepper Mode"
             description="Transform this form into a multi-step wizard"
             [checked]="!!state.document().is_stepper"
             (checkedChange)="state.setDocumentMetadata({ is_stepper: $event })">
+          </vf-toggle-card>
+
+          <vf-toggle-card
+            title="Section Navigator"
+            description="Sticky sidebar for quick navigation within the form"
+            [checked]="!!state.document().show_section_navigator"
+            (checkedChange)="state.setDocumentMetadata({ show_section_navigator: $event })">
           </vf-toggle-card>
         </div>
 
