@@ -1,6 +1,38 @@
 {
   "name": "vant-flow",
-  "version": "0.0.1",
+  "version": "1.0.0",
+  "description": "Schema-driven Angular form builder and renderer with runtime scripting, validation, stepper flows, and host-controlled integrations.",
+  "author": {
+    "name": "DonnC",
+    "url": "https://github.com/DonnC"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/DonnC/vant-flow#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DonnC/vant-flow.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DonnC/vant-flow/issues"
+  },
+  "keywords": [
+    "angular",
+    "angular-library",
+    "form-builder",
+    "forms",
+    "json-schema",
+    "low-code",
+    "renderer",
+    "schema-driven",
+    "typescript",
+    "workflow"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "peerDependencies": {
     "@angular/common": "^20.3.0",
     "@angular/core": "^20.3.0",
