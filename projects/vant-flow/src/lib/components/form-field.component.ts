@@ -1,4 +1,17 @@
-import { Component, Input, Output, EventEmitter, inject, ViewChild, ElementRef, AfterViewInit, OnInit, DoCheck } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  DoCheck,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnInit,
+  Output,
+  ViewChild,
+  inject
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -85,6 +98,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
             } @else if (hasLinkDataSource) {
               <div class="relative">
                 <input
+                  #linkInputEl
                   type="text"
                   class="ui-input"
                   autocomplete="off"
@@ -102,19 +116,35 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                     </svg>
                   </div>
                 } @else if (value && !disabled) {
-                  <vf-icon-button
-                    (mousedown)="$event.preventDefault()"
-                    (click)="clearLinkSelection()"
-                    class="absolute right-2 top-1/2 -translate-y-1/2"
-                    tone="danger" [soft]="true">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <path d="M18 6L6 18M6 6l12 12"/>
-                    </svg>
-                  </vf-icon-button>
+                  <div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+                    @if (getLinkedDocumentHref()) {
+                      <vf-icon-button
+                        (mousedown)="$event.preventDefault()"
+                        (click)="openLinkedDocument($event)"
+                        tone="brand"
+                        [soft]="true">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25">
+                          <path d="M14 3h7v7"></path>
+                          <path d="M10 14L21 3"></path>
+                          <path d="M21 14v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h4"></path>
+                        </svg>
+                      </vf-icon-button>
+                    }
+                    <vf-icon-button
+                      (mousedown)="$event.preventDefault()"
+                      (click)="clearLinkSelection()"
+                      tone="danger"
+                      [soft]="true">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                      </svg>
+                    </vf-icon-button>
+                  </div>
                 }
 
                 @if (showLinkDropdown) {
-                  <div class="absolute z-30 mt-1 w-full rounded-2xl border border-zinc-200 bg-white shadow-2xl overflow-hidden">
+                  <div class="z-30 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl"
+                    [ngStyle]="linkDropdownStyles">
                     @if (linkError) {
                       <div class="px-4 py-3 text-sm text-red-600 bg-red-50 border-b border-red-100">
                         {{ linkError }}
@@ -169,6 +199,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
             } @else if (hasLinkDataSource) {
               <div class="relative">
                 <input
+                  #linkInputEl
                   type="text"
                   class="ui-input"
                   autocomplete="off"
@@ -186,19 +217,35 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                     </svg>
                   </div>
                 } @else if (value && !disabled) {
-                  <vf-icon-button
-                    (mousedown)="$event.preventDefault()"
-                    (click)="clearLinkSelection()"
-                    class="absolute right-2 top-1/2 -translate-y-1/2"
-                    tone="danger" [soft]="true">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <path d="M18 6L6 18M6 6l12 12"/>
-                    </svg>
-                  </vf-icon-button>
+                  <div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+                    @if (getLinkedDocumentHref()) {
+                      <vf-icon-button
+                        (mousedown)="$event.preventDefault()"
+                        (click)="openLinkedDocument($event)"
+                        tone="brand"
+                        [soft]="true">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25">
+                          <path d="M14 3h7v7"></path>
+                          <path d="M10 14L21 3"></path>
+                          <path d="M21 14v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h4"></path>
+                        </svg>
+                      </vf-icon-button>
+                    }
+                    <vf-icon-button
+                      (mousedown)="$event.preventDefault()"
+                      (click)="clearLinkSelection()"
+                      tone="danger"
+                      [soft]="true">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                      </svg>
+                    </vf-icon-button>
+                  </div>
                 }
 
                 @if (showLinkDropdown) {
-                  <div class="absolute z-30 mt-1 w-full rounded-2xl border border-zinc-200 bg-white shadow-2xl overflow-hidden">
+                  <div class="z-30 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl"
+                    [ngStyle]="linkDropdownStyles">
                     @if (linkError) {
                       <div class="px-4 py-3 text-sm text-red-600 bg-red-50 border-b border-red-100">
                         {{ linkError }}
@@ -645,9 +692,11 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
   `]
 })
 export class VfField implements AfterViewInit, OnInit, DoCheck {
+  private readonly cdr = inject(ChangeDetectorRef);
   @ViewChild('signatureCanvas') canvasRef?: ElementRef<HTMLCanvasElement>;
   @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
   @ViewChild('cameraInput') cameraInputRef?: ElementRef<HTMLInputElement>;
+  @ViewChild('linkInputEl') linkInputRef?: ElementRef<HTMLInputElement>;
 
   @Input() field!: DocumentField;
   @Input() value: any;
@@ -878,6 +927,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
 
   // ── Link Field Logic ─────────────────────────────────────────
   private static linkCache = new Map<string, any[]>();
+  private static linkSelectionCache = new Map<string, any>();
   showLinkDropdown = false;
   linkLoading = false;
   linkError = '';
@@ -894,6 +944,9 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   ngOnInit() {
     if (['Url', 'Link'].includes(this.field.fieldtype)) {
       this.syncLinkInputWithValue();
+      if (this.hasLinkDataSource && (typeof this.value === 'string' || typeof this.value === 'number')) {
+        void this.loadLinkOptions(String(this.value), true);
+      }
     }
 
     this.refreshCameraSupportState();
@@ -919,6 +972,14 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     }
   }
 
+  @HostListener('window:resize')
+  @HostListener('window:scroll')
+  onViewportChange() {
+    if (this.showLinkDropdown) {
+      this.cdr.markForCheck();
+    }
+  }
+
   onLinkSearchChange(value: string) {
     this.linkInputValue = value;
     this.showLinkDropdown = true;
@@ -928,6 +989,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     }
 
     void this.loadLinkOptions(value);
+    this.cdr.markForCheck();
   }
 
   openLinkDropdown() {
@@ -936,12 +998,14 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     this.showLinkDropdown = true;
     const initialQuery = this.value ? '' : this.linkInputValue;
     void this.loadLinkOptions(initialQuery, true);
+    this.cdr.markForCheck();
   }
 
   onLinkBlur() {
     this.linkBlurTimer = setTimeout(() => {
       this.showLinkDropdown = false;
       this.syncLinkInputWithValue();
+      this.cdr.markForCheck();
     }, 180);
   }
 
@@ -950,9 +1014,11 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     this.linkInputValue = '';
     this.linkResults = [];
     this.linkError = '';
+    this.cdr.markForCheck();
   }
 
   selectLinkOption(item: any) {
+    this.cacheSelectedLinkOption(item);
     if (this.field.fieldtype === 'Link') {
       const idPath = this.resolvedLinkConfig?.mapping?.id;
       this.onValueChange(this.getValueByPath(item, idPath) ?? this.getLinkTitle(item));
@@ -961,11 +1027,15 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     }
     this.linkInputValue = this.getLinkTitle(item);
     this.showLinkDropdown = false;
+    this.cdr.markForCheck();
   }
 
   getLinkDisplayValue(value: any) {
     if (!value) return '';
-    if (typeof value === 'string' || typeof value === 'number') return String(value);
+    if (typeof value === 'string' || typeof value === 'number') {
+      const cached = this.getCachedLinkOption(value);
+      return cached ? this.getLinkTitle(cached) : String(value);
+    }
     if (!this.resolvedLinkConfig?.mapping) return typeof value === 'string' ? value : '';
     return this.getLinkTitle(value);
   }
@@ -986,9 +1056,30 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     return String(this.getValueByPath(item, idPath) ?? this.getLinkTitle(item));
   }
 
+  get linkDropdownStyles() {
+    const rect = this.linkInputRef?.nativeElement?.getBoundingClientRect();
+    if (!rect) {
+      return {
+        position: 'fixed',
+        top: '0px',
+        left: '0px',
+        width: '0px'
+      };
+    }
+
+    return {
+      position: 'fixed',
+      top: `${rect.bottom + 6}px`,
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+      maxHeight: `min(288px, calc(100vh - ${rect.bottom + 24}px))`
+    };
+  }
+
   private syncLinkInputWithValue() {
     if (!this.hasLinkDataSource) return;
     this.linkInputValue = this.getLinkDisplayValue(this.value);
+    this.cdr.markForCheck();
   }
 
   private async loadLinkOptions(query: string, preloadOnEmpty: boolean = false) {
@@ -1003,6 +1094,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       this.linkResults = [];
       this.linkError = '';
       this.emitLinkRequestState(query, 'idle');
+      this.cdr.markForCheck();
       return;
     }
 
@@ -1014,6 +1106,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       this.linkResults = VfField.linkCache.get(cacheKey) || [];
       this.linkError = '';
       this.emitLinkRequestState(query, 'success', this.linkResults.length);
+      this.cdr.markForCheck();
       return;
     }
 
@@ -1036,20 +1129,77 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       if (requestId !== this.activeLinkRequestId) return;
 
       this.linkResults = Array.isArray(results) ? results : [];
+      this.linkResults.forEach(item => this.cacheSelectedLinkOption(item));
       if (config.cache !== false) {
         VfField.linkCache.set(cacheKey, this.linkResults);
       }
       this.emitLinkRequestState(query, 'success', this.linkResults.length);
+      this.cdr.markForCheck();
     } catch (error) {
       if (requestId !== this.activeLinkRequestId) return;
       this.linkResults = [];
       this.linkError = error instanceof Error ? error.message : 'Failed to load link options.';
       this.emitLinkRequestState(query, 'error', 0, this.linkError);
+      this.cdr.markForCheck();
     } finally {
       if (requestId === this.activeLinkRequestId) {
         this.linkLoading = false;
+        this.cdr.markForCheck();
       }
     }
+  }
+
+  private getLinkSelectionCacheKey(rawValue: any) {
+    const doctype = typeof this.field.options === 'string' ? this.field.options.trim() : '';
+    if (!doctype || rawValue === undefined || rawValue === null || rawValue === '') {
+      return null;
+    }
+
+    return `${doctype}::${String(rawValue)}`;
+  }
+
+  private cacheSelectedLinkOption(item: any) {
+    const idPath = this.resolvedLinkConfig?.mapping?.id;
+    const rawValue = this.getValueByPath(item, idPath) ?? item?.id ?? item?.name ?? item?._baobab_name;
+    const cacheKey = this.getLinkSelectionCacheKey(rawValue);
+    if (cacheKey) {
+      VfField.linkSelectionCache.set(cacheKey, item);
+    }
+  }
+
+  private getCachedLinkOption(rawValue: any) {
+    const cacheKey = this.getLinkSelectionCacheKey(rawValue);
+    return cacheKey ? VfField.linkSelectionCache.get(cacheKey) ?? null : null;
+  }
+
+  getLinkedDocumentHref() {
+    if (this.field.fieldtype !== 'Link' || !this.value) {
+      return null;
+    }
+
+    const doctype = typeof this.field.options === 'string' ? this.field.options.trim() : '';
+    if (!doctype) {
+      return null;
+    }
+
+    const cached = this.getCachedLinkOption(this.value);
+    const target = cached?._baobab_name ?? cached?.name ?? this.value;
+    if (!target) {
+      return null;
+    }
+
+    return `/desk/app/${encodeURIComponent(doctype)}/${encodeURIComponent(String(target))}`;
+  }
+
+  openLinkedDocument(event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    const href = this.getLinkedDocumentHref();
+    if (!href) {
+      return;
+    }
+
+    window.location.assign(href);
   }
 
   private async fetchLinkOptionsFromEndpoint(query: string, filters: Record<string, any>, config: VfLinkFieldConfig): Promise<any[]> {
