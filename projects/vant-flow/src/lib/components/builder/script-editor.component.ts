@@ -16,6 +16,7 @@ const FRM_METHOD_COMPLETIONS = [
   { label: 'set_df_property', insertText: "set_df_property('${1:fieldname}', '${2:read_only}', ${3:true})", documentation: 'Change runtime field properties.' },
   { label: 'set_filter', insertText: "set_filter('${1:fieldname}', { ${2:key}: ${3:value} })", documentation: 'Replace a Url lookup field filter set.' },
   { label: 'refresh_link', insertText: "refresh_link('${1:fieldname}')", documentation: 'Force a Url lookup field to reload.' },
+  { label: 'is_new', insertText: 'is_new()', documentation: 'Check whether the form is a brand new unsaved record.' },
   { label: 'set_section_property', insertText: "set_section_property('${1:sectionId}', '${2:hidden}', ${3:true})", documentation: 'Change section runtime properties.' },
   { label: 'set_intro', insertText: "set_intro('${1:message}', '${2:blue}')", documentation: 'Show a top intro banner.' },
   { label: 'msgprint', insertText: "msgprint('${1:message}', '${2:info}')", documentation: 'Show a toast message.' },
@@ -278,6 +279,8 @@ export class VfScriptEditor {
         set_filter(fieldname: string, filters: Record<string, any>): void;
         /** Force a Url lookup field to refetch its data source */
         refresh_link(fieldname: string): void;
+        /** Check whether the current form is a new unsaved record */
+        is_new(): boolean;
         /** Set a property of a section (hidden, label, description) */
         set_section_property(sectionId: string, prop: 'hidden' | 'label' | 'description', val: any): void;
         /** Show an introduction banner at the top of the form */

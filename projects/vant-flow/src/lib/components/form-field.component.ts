@@ -115,7 +115,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                       <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                     </svg>
                   </div>
-                } @else if (value && !disabled) {
+                } @else if (value) {
                   <div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
                     @if (getLinkedDocumentHref()) {
                       <vf-icon-button
@@ -130,6 +130,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                         </svg>
                       </vf-icon-button>
                     }
+                    @if (!disabled) {
                     <vf-icon-button
                       (mousedown)="$event.preventDefault()"
                       (click)="clearLinkSelection()"
@@ -139,6 +140,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                         <path d="M18 6L6 18M6 6l12 12"/>
                       </svg>
                     </vf-icon-button>
+                    }
                   </div>
                 }
 
@@ -216,7 +218,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                       <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                     </svg>
                   </div>
-                } @else if (value && !disabled) {
+                } @else if (value) {
                   <div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
                     @if (getLinkedDocumentHref()) {
                       <vf-icon-button
@@ -231,6 +233,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                         </svg>
                       </vf-icon-button>
                     }
+                    @if (!disabled) {
                     <vf-icon-button
                       (mousedown)="$event.preventDefault()"
                       (click)="clearLinkSelection()"
@@ -240,6 +243,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                         <path d="M18 6L6 18M6 6l12 12"/>
                       </svg>
                     </vf-icon-button>
+                    }
                   </div>
                 }
 

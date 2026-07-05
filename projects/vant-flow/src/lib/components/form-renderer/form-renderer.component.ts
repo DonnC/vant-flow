@@ -290,7 +290,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                     class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest w-12 text-center">
                                                     #
                                                   </th>
-                                                  @for (col of (ctx.getFieldSignal(field.fieldname, 'table_fields')() || []).slice(0, 6); track col.id) {
+                                                  @for (col of getGridTableColumns(field); track col.id) {
                                                     @if (!col.hidden) {
                                                       <th class="p-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
                                                         {{ col.label }}
@@ -300,10 +300,10 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                       </th>
                                                     }
                                                   }
-                                                  @if ((field.table_fields?.length ?? 0) > 6) {
+                                                  @if (getHiddenGridColumnCount(field) > 0) {
                                                     <th
                                                       class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">
-                                                      +{{ field.table_fields!.length - 6 }} more
+                                                      +{{ getHiddenGridColumnCount(field) }} more
                                                     </th>
                                                   }
                                                   <th class="p-3 w-20"></th>
@@ -315,7 +315,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                       <td
                                                         class="p-3 text-center text-[11px] font-mono text-zinc-400">{{ $index + 1 }}
                                                       </td>
-                                                      @for (col of (ctx.getFieldSignal(field.fieldname, 'table_fields')() || []).slice(0, 6); track col.id) {
+                                                      @for (col of getGridTableColumns(field); track col.id) {
                                                         @if (!col.hidden) {
                                                           <td class="p-2 relative group/cell" 
                                                               [class.cursor-pointer]="['Text', 'Text Editor', 'Attach', 'Signature', 'Datetime'].includes(col.fieldtype)"
@@ -342,7 +342,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                           </td>
                                                         }
                                                       }
-                                                      @if ((field.table_fields?.length ?? 0) > 6) {
+                                                      @if (getHiddenGridColumnCount(field) > 0) {
                                                         <td class="p-2 text-zinc-300 text-[10px] italic">...</td>
                                                       }
                                                       <td class="p-2 text-right flex items-center justify-end gap-1">
@@ -376,7 +376,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                   @if (!formData[field.fieldname]?.length) {
                                                     <tr>
                                                       <td
-                                                        [attr.colspan]="Math.min(field.table_fields?.length ?? 0, 6) + ((field.table_fields?.length ?? 0) > 6 ? 3 : 2)"
+                                                        [attr.colspan]="getTableEmptyStateColspan(field)"
                                                         class="p-8 text-center">
                                                         <div class="flex flex-col items-center gap-2">
                                                           <div
@@ -798,7 +798,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   }
 
   private initForm() {
-    const rawData = { ...(this.initialData || {}), ...this.formData };
+    const rawData = { ...this.formData, ...(this.initialData || {}) };
     this.formData = {};
 
     const allSections: DocumentSection[] = [];
@@ -1233,6 +1233,25 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   }
 
   public readonly Math = Math;
+
+  getGridTableColumns(field: DocumentField) {
+    const currentColumns = this.ctx.getFieldSignal(field.fieldname, 'table_fields')() || [];
+    const visibleColumns = currentColumns.filter((col: any) => !col.hidden);
+    const listViewColumns = visibleColumns.filter((col: any) => col.in_list_view);
+    return (listViewColumns.length > 0 ? listViewColumns : visibleColumns).slice(0, 6);
+  }
+
+  getHiddenGridColumnCount(field: DocumentField) {
+    const currentColumns = this.ctx.getFieldSignal(field.fieldname, 'table_fields')() || [];
+    const visibleColumns = currentColumns.filter((col: any) => !col.hidden);
+    const listViewColumns = visibleColumns.filter((col: any) => col.in_list_view);
+    const sourceColumns = listViewColumns.length > 0 ? listViewColumns : visibleColumns;
+    return Math.max(0, sourceColumns.length - this.getGridTableColumns(field).length);
+  }
+
+  getTableEmptyStateColspan(field: DocumentField) {
+    return this.getGridTableColumns(field).length + (this.getHiddenGridColumnCount(field) > 0 ? 3 : 2);
+  }
 
   editTableRow(field: DocumentField, index: number) {
     const row = this.formData[field.fieldname][index];

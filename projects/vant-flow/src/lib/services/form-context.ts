@@ -244,6 +244,12 @@ export class VfFormContext {
 
     // ── Stepper methods ──────────────────────────────────────────
 
+    is_new() {
+        const metadataName = this.metadata?.document_name;
+        const metadataId = this.metadata?.document_id;
+        return !metadataId && (!metadataName || metadataName === 'new');
+    }
+
     next_step() {
         const doc = this.document;
         if (!doc.is_stepper || !doc.steps) return;
