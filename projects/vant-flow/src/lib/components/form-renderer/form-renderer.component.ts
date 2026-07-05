@@ -283,16 +283,16 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                           <div class="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
                                             <div class="overflow-x-auto">
                                               <!-- Table -->
-                                              <table class="w-full text-left border-collapse">
+                                              <table class="min-w-full text-left border-collapse child-grid-table">
                                                 <thead>
                                                 <tr class="bg-zinc-50/80 border-b border-zinc-200">
                                                   <th
-                                                    class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest w-12 text-center">
+                                                    class="px-2 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest w-10 text-center">
                                                     #
                                                   </th>
                                                   @for (col of getGridTableColumns(field); track col.id) {
                                                     @if (!col.hidden) {
-                                                      <th class="p-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                                                      <th class="px-2 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider min-w-28">
                                                         {{ col.label }}
                                                         @if (col.mandatory) {
                                                           <span class="text-red-500">*</span>
@@ -302,22 +302,22 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                   }
                                                   @if (getHiddenGridColumnCount(field) > 0) {
                                                     <th
-                                                      class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">
+                                                      class="px-2 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">
                                                       +{{ getHiddenGridColumnCount(field) }} more
                                                     </th>
                                                   }
-                                                  <th class="p-3 w-20"></th>
+                                                  <th class="px-2 py-2 w-16"></th>
                                                 </tr>
                                                 </thead>
                                                 <tbody class="divide-y divide-zinc-100">
                                                   @for (row of formData[field.fieldname]; track $index) {
                                                     <tr class="hover:bg-zinc-50/50 transition-colors group/row">
                                                       <td
-                                                        class="p-3 text-center text-[11px] font-mono text-zinc-400">{{ $index + 1 }}
+                                                        class="px-2 py-1.5 text-center text-[11px] font-mono text-zinc-400">{{ $index + 1 }}
                                                       </td>
                                                       @for (col of getGridTableColumns(field); track col.id) {
                                                         @if (!col.hidden) {
-                                                          <td class="p-2 relative group/cell" 
+                                                          <td class="px-1.5 py-1.5 relative group/cell align-middle" 
                                                               [class.cursor-pointer]="['Text', 'Text Editor', 'Attach', 'Signature', 'Datetime'].includes(col.fieldtype)"
                                                               (click)="['Text', 'Text Editor', 'Attach', 'Signature', 'Datetime'].includes(col.fieldtype) ? editTableRow(field, $index) : null">
                                                             <vf-field
@@ -343,9 +343,10 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                         }
                                                       }
                                                       @if (getHiddenGridColumnCount(field) > 0) {
-                                                        <td class="p-2 text-zinc-300 text-[10px] italic">...</td>
+                                                        <td class="px-2 py-1.5 text-zinc-300 text-[10px] italic">...</td>
                                                       }
-                                                      <td class="p-2 text-right flex items-center justify-end gap-1">
+                                                      <td class="px-1.5 py-1.5 text-right">
+                                                        <div class="flex items-center justify-end gap-1">
                                                         <vf-icon-button (pressed)="editTableRow(field, $index)" tone="brand">
                                                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                                                                stroke="currentColor" stroke-width="2">
@@ -370,6 +371,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                             </svg>
                                                           </vf-icon-button>
                                                         }
+                                                        </div>
                                                       </td>
                                                     </tr>
                                                   }
@@ -377,11 +379,11 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                     <tr>
                                                       <td
                                                         [attr.colspan]="getTableEmptyStateColspan(field)"
-                                                        class="p-8 text-center">
-                                                        <div class="flex flex-col items-center gap-2">
+                                                        class="px-4 py-6 text-center">
+                                                        <div class="flex flex-col items-center gap-1.5">
                                                           <div
-                                                            class="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-300">
-                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                                            class="w-8 h-8 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-300">
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                                                                  stroke="currentColor" stroke-width="2">
                                                               <path d="M12 5v14M5 12h14"/>
                                                             </svg>
@@ -396,7 +398,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                               </table>
                                             </div>
                                             @if (!ctx.isReadOnly()) {
-                                              <div class="p-3 bg-zinc-50/50 border-t border-zinc-200">
+                                              <div class="px-2 py-2 bg-zinc-50/50 border-t border-zinc-200">
                                                 <vf-dashed-action label="Add Row" [compact]="true" [fullWidth]="false" (pressed)="addTableRow(field.fieldname)"></vf-dashed-action>
                                               </div>
                                             }

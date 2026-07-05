@@ -603,7 +603,20 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
 
     /* Compact mode (for tables) */
     .field-group.compact .ui-input, .field-group.compact .ui-textarea, .field-group.compact .ui-select {
-      @apply bg-transparent border-0 focus:ring-0 focus:bg-white rounded hover:bg-zinc-100/50 p-1.5 text-xs;
+      @apply bg-transparent border-0 focus:ring-0 focus:bg-white rounded hover:bg-zinc-100/50 text-xs;
+      min-height: 2.1rem;
+      padding: 0.35rem 0.5rem;
+      line-height: 1.1rem;
+    }
+
+    .field-group.compact .ui-select {
+      padding-right: 1.65rem;
+      background-position: right 0.45rem center;
+    }
+
+    .field-group.compact .ui-textarea {
+      min-height: 2.1rem;
+      resize: none;
     }
 
     .ui-field-error .ui-input, .ui-field-error .ui-textarea, .ui-field-error .ui-select {
