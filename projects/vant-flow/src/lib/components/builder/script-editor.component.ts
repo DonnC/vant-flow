@@ -176,6 +176,7 @@ export class VfScriptEditor {
       items: [
         { label: 'frm.set_value', code: "frm.set_value('fieldname', 'value');" },
         { label: 'frm.get_value', code: "const val = frm.get_value('fieldname');" },
+        { label: 'frm.is_new', code: "if (frm.is_new()) {\n  frm.set_intro('Creating a new record', 'blue');\n}" },
         { label: 'frm.has_field', code: "if (frm.has_field('comment')) {\n  frm.set_df_property('comment', 'reqd', 1);\n}" },
         { label: 'frm.has_field (Many)', code: "if (frm.has_field(['comment', { field: 'items', child: 'reason' }], { mode: 'any' })) {\n  frm.msgprint('At least one reason surface exists');\n}" },
         { label: 'frm.set_readonly', code: "frm.set_readonly(true);" },

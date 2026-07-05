@@ -75,21 +75,7 @@ interface DocumentOption {
             [checked]="!!state.document().show_section_navigator"
             (checkedChange)="state.setDocumentMetadata({ show_section_navigator: $event })">
           </vf-toggle-card>
-
-          <vf-toggle-card
-            title="Child Document"
-            description="Marks this document as a child table target for Baobab relations"
-            [checked]="!!state.document().is_child_doctype"
-            (checkedChange)="state.setDocumentMetadata({ is_child_doctype: $event })">
-          </vf-toggle-card>
         </div>
-
-        @if (state.document().is_child_doctype) {
-          <div class="rounded-xl border border-amber-200 bg-amber-50/70 p-3 text-[11px] leading-relaxed text-amber-900/80">
-            Baobab child documents are expected to carry framework relation columns such as
-            <code>parent</code>, <code>parenttype</code>, <code>parentfield</code>, and <code>idx</code>.
-          </div>
-        }
 
         <div class="ui-sep"></div>
 
