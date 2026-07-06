@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { MonacoEditorModule } from 'ngx-monaco-editor-v2';
 import { VfBuilderState } from '../../services/builder-state.service';
 import { VfUiPrimitivesModule } from '../../ui/ui-primitives.module';
+import { registerVfScriptEditorSupport } from '../../utils/script-editor-support';
 import { VfEyebrow } from '../shared/eyebrow.component';
 
 const FRM_METHOD_COMPLETIONS = [
@@ -114,8 +115,7 @@ const FRM_METHOD_COMPLETIONS = [
 export class VfScriptEditor {
   state = inject(VfBuilderState);
   editorInstance: any;
-  private frmCompletionProviderDisposable: { dispose(): void } | null = null;
-  private dtsDisposable: { dispose(): void } | null = null;
+  private scriptSupportRegistration: { dispose(): void } | null = null;
 
   insertOnRefresh() {
     this.insertSnippet("frm.on('refresh', (val, frm) => {\n  \n});");
@@ -224,172 +224,9 @@ export class VfScriptEditor {
       return;
     }
 
-    const dts = `
-      /** Vant Flow Client Script Context */
-      declare interface DocumentField {
-        label?: string;
-        fieldname: string;
-        fieldtype: string;
-        options?: string;
-        description?: string;
-        placeholder?: string;
-        default?: any;
-        mandatory?: number;
-        read_only?: number;
-        hidden?: number;
-        regex?: string;
-        link_config?: {
-          data_source: string;
-          mapping: { id: string; title: string; description?: string };
-          filters?: Record<string, any>;
-          method?: 'GET' | 'POST';
-          search_param?: string;
-          limit_param?: string;
-          results_path?: string;
-          cache?: boolean;
-          min_query_length?: number;
-          page_size?: number;
-        };
-      }
-
-      declare interface VfFieldQuery {
-        field: string;
-        child?: string;
-      }
-
-      declare interface VfButtonActionContext {
-        action: string;
-        label: string;
-        source: 'default' | 'custom';
-      }
-
-      declare interface VfFormContext {
-        /** Set value of a field */
-        set_value(fieldname: string, value: any): void;
-        /** Set multiple values at once */
-        set_value(values: Record<string, any>): void;
-        /** Get value of a field */
-        get_value(fieldname: string): any;
-        /** Check whether a field exists, or whether a table child column exists */
-        has_field(fieldname: string, child_fieldname?: string): boolean;
-        /** Check many field references at once. mode defaults to 'all'. */
-        has_field(fields: Array<string | VfFieldQuery>, options?: { mode?: 'all' | 'any' }): boolean;
-        /** Set a property of one field or many fields (hidden, read_only, mandatory/reqd, etc.) */
-        set_df_property(fieldname: string | string[], prop: 'hidden' | 'read_only' | 'mandatory' | 'reqd' | 'label' | 'options' | 'link_config', val: any, child_fieldname?: string): void;
-        /** Set or replace filters for a Url lookup field data source */
-        set_filter(fieldname: string, filters: Record<string, any>): void;
-        /** Force a Url lookup field to refetch its data source */
-        refresh_link(fieldname: string): void;
-        /** Check whether the current form is a new unsaved record */
-        is_new(): boolean;
-        /** Set a property of a section (hidden, label, description) */
-        set_section_property(sectionId: string, prop: 'hidden' | 'label' | 'description', val: any): void;
-        /** Show an introduction banner at the top of the form */
-        set_intro(message: string, color?: 'blue' | 'orange' | 'red' | 'green' | 'yellow' | 'gray'): void;
-        /** Show a toast notification */
-        msgprint(message: string, indicator?: 'success' | 'error' | 'info' | 'warning'): void;
-        /** Show a confirmation dialog */
-        confirm(message: string, on_confirm?: () => void, on_cancel?: () => void): void;
-        /** Show a prompt dialog with fields */
-        prompt(fields: DocumentField[], callback?: (values: any) => void, title?: string, read_only?: boolean): Promise<any | null>;
-        /** Show error and stop execution */
-        throw(message: string): void;
-        /** Run full-form validation from scripts and host hooks */
-        validate(): boolean;
-        /** Run step validation for steppers */
-        validate_step(): boolean;
-        /** Listen to field or form events */
-        on(event: 'refresh' | 'validate' | string, callback: (val: any, frm: VfFormContext) => void): void;
-        
-        /** Control global readonly state */
-        set_readonly(readonly: boolean): void;
-        /** Add a custom button to the header */
-        add_custom_button(label: string, action: (frm: VfFormContext, context?: VfButtonActionContext) => boolean | void | Promise<boolean | void>, type?: 'primary' | 'secondary' | 'danger' | 'ghost', disable_on_readonly?: boolean): void;
-        /** Clear all custom buttons */
-        clear_custom_buttons(): void;
-        /** Dynamically change a default button label */
-        set_button_label(id: 'save' | 'submit' | 'approve' | 'decline', label: string): void;
-        /** Override a default button action */
-        set_button_action(id: string, action: (frm: VfFormContext, context?: VfButtonActionContext) => boolean | void | Promise<boolean | void>): void;
-        /** Set one property across one or many default action buttons */
-        set_button_property(id: ('save' | 'submit' | 'approve' | 'decline') | Array<'save' | 'submit' | 'approve' | 'decline'>, prop: 'label' | 'visible' | 'type' | 'disable_on_readonly', value: any): void;
-        
-        /** Remote procedure call */
-        call(opts: { 
-            method: string; 
-            args?: any; 
-            callback?: (r: any) => void; 
-            freeze?: boolean; 
-            freeze_message?: string 
-        }): Promise<any>;
-        
-        /** Reset form to its original state (clears data and custom intros) */
-        reset(): void;
-        /** Add a row to a table field */
-        add_row(fieldname: string, row?: any): void;
-        /** Remove a row from a table field */
-        remove_row(fieldname: string, index: number): void;
-        
-        /** Move to the next visible step */
-        next_step(): void;
-        /** Move to the previous visible step */
-        prev_step(): void;
-        /** Go to a specific step by index or ID */
-        go_to_step(indexOrId: number | string): void;
-        /** Hide/Show a specific step */
-        set_step_hidden(stepId: string, hidden: boolean): void;
-
-        /** Global UI freezing */
-        freeze(message?: string): void;
-        unfreeze(): void;
-
-        /** Injected metadata object from host application */
-        metadata?: any;
-      }
-
-      /** The main Form Context object */
-      declare const frm: VfFormContext;
-    `;
-
-    // Register the lib
-    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-      noSemanticValidation: false,
-      noSyntaxValidation: false,
-    });
-
-    monaco.languages.typescript.javascriptDefaults.setEagerModelSync(true);
-    monaco.languages.typescript.javascriptDefaults.setCompilerOptions({
-      target: monaco.languages.typescript.ScriptTarget.ESNext,
-      allowNonTsExtensions: true,
-      checkJs: true,
-      lib: ['esnext', 'dom']
-    });
-
-    this.dtsDisposable?.dispose?.();
-    this.dtsDisposable = monaco.languages.typescript.javascriptDefaults.addExtraLib(dts, 'ts:vant-flow/form-script-api.d.ts');
-
-    this.frmCompletionProviderDisposable?.dispose?.();
-    this.frmCompletionProviderDisposable = monaco.languages.registerCompletionItemProvider('javascript', {
-      triggerCharacters: ['.', "'", '"'],
-      provideCompletionItems: (model: any, position: any) => {
-        const linePrefix = model.getLineContent(position.lineNumber).slice(0, position.column - 1);
-
-        if (!linePrefix.match(/\bfrm\.\w*$/)) {
-          return { suggestions: [] };
-        }
-
-        return {
-          suggestions: FRM_METHOD_COMPLETIONS.map((item, index) => ({
-            label: item.label,
-            kind: monaco.languages.CompletionItemKind.Method,
-            insertText: item.insertText,
-            insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
-            documentation: item.documentation,
-            sortText: `000${index}`,
-            range: undefined
-          }))
-        };
-      }
+    this.scriptSupportRegistration?.dispose();
+    this.scriptSupportRegistration = registerVfScriptEditorSupport(monaco, {
+      language: 'javascript'
     });
   }
 

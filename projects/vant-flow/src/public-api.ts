@@ -22,3 +22,4 @@ export * from './lib/services/app-utility.service';
 export * from './lib/config';
 export * from './lib/ui/ui-primitives.module';
 export * from './lib/utils/baobab-contract';
+export * from './lib/utils/script-editor-support';
