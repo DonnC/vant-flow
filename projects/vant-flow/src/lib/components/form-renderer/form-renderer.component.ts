@@ -330,7 +330,8 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                               [linkRequestObserver]="linkRequestObserver"
                                                               [formMetadata]="metadata"
                                                               [compact]="true"
-                                                              [hideLabel]="true">
+                                                              [hideLabel]="true"
+                                                              [preferFieldDefinition]="true">
                                                             </vf-field>
                                                             @if (!['Data', 'Int', 'Float', 'Check', 'Select', 'Url', 'Link', 'Date', 'Time'].includes(col.fieldtype)) {
                                                               <vf-icon-button (pressed)="$event.stopPropagation(); editTableRow(field, $index)"
@@ -399,7 +400,15 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                             </div>
                                             @if (!ctx.isReadOnly()) {
                                               <div class="px-2 py-2 bg-zinc-50/50 border-t border-zinc-200">
-                                                <vf-dashed-action label="Add Row" [compact]="true" [fullWidth]="false" (pressed)="addTableRow(field.fieldname)"></vf-dashed-action>
+                                                <button type="button"
+                                                  class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-zinc-300 bg-white text-zinc-500 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600"
+                                                  title="Add row"
+                                                  (click)="addTableRow(field.fieldname)">
+                                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                                                    <path d="M12 5v14M5 12h14"/>
+                                                  </svg>
+                                                </button>
                                               </div>
                                             }
                                           </div>

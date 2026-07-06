@@ -720,6 +720,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   @Input() readOnly: boolean = false;
   @Input() hideLabel: boolean = false;
   @Input() compact: boolean = false;
+  @Input() preferFieldDefinition: boolean = false;
   @Input() mediaHandler?: VfMediaHandler;
   @Input() mediaResolver?: VfMediaResolver;
   @Input() linkDataSource?: VfLinkDataSource;
@@ -737,6 +738,9 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   get label() {
+    if (this.preferFieldDefinition) {
+      return this.field.label;
+    }
     return this.ctx?.getFieldSignal(this.field.fieldname, 'label')() || this.field.label;
   }
 
@@ -745,11 +749,15 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   get isMandatory() {
+    if (this.preferFieldDefinition) {
+      return this.field.mandatory;
+    }
     return this.ctx?.getFieldSignal(this.field.fieldname, 'mandatory')() || this.field.mandatory;
   }
 
   get disabled() {
-    return this.isProcessingMedia || this.readOnly || (this.ctx?.isReadOnly() || this.ctx?.getFieldSignal(this.field.fieldname, 'read_only')() || false);
+    const runtimeReadOnly = this.preferFieldDefinition ? false : this.ctx?.getFieldSignal(this.field.fieldname, 'read_only')();
+    return this.isProcessingMedia || this.readOnly || (this.ctx?.isReadOnly() || runtimeReadOnly || false);
   }
 
   get isEditor() {
@@ -757,13 +765,16 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   get options() {
-    const opt = this.ctx?.getFieldSignal(this.field.fieldname, 'options')() ?? this.field.options;
+    const opt = this.preferFieldDefinition ? this.field.options : this.ctx?.getFieldSignal(this.field.fieldname, 'options')() ?? this.field.options;
     if (!opt) return [];
     if (this.field.fieldtype === 'Attach') return [opt];
     return String(opt).split('\n').map(o => o.trim()).filter(Boolean);
   }
 
   get regex() {
+    if (this.preferFieldDefinition) {
+      return this.field.regex;
+    }
     return this.ctx?.getFieldSignal(this.field.fieldname, 'regex')() ?? this.field.regex;
   }
 
