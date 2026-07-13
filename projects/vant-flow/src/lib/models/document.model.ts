@@ -1,6 +1,6 @@
 import type { VfFormContext } from '../services/form-context';
 
-export type FieldType = 'Data' | 'Select' | 'Url' | 'Link' | 'Check' | 'Int' | 'Text' | 'Date' | 'Float' | 'Password' | 'Button' | 'Text Editor' | 'Table' | 'JSONTable' | 'ChildTable' | 'Datetime' | 'Time' | 'Signature' | 'Attach';
+export type FieldType = 'Data' | 'Select' | 'Url' | 'Link' | 'Check' | 'Int' | 'Text' | 'Html' | 'Date' | 'Float' | 'Password' | 'Button' | 'Text Editor' | 'Table' | 'JSONTable' | 'ChildTable' | 'Datetime' | 'Time' | 'Signature' | 'Attach';
 
 export interface VfBaobabFieldConfig {
   index?: boolean;
@@ -276,6 +276,7 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   { fieldtype: 'Int', label: 'Integer', icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14', desc: 'Whole number input' },
   { fieldtype: 'Float', label: 'Float', icon: 'M9 15l3 3m0 0l3-3m-3 3V10m0 0l3 3m-3-3l-3 3', desc: 'Decimal number input' },
   { fieldtype: 'Text', label: 'Text', icon: 'M4 6h16M4 12h16M4 18h7', desc: 'Multi-line text area' },
+  { fieldtype: 'Html', label: 'HTML', icon: 'M8 6L3 12l5 6M16 6l5 6-5 6M14 4l-4 16', desc: 'Safe rendered HTML injected by scripts' },
   { fieldtype: 'Text Editor', label: 'Text Editor', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z', desc: 'Rich text with formatting' },
   { fieldtype: 'JSONTable', label: 'JSON Table', icon: 'M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', desc: 'Inline table stored as flexible JSON' },
   { fieldtype: 'ChildTable', label: 'Child Table', icon: 'M4 6h16M4 12h16M4 18h16M8 4v16M16 4v16', desc: 'Relational child document table' },

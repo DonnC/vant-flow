@@ -17,7 +17,7 @@ export interface BaobabDocumentContract {
   fields: BaobabFieldContract[];
 }
 
-const VIRTUAL_BY_DEFAULT = new Set(['Table', 'JSONTable', 'Text Editor', 'Attach', 'Signature']);
+const VIRTUAL_BY_DEFAULT = new Set(['Table', 'JSONTable', 'Html', 'Text Editor', 'Attach', 'Signature']);
 
 export function extractBaobabContract(document: Pick<DocumentDefinition, 'sections' | 'steps' | 'is_stepper'>): BaobabFieldContract[] {
   const contract: BaobabFieldContract[] = [];

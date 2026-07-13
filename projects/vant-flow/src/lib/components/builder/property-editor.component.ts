@@ -10,7 +10,7 @@ import { VfChoiceGroup, VfChoiceOption } from './shared/choice-group.component';
 import { VfToggleCard } from './shared/toggle-card.component';
 import { VfEyebrow } from '../shared/eyebrow.component';
 
-const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Url', 'Link', 'Check', 'Int', 'Text', 'Text Editor', 'JSONTable', 'ChildTable', 'Date', 'Datetime', 'Time', 'Float', 'Password', 'Button', 'Signature', 'Attach'];
+const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Url', 'Link', 'Check', 'Int', 'Text', 'Html', 'Text Editor', 'JSONTable', 'ChildTable', 'Date', 'Datetime', 'Time', 'Float', 'Password', 'Button', 'Signature', 'Attach'];
 
 interface DocumentOption {
   value: string;
@@ -328,6 +328,20 @@ interface DocumentOption {
               [columns]="2"
               (selectedChange)="update('options', $event)">
             </vf-choice-group>
+          </div>
+        }
+
+        <!-- Html Field Note -->
+        @if (field()!.fieldtype === 'Html') {
+          <div class="space-y-2 rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
+            <label class="ui-label">Runtime HTML Block</label>
+            <p class="text-[10px] leading-relaxed text-zinc-600">
+              This field is rendered as safe sanitized HTML and is intended to be filled from scripts,
+              for example via <span class="font-mono">frm.set_value('{{ field()!.fieldname }}', '&lt;div&gt;...&lt;/div&gt;')</span>.
+            </p>
+            <p class="text-[9px] text-zinc-400">
+              End users do not type into this field on the rendered form.
+            </p>
           </div>
         }
 

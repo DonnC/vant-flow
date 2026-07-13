@@ -13,6 +13,7 @@ import {
   inject
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { QuillModule } from 'ngx-quill';
@@ -76,6 +77,11 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                 [placeholder]="placeholder"
                 [disabled]="disabled"></textarea>
             }
+          }
+          @case ('Html') {
+            <div class="editor-preview rounded-lg overflow-hidden bg-white transition-all border border-zinc-200">
+              <div class="editor-preview__content" [innerHTML]="getTrustedHtml(value)"></div>
+            </div>
           }
           @case ('Select') {
             <select
@@ -710,6 +716,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
 })
 export class VfField implements AfterViewInit, OnInit, DoCheck {
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly sanitizer = inject(DomSanitizer);
   @ViewChild('signatureCanvas') canvasRef?: ElementRef<HTMLCanvasElement>;
   @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
   @ViewChild('cameraInput') cameraInputRef?: ElementRef<HTMLInputElement>;
@@ -1303,10 +1310,12 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   getReadonlyEditorHtml(value: any) {
+    return this.getTrustedHtml(value);
+  }
+
+  getTrustedHtml(value: any) {
     if (!value) return '';
-    return String(value)
-      .replace(/<temporary\b[^>]*>[\s\S]*?<\/temporary>/gi, '')
-      .replace(/\sclass="ql-cell-focused"/gi, '');
+    return this.sanitizer.bypassSecurityTrustHtml(String(value));
   }
 
   private humanizeKey(key: string) {

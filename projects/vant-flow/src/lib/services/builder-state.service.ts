@@ -348,6 +348,7 @@ export class VfBuilderState {
             Url: 'Lookup Field',
             Link: 'Linked Document',
             Button: 'Click Me',
+            Html: 'HTML Block',
             'Text Editor': 'Details',
             Table: 'Items',
             JSONTable: 'JSON Rows',
@@ -366,7 +367,7 @@ export class VfBuilderState {
             mandatory: false,
             indexed: false,
             in_list_view: false,
-            virtual: fieldtype === 'JSONTable' || fieldtype === 'Table',
+            virtual: fieldtype === 'JSONTable' || fieldtype === 'Table' || fieldtype === 'Html',
             unique: false
         };
 
