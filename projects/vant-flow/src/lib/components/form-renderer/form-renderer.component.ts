@@ -1224,7 +1224,8 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     }
 
     const runtimeRegex = this.ctx.getFieldSignal(field.fieldname, 'regex')();
-    const presetKind = getRegexPresetOption(runtimeRegex ?? field.regex)?.kind;
+    const pattern = typeof runtimeRegex === 'string' && runtimeRegex ? runtimeRegex : field.regex;
+    const presetKind = getRegexPresetOption(pattern)?.kind;
     return presetKind !== 'email' && presetKind !== 'url';
   }
 

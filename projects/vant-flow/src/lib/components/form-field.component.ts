@@ -20,6 +20,7 @@ import { QuillModule } from 'ngx-quill';
 import { firstValueFrom } from 'rxjs';
 import { DocumentField, VfLinkDataSource, VfLinkFieldConfig, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver, VfStoredMedia } from '../models/document.model';
 import { VfFormContext } from '../services/form-context';
+import { VF_LINK_HREF } from '../link-href';
 import { getRegexPresetOption, resolveRegexPattern } from '../utils/regex-presets';
 import { VfUiPrimitivesModule } from '../ui/ui-primitives.module';
 import { VfIconButton } from './shared/icon-button.component';
@@ -739,6 +740,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
 
   ctx = inject(VfFormContext, { optional: true });
   http = inject(HttpClient);
+  private readonly linkHref = inject(VF_LINK_HREF, { optional: true });
 
   get shouldShowLabel() {
     return !this.hideLabel && !this.compact && this.field.fieldtype !== 'Button' && this.field.fieldtype !== 'Check';
@@ -1195,7 +1197,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
 
   private cacheSelectedLinkOption(item: any) {
     const idPath = this.resolvedLinkConfig?.mapping?.id;
-    const rawValue = this.getValueByPath(item, idPath) ?? item?.id ?? item?.name ?? item?._baobab_name;
+    const rawValue = this.getValueByPath(item, idPath) ?? item?.id ?? item?.name;
     const cacheKey = this.getLinkSelectionCacheKey(rawValue);
     if (cacheKey) {
       VfField.linkSelectionCache.set(cacheKey, item);
@@ -1208,7 +1210,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   getLinkedDocumentHref() {
-    if (this.field.fieldtype !== 'Link' || !this.value) {
+    if (!this.linkHref || this.field.fieldtype !== 'Link' || !this.value) {
       return null;
     }
 
@@ -1217,13 +1219,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       return null;
     }
 
-    const cached = this.getCachedLinkOption(this.value);
-    const target = cached?._baobab_name ?? cached?.name ?? this.value;
-    if (!target) {
-      return null;
-    }
-
-    return `/desk/app/${encodeURIComponent(doctype)}/${encodeURIComponent(String(target))}`;
+    return this.linkHref({ doctype, value: this.value, option: this.getCachedLinkOption(this.value) });
   }
 
   openLinkedDocument(event: MouseEvent) {

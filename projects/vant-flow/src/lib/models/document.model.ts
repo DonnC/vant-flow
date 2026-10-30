@@ -2,11 +2,6 @@ import type { VfFormContext } from '../services/form-context';
 
 export type FieldType = 'Data' | 'Select' | 'Url' | 'Link' | 'Check' | 'Int' | 'Text' | 'Html' | 'Date' | 'Float' | 'Password' | 'Button' | 'Text Editor' | 'Table' | 'JSONTable' | 'ChildTable' | 'Datetime' | 'Time' | 'Signature' | 'Attach';
 
-export interface VfBaobabFieldConfig {
-  index?: boolean;
-  unique?: boolean;
-  virtual?: boolean;
-}
 
 export interface VfStoredMedia {
   name: string;
@@ -115,7 +110,6 @@ export interface TableColumnDef {
   indexed?: boolean;
   unique?: boolean;
   virtual?: boolean;
-  baobab?: VfBaobabFieldConfig;
   attach_config?: VfAttachFieldConfig;
 }
 
@@ -141,7 +135,6 @@ export interface DocumentField {
   regex?: string; // Regex validator superpower
   table_fields?: TableColumnDef[]; // Only used by Table fieldtype
   data_group?: string; // Optional: nested object path (e.g. "user.profile")
-  baobab?: VfBaobabFieldConfig;
   link_config?: VfLinkFieldConfig;
   attach_config?: VfAttachFieldConfig;
 }
@@ -271,7 +264,7 @@ export const PALETTE_ITEMS: PaletteItem[] = [
   { fieldtype: 'Data', label: 'Data', icon: 'M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7', desc: 'Single line text input' },
   { fieldtype: 'Select', label: 'Select', icon: 'M19 9l-7 7-7-7', desc: 'Dropdown list of options' },
   { fieldtype: 'Url', label: 'Url', icon: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101', desc: 'Remote lookup field with autocomplete' },
-  { fieldtype: 'Link', label: 'Link', icon: 'M14 3h7v7M10 14L21 3M5 5h6M5 12h4M5 19h14', desc: 'Baobab document relationship field' },
+  { fieldtype: 'Link', label: 'Link', icon: 'M14 3h7v7M10 14L21 3M5 5h6M5 12h4M5 19h14', desc: 'Relationship to another document' },
   { fieldtype: 'Check', label: 'Check', icon: 'M5 13l4 4L19 7', desc: 'Boolean toggle / checkbox' },
   { fieldtype: 'Int', label: 'Integer', icon: 'M7 20l4-16m2 16l4-16M6 9h14M4 15h14', desc: 'Whole number input' },
   { fieldtype: 'Float', label: 'Float', icon: 'M9 15l3 3m0 0l3-3m-3 3V10m0 0l3 3m-3-3l-3 3', desc: 'Decimal number input' },

@@ -9,10 +9,29 @@ export interface VfScriptEditorSupportRegistration {
   dispose: () => void;
 }
 
+/**
+ * A global object that host scripts can call besides `frm`, such as an app's own API. The host
+ * supplies its completions and TypeScript declarations; Vant Flow only knows `frm`.
+ */
+export interface VfScriptNamespace {
+  /** The global name scripts type, without the dot. */
+  name: string;
+  completions: readonly VfScriptEditorCompletion[];
+  /** Declarations for the global, for example `declare const api: { ping(): void };`. */
+  declarations?: string;
+}
+
 export interface VfScriptEditorSupportOptions {
   language?: string;
-  includeBaobabApi?: boolean;
+  /** Extra script globals with their completions and typings. */
+  namespaces?: readonly VfScriptNamespace[];
   extraDeclarations?: string;
+}
+
+export interface VfScriptEditorCompletionMatch {
+  namespace: string;
+  typedPrefix: string;
+  completion: VfScriptEditorCompletion;
 }
 
 type MonacoRange = new (
@@ -76,56 +95,34 @@ export const VF_FRM_METHOD_COMPLETIONS: readonly VfScriptEditorCompletion[] = [
   { label: 'metadata', insertText: 'metadata', documentation: 'Read the injected runtime metadata object for current user, tenant, permissions, and host context.', kind: 'property' }
 ] as const;
 
-export const VF_BAOBAB_METHOD_COMPLETIONS: readonly VfScriptEditorCompletion[] = [
-  { label: 'get_context', insertText: 'get_context()', documentation: 'Get the active request context.' },
-  { label: 'get_doc', insertText: "get_doc('${1:Document}', '${2:name}')", documentation: 'Fetch one Baobab document.' },
-  { label: 'get_list', insertText: "get_list('${1:Document}', ${2:20}, ${3:0})", documentation: 'Fetch a document list page.' },
-  { label: 'get_form_runtime', insertText: "get_form_runtime('${1:Document}')", documentation: 'Fetch the runtime descriptor for a document.' },
-  { label: 'get_meta', insertText: "get_meta('${1:Document}')", documentation: 'Fetch the schema metadata for a document.' },
-  { label: 'get_current_doc', insertText: 'get_current_doc()', documentation: 'Read the current document context mounted into the script bridge.' },
-  { label: 'msgprint', insertText: "msgprint('${1:message}', '${2:Baobab}')", documentation: 'Show a quick desk message.' },
-  { label: 'notify', insertText: "notify('${1:message}', '${2:Baobab}')", documentation: 'Show a success notification.' },
-  { label: 'confirm', insertText: "confirm('${1:Proceed?}')", documentation: 'Open a promise-based confirm dialog.' },
-  { label: 'set_route', insertText: "set_route('${1:Document}', '${2:name}')", documentation: 'Navigate to a document or list route.' },
-  { label: 'new_doc', insertText: "new_doc('${1:Document}')", documentation: 'Open a new Baobab document route.' },
-  { label: 'today', insertText: 'today()', documentation: 'Get the current date string.' },
-  { label: 'now', insertText: 'now()', documentation: 'Get the current datetime string.' },
-  { label: 'format_date', insertText: "format_date('${1:2026-07-06}', '${2:mediumDate}')", documentation: 'Format a date with the desk locale.' }
-] as const;
+const FRM_NAMESPACE: VfScriptNamespace = { name: 'frm', completions: VF_FRM_METHOD_COMPLETIONS };
 
+/** The completion for the `name.prefix` being typed at the end of `linePrefix`, if any namespace matches. */
 export function matchVfScriptEditorCompletion(
   linePrefix: string,
-  includeBaobabApi = false
-): { namespace: 'frm' | 'baobab'; typedPrefix: string; completion: VfScriptEditorCompletion } | null {
-  const frmMatch = linePrefix.match(/\bfrm\.(\w*)$/);
-  if (frmMatch) {
-    const typedPrefix = frmMatch[1] ?? '';
+  namespaces: readonly VfScriptNamespace[] = []
+): VfScriptEditorCompletionMatch | null {
+  for (const namespace of [FRM_NAMESPACE, ...namespaces]) {
+    const match = linePrefix.match(new RegExp(`\\b${escapeRegExp(namespace.name)}\\.(\\w*)$`));
+    if (!match || namespace.completions.length === 0) {
+      continue;
+    }
+    const typedPrefix = match[1] ?? '';
     return {
-      namespace: 'frm',
+      namespace: namespace.name,
       typedPrefix,
-      completion: VF_FRM_METHOD_COMPLETIONS.find(item => item.label.startsWith(typedPrefix)) ?? VF_FRM_METHOD_COMPLETIONS[0]
+      completion: namespace.completions.find(item => item.label.startsWith(typedPrefix)) ?? namespace.completions[0]
     };
   }
+  return null;
+}
 
-  if (!includeBaobabApi) {
-    return null;
-  }
-
-  const baobabMatch = linePrefix.match(/\bbaobab\.(\w*)$/);
-  if (!baobabMatch) {
-    return null;
-  }
-
-  const typedPrefix = baobabMatch[1] ?? '';
-  return {
-    namespace: 'baobab',
-    typedPrefix,
-    completion: VF_BAOBAB_METHOD_COMPLETIONS.find(item => item.label.startsWith(typedPrefix)) ?? VF_BAOBAB_METHOD_COMPLETIONS[0]
-  };
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export function buildVfScriptEditorApiTypings(options: VfScriptEditorSupportOptions = {}): string {
-  const { includeBaobabApi = false, extraDeclarations = '' } = options;
+  const { namespaces = [], extraDeclarations = '' } = options;
   return `
     declare interface DocumentField {
       label?: string;
@@ -203,7 +200,6 @@ export function buildVfScriptEditorApiTypings(options: VfScriptEditorSupportOpti
         readonly?: boolean;
         [key: string]: any;
       };
-      baobab?: Record<string, any>;
       [key: string]: any;
     }
 
@@ -253,24 +249,7 @@ export function buildVfScriptEditorApiTypings(options: VfScriptEditorSupportOpti
     }
 
     declare const frm: VfFormContext;
-    ${includeBaobabApi ? `
-    declare const baobab: {
-      get_context(): Record<string, unknown>;
-      get_doc(doctype: string, name: string): Promise<unknown>;
-      get_list(doctype: string, limit?: number, offset?: number): Promise<unknown>;
-      get_form_runtime(doctype: string): Promise<unknown>;
-      get_meta(doctype: string): Promise<unknown>;
-      get_current_doc(): Promise<unknown> | unknown;
-      msgprint(message: string, title?: string): void;
-      notify(message: string, title?: string): void;
-      confirm(message: string): Promise<boolean>;
-      set_route(doctype: string, name?: string | null): Promise<boolean>;
-      new_doc(doctype: string, builder?: boolean): Promise<boolean>;
-      today(): string;
-      now(): string;
-      format_date(value: string | Date, pattern?: string): string;
-    };
-    ` : ''}
+    ${namespaces.map(namespace => namespace.declarations ?? '').join('\n')}
     ${extraDeclarations}
   `;
 }
@@ -280,7 +259,7 @@ export function registerVfScriptEditorSupport(
   options: VfScriptEditorSupportOptions = {}
 ): VfScriptEditorSupportRegistration {
   const language = options.language ?? 'javascript';
-  const includeBaobabApi = options.includeBaobabApi ?? false;
+  const namespaces = options.namespaces ?? [];
   const javascriptDefaults = monaco.languages.typescript?.javascriptDefaults;
 
   javascriptDefaults?.setDiagnosticsOptions?.({
@@ -297,7 +276,7 @@ export function registerVfScriptEditorSupport(
 
   const extraLibDisposable = javascriptDefaults?.addExtraLib?.(
     buildVfScriptEditorApiTypings(options),
-    includeBaobabApi ? 'ts:baobab-vant-flow/form-script-api.d.ts' : 'ts:vant-flow/form-script-api.d.ts'
+    'ts:vant-flow/form-script-api.d.ts'
   );
 
   const completionProviderDisposable = monaco.languages.registerCompletionItemProvider(language, {
@@ -314,7 +293,7 @@ export function registerVfScriptEditorSupport(
       position: { lineNumber: number; column: number }
     ) => {
       const linePrefix = model.getLineContent(position.lineNumber).slice(0, position.column - 1);
-      const match = matchVfScriptEditorCompletion(linePrefix, includeBaobabApi);
+      const match = matchVfScriptEditorCompletion(linePrefix, namespaces);
       if (!match) {
         return { suggestions: [] };
       }
@@ -326,9 +305,8 @@ export function registerVfScriptEditorSupport(
         position.lineNumber,
         word.endColumn
       );
-      const suggestionsSource = match.namespace === 'frm'
-        ? VF_FRM_METHOD_COMPLETIONS.map(item => ({ ...item, label: `frm.${item.label}` }))
-        : VF_BAOBAB_METHOD_COMPLETIONS.map(item => ({ ...item, label: `baobab.${item.label}` }));
+      const completions = [FRM_NAMESPACE, ...namespaces].find(namespace => namespace.name === match.namespace)?.completions ?? [];
+      const suggestionsSource = completions.map(item => ({ ...item, label: `${match.namespace}.${item.label}` }));
 
       return {
         suggestions: suggestionsSource.map(({ label, insertText, documentation, kind }) => ({

@@ -727,12 +727,7 @@ export class VfPropertyEditor {
   step = this.state.selectedStep;
   runtimeDocumentOptions = computed<DocumentOption[]>(() => {
     const runtimeMetadata = this.state.runtimeMetadata();
-    const rootOptions = this.readDocumentOptions(runtimeMetadata['documents']);
-    const baobabOptions =
-      runtimeMetadata['baobab'] && typeof runtimeMetadata['baobab'] === 'object'
-        ? this.readDocumentOptions((runtimeMetadata['baobab'] as Record<string, unknown>)['documents'])
-        : [];
-    const options = baobabOptions.length > 0 ? baobabOptions : rootOptions;
+    const options = this.readDocumentOptions(runtimeMetadata['documents']);
     return options.sort((left, right) => left.label.localeCompare(right.label));
   });
   fieldTypes = FIELD_TYPES;
