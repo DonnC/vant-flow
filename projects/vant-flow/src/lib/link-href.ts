@@ -3,7 +3,7 @@ import { InjectionToken } from '@angular/core';
 /** What a Link field knows when its "open" button is shown. */
 export interface VfLinkHrefTarget {
   /** The linked document type: the field's `options`. */
-  doctype: string;
+  document: string;
   /** The stored field value. */
   value: unknown;
   /** The option the user picked, as the link data source returned it, when still known. */

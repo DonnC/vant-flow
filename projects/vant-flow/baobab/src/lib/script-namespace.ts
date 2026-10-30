@@ -24,16 +24,16 @@ export const VF_BAOBAB_SCRIPT_NAMESPACE: VfScriptNamespace = {
   declarations: `
     declare const baobab: {
       get_context(): Record<string, unknown>;
-      get_doc(doctype: string, name: string): Promise<unknown>;
-      get_list(doctype: string, limit?: number, offset?: number): Promise<unknown>;
-      get_form_runtime(doctype: string): Promise<unknown>;
-      get_meta(doctype: string): Promise<unknown>;
+      get_doc(document: string, name: string): Promise<unknown>;
+      get_list(document: string, limit?: number, offset?: number): Promise<unknown>;
+      get_form_runtime(document: string): Promise<unknown>;
+      get_meta(document: string): Promise<unknown>;
       get_current_doc(): Promise<unknown> | unknown;
       msgprint(message: string, title?: string): void;
       notify(message: string, title?: string): void;
       confirm(message: string): Promise<boolean>;
-      set_route(doctype: string, name?: string | null): Promise<boolean>;
-      new_doc(doctype: string, builder?: boolean): Promise<boolean>;
+      set_route(document: string, name?: string | null): Promise<boolean>;
+      new_doc(document: string, builder?: boolean): Promise<boolean>;
       today(): string;
       now(): string;
       format_date(value: string | Date, pattern?: string): string;
