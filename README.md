@@ -272,6 +272,43 @@ mediaHandler: VfMediaHandler = async (payload, context) => {
 
 Script hooks: `frm.set_filter(fieldname, filters)` · `frm.refresh_link(fieldname)`
 
+To show an "open" button next to a filled Link field, tell Vant Flow where linked records live:
+
+```ts
+provideVfFlow({
+  linkHref: ({ doctype, value }) => `/records/${doctype}/${encodeURIComponent(String(value))}`
+})
+```
+
+Return `null` to hide the button for a value. Without `linkHref`, Link fields have no open button.
+
+### Your own script globals
+
+Client scripts always get `frm`. If your host gives scripts another global, register it with the script editor so authors get completions and type checking:
+
+```ts
+registerVfScriptEditorSupport(monaco, {
+  namespaces: [{
+    name: 'crm',
+    completions: [{ label: 'find_customer', insertText: "find_customer('${1:id}')", documentation: 'Look up a customer.' }],
+    declarations: 'declare const crm: { find_customer(id: string): Promise<unknown> };'
+  }]
+});
+```
+
+### Baobab preset
+
+[Baobab](https://github.com/DonnC/baobab) hosts Vant Flow in its Desk. Its integration lives in a separate entry point, `vant-flow/baobab`, which plain Vant Flow apps never import or bundle:
+
+```ts
+import { baobabLinkHref, VF_BAOBAB_SCRIPT_NAMESPACE } from 'vant-flow/baobab';
+
+provideVfFlow({ linkHref: baobabLinkHref('/desk/app') });
+registerVfScriptEditorSupport(monaco, { namespaces: [VF_BAOBAB_SCRIPT_NAMESPACE] });
+```
+
+It adds the `baobab.*` script API completions, typings for the `baobab` storage hints on fields, and Desk links that open records by name.
+
 ### `data_group` for nested payloads
 
 ```json

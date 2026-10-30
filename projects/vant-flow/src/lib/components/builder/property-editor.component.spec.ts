@@ -1,4 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { VfPropertyEditor } from './property-editor.component';
 
 describe('VfPropertyEditor', () => {
@@ -7,7 +9,8 @@ describe('VfPropertyEditor', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [VfPropertyEditor]
+      imports: [VfPropertyEditor],
+      providers: [provideHttpClient(), provideHttpClientTesting()]
     }).compileComponents();
 
     fixture = TestBed.createComponent(VfPropertyEditor);
@@ -50,5 +53,17 @@ describe('VfPropertyEditor', () => {
 
     expect(component.state.selectedField()?.id).toBe(secondField.id);
     expect(component.state.selectedField()?.fieldname).toBe('status_2');
+  });
+
+  it('keeps Table out of the normal field type selector while preserving legacy compatibility', () => {
+    const field = component.state.addField('section_1', 'column_1', 'Data');
+    fixture.detectChanges();
+
+    expect(component.getFieldTypesForSelection()).not.toContain('Table');
+
+    component.state.updateField(field.id, { fieldtype: 'Table' });
+    fixture.detectChanges();
+
+    expect(component.getFieldTypesForSelection()[0]).toBe('Table');
   });
 });

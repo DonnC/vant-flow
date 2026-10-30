@@ -1,11 +1,26 @@
-import { Component, Input, Output, EventEmitter, inject, ViewChild, ElementRef, AfterViewInit, OnInit, DoCheck } from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  DoCheck,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  OnInit,
+  Output,
+  ViewChild,
+  inject
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { DomSanitizer } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { QuillModule } from 'ngx-quill';
 import { firstValueFrom } from 'rxjs';
 import { DocumentField, VfLinkDataSource, VfLinkFieldConfig, VfLinkRequestObserver, VfMediaHandler, VfMediaResolver, VfStoredMedia } from '../models/document.model';
 import { VfFormContext } from '../services/form-context';
+import { VF_LINK_HREF } from '../link-href';
 import { getRegexPresetOption, resolveRegexPattern } from '../utils/regex-presets';
 import { VfUiPrimitivesModule } from '../ui/ui-primitives.module';
 import { VfIconButton } from './shared/icon-button.component';
@@ -64,6 +79,11 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                 [disabled]="disabled"></textarea>
             }
           }
+          @case ('Html') {
+            <div class="editor-preview rounded-lg overflow-hidden bg-white transition-all border border-zinc-200">
+              <div class="editor-preview__content" [innerHTML]="getTrustedHtml(value)"></div>
+            </div>
+          }
           @case ('Select') {
             <select
               class="ui-select"
@@ -77,7 +97,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
               }
             </select>
           }
-          @case ('Link') {
+          @case ('Url') {
             @if (compact) {
               <div class="ui-input cursor-pointer truncate" (click)="onInputClick($event)">
                 {{ getLinkDisplayValue(value) || placeholder }}
@@ -85,6 +105,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
             } @else if (hasLinkDataSource) {
               <div class="relative">
                 <input
+                  #linkInputEl
                   type="text"
                   class="ui-input"
                   autocomplete="off"
@@ -101,20 +122,38 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                       <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
                     </svg>
                   </div>
-                } @else if (value && !disabled) {
-                  <vf-icon-button
-                    (mousedown)="$event.preventDefault()"
-                    (click)="clearLinkSelection()"
-                    class="absolute right-2 top-1/2 -translate-y-1/2"
-                    tone="danger" [soft]="true">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                      <path d="M18 6L6 18M6 6l12 12"/>
-                    </svg>
-                  </vf-icon-button>
+                } @else if (value) {
+                  <div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+                    @if (getLinkedDocumentHref()) {
+                      <vf-icon-button
+                        (mousedown)="$event.preventDefault()"
+                        (click)="openLinkedDocument($event)"
+                        tone="brand"
+                        [soft]="true">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25">
+                          <path d="M14 3h7v7"></path>
+                          <path d="M10 14L21 3"></path>
+                          <path d="M21 14v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h4"></path>
+                        </svg>
+                      </vf-icon-button>
+                    }
+                    @if (!disabled) {
+                    <vf-icon-button
+                      (mousedown)="$event.preventDefault()"
+                      (click)="clearLinkSelection()"
+                      tone="danger"
+                      [soft]="true">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                      </svg>
+                    </vf-icon-button>
+                    }
+                  </div>
                 }
 
                 @if (showLinkDropdown) {
-                  <div class="absolute z-30 mt-1 w-full rounded-2xl border border-zinc-200 bg-white shadow-2xl overflow-hidden">
+                  <div class="z-30 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl"
+                    [ngStyle]="linkDropdownStyles">
                     @if (linkError) {
                       <div class="px-4 py-3 text-sm text-red-600 bg-red-50 border-b border-red-100">
                         {{ linkError }}
@@ -158,6 +197,103 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                 [ngModel]="value"
                 (ngModelChange)="onValueChange($event)"
                 [placeholder]="placeholder"
+                [disabled]="disabled">
+            }
+          }
+          @case ('Link') {
+            @if (compact) {
+              <div class="ui-input cursor-pointer truncate" (click)="onInputClick($event)">
+                {{ getLinkDisplayValue(value) || placeholder || (field.options ? 'Reference ' + field.options : 'Reference document') }}
+              </div>
+            } @else if (hasLinkDataSource) {
+              <div class="relative">
+                <input
+                  #linkInputEl
+                  type="text"
+                  class="ui-input"
+                  autocomplete="off"
+                  [ngModel]="linkInputValue"
+                  (ngModelChange)="onLinkSearchChange($event)"
+                  (focus)="openLinkDropdown()"
+                  (blur)="onLinkBlur()"
+                  [placeholder]="placeholder || (field.options ? 'Reference ' + field.options : 'Reference document')"
+                  [disabled]="disabled">
+
+                @if (linkLoading) {
+                  <div class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-300">
+                    <svg class="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                    </svg>
+                  </div>
+                } @else if (value) {
+                  <div class="absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
+                    @if (getLinkedDocumentHref()) {
+                      <vf-icon-button
+                        (mousedown)="$event.preventDefault()"
+                        (click)="openLinkedDocument($event)"
+                        tone="brand"
+                        [soft]="true">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25">
+                          <path d="M14 3h7v7"></path>
+                          <path d="M10 14L21 3"></path>
+                          <path d="M21 14v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h4"></path>
+                        </svg>
+                      </vf-icon-button>
+                    }
+                    @if (!disabled) {
+                    <vf-icon-button
+                      (mousedown)="$event.preventDefault()"
+                      (click)="clearLinkSelection()"
+                      tone="danger"
+                      [soft]="true">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <path d="M18 6L6 18M6 6l12 12"/>
+                      </svg>
+                    </vf-icon-button>
+                    }
+                  </div>
+                }
+
+                @if (showLinkDropdown) {
+                  <div class="z-30 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl"
+                    [ngStyle]="linkDropdownStyles">
+                    @if (linkError) {
+                      <div class="px-4 py-3 text-sm text-red-600 bg-red-50 border-b border-red-100">
+                        {{ linkError }}
+                      </div>
+                    }
+
+                    @if (linkResults.length > 0) {
+                      <div class="max-h-72 overflow-y-auto">
+                        @for (item of linkResults; track getLinkItemTrack(item)) {
+                          <button
+                            type="button"
+                            (mousedown)="$event.preventDefault()"
+                            (click)="selectLinkOption(item)"
+                            class="w-full text-left px-4 py-3 hover:bg-zinc-50 transition-colors border-b border-zinc-100 last:border-b-0">
+                            <div class="text-[14px] font-medium text-zinc-800 leading-tight">{{ getLinkTitle(item) }}</div>
+                            @if (getLinkDescription(item)) {
+                              <div class="text-[12px] text-zinc-500 mt-1 leading-snug">{{ getLinkDescription(item) }}</div>
+                            }
+                          </button>
+                        }
+                      </div>
+                    } @else if (!linkLoading && !linkError) {
+                      <div class="px-4 py-3 text-sm text-zinc-400">
+                        No results found.
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            } @else {
+              <input
+                type="text"
+                class="ui-input"
+                (click)="onInputClick($event)"
+                [ngModel]="value"
+                (ngModelChange)="onValueChange($event)"
+                [placeholder]="placeholder || (field.options ? 'Reference ' + field.options : 'Reference document')"
                 [disabled]="disabled">
             }
           }
@@ -474,7 +610,20 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
 
     /* Compact mode (for tables) */
     .field-group.compact .ui-input, .field-group.compact .ui-textarea, .field-group.compact .ui-select {
-      @apply bg-transparent border-0 focus:ring-0 focus:bg-white rounded hover:bg-zinc-100/50 p-1.5 text-xs;
+      @apply bg-transparent border-0 focus:ring-0 focus:bg-white rounded hover:bg-zinc-100/50 text-xs;
+      min-height: 2.1rem;
+      padding: 0.35rem 0.5rem;
+      line-height: 1.1rem;
+    }
+
+    .field-group.compact .ui-select {
+      padding-right: 1.65rem;
+      background-position: right 0.45rem center;
+    }
+
+    .field-group.compact .ui-textarea {
+      min-height: 2.1rem;
+      resize: none;
     }
 
     .ui-field-error .ui-input, .ui-field-error .ui-textarea, .ui-field-error .ui-select {
@@ -567,15 +716,19 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
   `]
 })
 export class VfField implements AfterViewInit, OnInit, DoCheck {
+  private readonly cdr = inject(ChangeDetectorRef);
+  private readonly sanitizer = inject(DomSanitizer);
   @ViewChild('signatureCanvas') canvasRef?: ElementRef<HTMLCanvasElement>;
   @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
   @ViewChild('cameraInput') cameraInputRef?: ElementRef<HTMLInputElement>;
+  @ViewChild('linkInputEl') linkInputRef?: ElementRef<HTMLInputElement>;
 
   @Input() field!: DocumentField;
   @Input() value: any;
   @Input() readOnly: boolean = false;
   @Input() hideLabel: boolean = false;
   @Input() compact: boolean = false;
+  @Input() preferFieldDefinition: boolean = false;
   @Input() mediaHandler?: VfMediaHandler;
   @Input() mediaResolver?: VfMediaResolver;
   @Input() linkDataSource?: VfLinkDataSource;
@@ -587,12 +740,16 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
 
   ctx = inject(VfFormContext, { optional: true });
   http = inject(HttpClient);
+  private readonly linkHref = inject(VF_LINK_HREF, { optional: true });
 
   get shouldShowLabel() {
     return !this.hideLabel && !this.compact && this.field.fieldtype !== 'Button' && this.field.fieldtype !== 'Check';
   }
 
   get label() {
+    if (this.preferFieldDefinition) {
+      return this.field.label;
+    }
     return this.ctx?.getFieldSignal(this.field.fieldname, 'label')() || this.field.label;
   }
 
@@ -601,11 +758,15 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   get isMandatory() {
+    if (this.preferFieldDefinition) {
+      return this.field.mandatory;
+    }
     return this.ctx?.getFieldSignal(this.field.fieldname, 'mandatory')() || this.field.mandatory;
   }
 
   get disabled() {
-    return this.isProcessingMedia || this.readOnly || (this.ctx?.isReadOnly() || this.ctx?.getFieldSignal(this.field.fieldname, 'read_only')() || false);
+    const runtimeReadOnly = this.preferFieldDefinition ? false : this.ctx?.getFieldSignal(this.field.fieldname, 'read_only')();
+    return this.isProcessingMedia || this.readOnly || (this.ctx?.isReadOnly() || runtimeReadOnly || false);
   }
 
   get isEditor() {
@@ -613,13 +774,16 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   get options() {
-    const opt = this.ctx?.getFieldSignal(this.field.fieldname, 'options')() ?? this.field.options;
+    const opt = this.preferFieldDefinition ? this.field.options : this.ctx?.getFieldSignal(this.field.fieldname, 'options')() ?? this.field.options;
     if (!opt) return [];
     if (this.field.fieldtype === 'Attach') return [opt];
     return String(opt).split('\n').map(o => o.trim()).filter(Boolean);
   }
 
   get regex() {
+    if (this.preferFieldDefinition) {
+      return this.field.regex;
+    }
     return this.ctx?.getFieldSignal(this.field.fieldname, 'regex')() ?? this.field.regex;
   }
 
@@ -673,7 +837,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   get hasLinkDataSource() {
-    return this.field.fieldtype === 'Link' && !!this.resolvedLinkConfig?.data_source;
+    return ['Url', 'Link'].includes(this.field.fieldtype) && !!this.resolvedLinkConfig?.data_source;
   }
 
   get linkFilterSummary() {
@@ -800,6 +964,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
 
   // ── Link Field Logic ─────────────────────────────────────────
   private static linkCache = new Map<string, any[]>();
+  private static linkSelectionCache = new Map<string, any>();
   showLinkDropdown = false;
   linkLoading = false;
   linkError = '';
@@ -814,15 +979,18 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   private lastCameraCaptureEnabled?: boolean;
 
   ngOnInit() {
-    if (this.field.fieldtype === 'Link') {
+    if (['Url', 'Link'].includes(this.field.fieldtype)) {
       this.syncLinkInputWithValue();
+      if (this.hasLinkDataSource && (typeof this.value === 'string' || typeof this.value === 'number')) {
+        void this.loadLinkOptions(String(this.value), true);
+      }
     }
 
     this.refreshCameraSupportState();
   }
 
   ngDoCheck() {
-    if (this.field.fieldtype === 'Link' && !this.showLinkDropdown) {
+    if (['Url', 'Link'].includes(this.field.fieldtype) && !this.showLinkDropdown) {
       this.syncLinkInputWithValue();
     }
 
@@ -830,7 +998,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       this.refreshCameraSupportState();
     }
 
-    if (this.field.fieldtype !== 'Link' || !this.ctx) return;
+    if (!['Url', 'Link'].includes(this.field.fieldtype) || !this.ctx) return;
     const tick = this.ctx.getLinkRefreshSignal(this.field.fieldname)();
     if (tick !== this.lastLinkRefreshTick) {
       this.lastLinkRefreshTick = tick;
@@ -838,6 +1006,14 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
         void this.loadLinkOptions(this.linkInputValue);
       }
       this.syncLinkInputWithValue();
+    }
+  }
+
+  @HostListener('window:resize')
+  @HostListener('window:scroll')
+  onViewportChange() {
+    if (this.showLinkDropdown) {
+      this.cdr.markForCheck();
     }
   }
 
@@ -850,6 +1026,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     }
 
     void this.loadLinkOptions(value);
+    this.cdr.markForCheck();
   }
 
   openLinkDropdown() {
@@ -858,12 +1035,14 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     this.showLinkDropdown = true;
     const initialQuery = this.value ? '' : this.linkInputValue;
     void this.loadLinkOptions(initialQuery, true);
+    this.cdr.markForCheck();
   }
 
   onLinkBlur() {
     this.linkBlurTimer = setTimeout(() => {
       this.showLinkDropdown = false;
       this.syncLinkInputWithValue();
+      this.cdr.markForCheck();
     }, 180);
   }
 
@@ -872,16 +1051,28 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     this.linkInputValue = '';
     this.linkResults = [];
     this.linkError = '';
+    this.cdr.markForCheck();
   }
 
   selectLinkOption(item: any) {
-    this.onValueChange(item);
+    this.cacheSelectedLinkOption(item);
+    if (this.field.fieldtype === 'Link') {
+      const idPath = this.resolvedLinkConfig?.mapping?.id;
+      this.onValueChange(this.getValueByPath(item, idPath) ?? this.getLinkTitle(item));
+    } else {
+      this.onValueChange(item);
+    }
     this.linkInputValue = this.getLinkTitle(item);
     this.showLinkDropdown = false;
+    this.cdr.markForCheck();
   }
 
   getLinkDisplayValue(value: any) {
     if (!value) return '';
+    if (typeof value === 'string' || typeof value === 'number') {
+      const cached = this.getCachedLinkOption(value);
+      return cached ? this.getLinkTitle(cached) : String(value);
+    }
     if (!this.resolvedLinkConfig?.mapping) return typeof value === 'string' ? value : '';
     return this.getLinkTitle(value);
   }
@@ -902,9 +1093,30 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     return String(this.getValueByPath(item, idPath) ?? this.getLinkTitle(item));
   }
 
+  get linkDropdownStyles() {
+    const rect = this.linkInputRef?.nativeElement?.getBoundingClientRect();
+    if (!rect) {
+      return {
+        position: 'fixed',
+        top: '0px',
+        left: '0px',
+        width: '0px'
+      };
+    }
+
+    return {
+      position: 'fixed',
+      top: `${rect.bottom + 6}px`,
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+      maxHeight: `min(288px, calc(100vh - ${rect.bottom + 24}px))`
+    };
+  }
+
   private syncLinkInputWithValue() {
     if (!this.hasLinkDataSource) return;
     this.linkInputValue = this.getLinkDisplayValue(this.value);
+    this.cdr.markForCheck();
   }
 
   private async loadLinkOptions(query: string, preloadOnEmpty: boolean = false) {
@@ -919,6 +1131,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       this.linkResults = [];
       this.linkError = '';
       this.emitLinkRequestState(query, 'idle');
+      this.cdr.markForCheck();
       return;
     }
 
@@ -930,6 +1143,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       this.linkResults = VfField.linkCache.get(cacheKey) || [];
       this.linkError = '';
       this.emitLinkRequestState(query, 'success', this.linkResults.length);
+      this.cdr.markForCheck();
       return;
     }
 
@@ -952,20 +1166,71 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       if (requestId !== this.activeLinkRequestId) return;
 
       this.linkResults = Array.isArray(results) ? results : [];
+      this.linkResults.forEach(item => this.cacheSelectedLinkOption(item));
       if (config.cache !== false) {
         VfField.linkCache.set(cacheKey, this.linkResults);
       }
       this.emitLinkRequestState(query, 'success', this.linkResults.length);
+      this.cdr.markForCheck();
     } catch (error) {
       if (requestId !== this.activeLinkRequestId) return;
       this.linkResults = [];
       this.linkError = error instanceof Error ? error.message : 'Failed to load link options.';
       this.emitLinkRequestState(query, 'error', 0, this.linkError);
+      this.cdr.markForCheck();
     } finally {
       if (requestId === this.activeLinkRequestId) {
         this.linkLoading = false;
+        this.cdr.markForCheck();
       }
     }
+  }
+
+  private getLinkSelectionCacheKey(rawValue: any) {
+    const doctype = typeof this.field.options === 'string' ? this.field.options.trim() : '';
+    if (!doctype || rawValue === undefined || rawValue === null || rawValue === '') {
+      return null;
+    }
+
+    return `${doctype}::${String(rawValue)}`;
+  }
+
+  private cacheSelectedLinkOption(item: any) {
+    const idPath = this.resolvedLinkConfig?.mapping?.id;
+    const rawValue = this.getValueByPath(item, idPath) ?? item?.id ?? item?.name;
+    const cacheKey = this.getLinkSelectionCacheKey(rawValue);
+    if (cacheKey) {
+      VfField.linkSelectionCache.set(cacheKey, item);
+    }
+  }
+
+  private getCachedLinkOption(rawValue: any) {
+    const cacheKey = this.getLinkSelectionCacheKey(rawValue);
+    return cacheKey ? VfField.linkSelectionCache.get(cacheKey) ?? null : null;
+  }
+
+  getLinkedDocumentHref() {
+    if (!this.linkHref || this.field.fieldtype !== 'Link' || !this.value) {
+      return null;
+    }
+
+    const doctype = typeof this.field.options === 'string' ? this.field.options.trim() : '';
+    if (!doctype) {
+      return null;
+    }
+
+    return this.linkHref({ doctype, value: this.value, option: this.getCachedLinkOption(this.value) });
+  }
+
+  openLinkedDocument(event: MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    const href = this.getLinkedDocumentHref();
+    if (!href) {
+      return;
+    }
+
+    window.location.assign(href);
   }
 
   private async fetchLinkOptionsFromEndpoint(query: string, filters: Record<string, any>, config: VfLinkFieldConfig): Promise<any[]> {
@@ -1041,10 +1306,12 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   getReadonlyEditorHtml(value: any) {
+    return this.getTrustedHtml(value);
+  }
+
+  getTrustedHtml(value: any) {
     if (!value) return '';
-    return String(value)
-      .replace(/<temporary\b[^>]*>[\s\S]*?<\/temporary>/gi, '')
-      .replace(/\sclass="ql-cell-focused"/gi, '');
+    return this.sanitizer.bypassSecurityTrustHtml(String(value));
   }
 
   private humanizeKey(key: string) {

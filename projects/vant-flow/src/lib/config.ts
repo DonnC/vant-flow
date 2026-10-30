@@ -2,6 +2,7 @@ import { EnvironmentProviders, makeEnvironmentProviders } from '@angular/core';
 import { provideMonacoEditor, NgxMonacoEditorConfig } from 'ngx-monaco-editor-v2';
 import { provideQuillConfig, QuillConfig } from 'ngx-quill';
 import QuillTableBetter from "quill-table-better";
+import { VF_LINK_HREF, VfLinkHrefResolver } from './link-href';
 
 /**
  * Default configuration for Monaco Editor.
@@ -49,6 +50,8 @@ export interface VfFlowConfig {
     monaco?: NgxMonacoEditorConfig;
     /** Custom Quill Editor configuration. */
     quill?: QuillConfig;
+    /** Where a Link field's "open" button goes. Without it, Link fields have no open button. */
+    linkHref?: VfLinkHrefResolver;
 }
 
 /**
@@ -60,6 +63,7 @@ export interface VfFlowConfig {
 export function provideVfFlow(config?: VfFlowConfig): EnvironmentProviders {
     return makeEnvironmentProviders([
         provideMonacoEditor(config?.monaco || DEFAULT_MONACO_CONFIG),
-        provideQuillConfig(config?.quill || DEFAULT_QUILL_CONFIG)
+        provideQuillConfig(config?.quill || DEFAULT_QUILL_CONFIG),
+        ...(config?.linkHref ? [{ provide: VF_LINK_HREF, useValue: config.linkHref }] : [])
     ]);
 }

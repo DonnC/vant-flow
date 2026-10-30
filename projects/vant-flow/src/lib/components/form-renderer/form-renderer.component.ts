@@ -279,20 +279,20 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                     <div class="field-group transition-all duration-200">
                                       <div class="relative group/input"
                                            [class.regex-error]="field.regex && formData[field.fieldname] && !isValidRegex(field.fieldname, field.regex)">
-                                        @if (field.fieldtype === 'Table') {
+                                        @if (isTableField(field.fieldtype)) {
                                           <div class="border border-zinc-200 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
                                             <div class="overflow-x-auto">
                                               <!-- Table -->
-                                              <table class="w-full text-left border-collapse">
+                                              <table class="min-w-full text-left border-collapse child-grid-table">
                                                 <thead>
                                                 <tr class="bg-zinc-50/80 border-b border-zinc-200">
                                                   <th
-                                                    class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest w-12 text-center">
+                                                    class="px-2 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest w-10 text-center">
                                                     #
                                                   </th>
-                                                  @for (col of (ctx.getFieldSignal(field.fieldname, 'table_fields')() || []).slice(0, 6); track col.id) {
+                                                  @for (col of getGridTableColumns(field); track col.id) {
                                                     @if (!col.hidden) {
-                                                      <th class="p-3 text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+                                                      <th class="px-2 py-2 text-[10px] font-bold text-zinc-500 uppercase tracking-wider min-w-28">
                                                         {{ col.label }}
                                                         @if (col.mandatory) {
                                                           <span class="text-red-500">*</span>
@@ -300,24 +300,24 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                       </th>
                                                     }
                                                   }
-                                                  @if ((field.table_fields?.length ?? 0) > 6) {
+                                                  @if (getHiddenGridColumnCount(field) > 0) {
                                                     <th
-                                                      class="p-3 text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">
-                                                      +{{ field.table_fields!.length - 6 }} more
+                                                      class="px-2 py-2 text-[10px] font-bold text-zinc-400 uppercase tracking-widest italic">
+                                                      +{{ getHiddenGridColumnCount(field) }} more
                                                     </th>
                                                   }
-                                                  <th class="p-3 w-20"></th>
+                                                  <th class="px-2 py-2 w-16"></th>
                                                 </tr>
                                                 </thead>
                                                 <tbody class="divide-y divide-zinc-100">
                                                   @for (row of formData[field.fieldname]; track $index) {
                                                     <tr class="hover:bg-zinc-50/50 transition-colors group/row">
                                                       <td
-                                                        class="p-3 text-center text-[11px] font-mono text-zinc-400">{{ $index + 1 }}
+                                                        class="px-2 py-1.5 text-center text-[11px] font-mono text-zinc-400">{{ $index + 1 }}
                                                       </td>
-                                                      @for (col of (ctx.getFieldSignal(field.fieldname, 'table_fields')() || []).slice(0, 6); track col.id) {
+                                                      @for (col of getGridTableColumns(field); track col.id) {
                                                         @if (!col.hidden) {
-                                                          <td class="p-2 relative group/cell" 
+                                                          <td class="px-1.5 py-1.5 relative group/cell align-middle" 
                                                               [class.cursor-pointer]="['Text', 'Text Editor', 'Attach', 'Signature', 'Datetime'].includes(col.fieldtype)"
                                                               (click)="['Text', 'Text Editor', 'Attach', 'Signature', 'Datetime'].includes(col.fieldtype) ? editTableRow(field, $index) : null">
                                                             <vf-field
@@ -330,9 +330,10 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                               [linkRequestObserver]="linkRequestObserver"
                                                               [formMetadata]="metadata"
                                                               [compact]="true"
-                                                              [hideLabel]="true">
+                                                              [hideLabel]="true"
+                                                              [preferFieldDefinition]="true">
                                                             </vf-field>
-                                                            @if (!['Data', 'Int', 'Float', 'Check', 'Select', 'Link', 'Date', 'Time'].includes(col.fieldtype)) {
+                                                            @if (!['Data', 'Int', 'Float', 'Check', 'Select', 'Url', 'Link', 'Date', 'Time'].includes(col.fieldtype)) {
                                                               <vf-icon-button (pressed)="$event.stopPropagation(); editTableRow(field, $index)"
                                                                       class="absolute right-1 top-1/2 -translate-y-1/2 opacity-0 group-hover/cell:opacity-100 transition-all bg-white/80 backdrop-blur-sm shadow-sm border border-zinc-100 rounded-md"
                                                                       tone="brand" [soft]="true">
@@ -342,10 +343,11 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                           </td>
                                                         }
                                                       }
-                                                      @if ((field.table_fields?.length ?? 0) > 6) {
-                                                        <td class="p-2 text-zinc-300 text-[10px] italic">...</td>
+                                                      @if (getHiddenGridColumnCount(field) > 0) {
+                                                        <td class="px-2 py-1.5 text-zinc-300 text-[10px] italic">...</td>
                                                       }
-                                                      <td class="p-2 text-right flex items-center justify-end gap-1">
+                                                      <td class="px-1.5 py-1.5 text-right">
+                                                        <div class="flex items-center justify-end gap-1">
                                                         <vf-icon-button (pressed)="editTableRow(field, $index)" tone="brand">
                                                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                                                                stroke="currentColor" stroke-width="2">
@@ -370,18 +372,19 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                                             </svg>
                                                           </vf-icon-button>
                                                         }
+                                                        </div>
                                                       </td>
                                                     </tr>
                                                   }
                                                   @if (!formData[field.fieldname]?.length) {
                                                     <tr>
                                                       <td
-                                                        [attr.colspan]="Math.min(field.table_fields?.length ?? 0, 6) + ((field.table_fields?.length ?? 0) > 6 ? 3 : 2)"
-                                                        class="p-8 text-center">
-                                                        <div class="flex flex-col items-center gap-2">
+                                                        [attr.colspan]="getTableEmptyStateColspan(field)"
+                                                        class="px-4 py-6 text-center">
+                                                        <div class="flex flex-col items-center gap-1.5">
                                                           <div
-                                                            class="w-10 h-10 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-300">
-                                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+                                                            class="w-8 h-8 rounded-full bg-zinc-50 flex items-center justify-center text-zinc-300">
+                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                                                                  stroke="currentColor" stroke-width="2">
                                                               <path d="M12 5v14M5 12h14"/>
                                                             </svg>
@@ -396,8 +399,16 @@ import { VfSectionShell } from '../shared/section-shell.component';
                                               </table>
                                             </div>
                                             @if (!ctx.isReadOnly()) {
-                                              <div class="p-3 bg-zinc-50/50 border-t border-zinc-200">
-                                                <vf-dashed-action label="Add Row" [compact]="true" [fullWidth]="false" (pressed)="addTableRow(field.fieldname)"></vf-dashed-action>
+                                              <div class="px-2 py-2 bg-zinc-50/50 border-t border-zinc-200">
+                                                <button type="button"
+                                                  class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-zinc-300 bg-white text-zinc-500 transition-colors hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-600"
+                                                  title="Add row"
+                                                  (click)="addTableRow(field.fieldname)">
+                                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                                    stroke="currentColor" stroke-width="2.4" stroke-linecap="round">
+                                                    <path d="M12 5v14M5 12h14"/>
+                                                  </svg>
+                                                </button>
                                               </div>
                                             }
                                           </div>
@@ -611,6 +622,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   @Input() submitLabel?: string;
   @Input() disabled: boolean = false;
   @Input() metadata?: any;
+  @Input() clientScript?: string | null;
   @Input() mediaHandler?: VfMediaHandler;
   @Input() mediaResolver?: VfMediaResolver;
   @Input() linkDataSource?: VfLinkDataSource;
@@ -786,7 +798,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
       this.ctx.set_readonly(true);
     }
     if (this.runFormScripts) {
-      this.ctx.execute(this.document.client_script || '', 'refresh');
+      this.ctx.execute(this.resolveClientScript(), 'refresh');
     }
     this.ctx.trigger('refresh');
     this.ctx.on('print', () => this.onPrint());
@@ -797,7 +809,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   }
 
   private initForm() {
-    const rawData = { ...(this.initialData || {}), ...this.formData };
+    const rawData = { ...this.formData, ...(this.initialData || {}) };
     this.formData = {};
 
     const allSections: DocumentSection[] = [];
@@ -814,7 +826,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
           let val = this.utils.getDeepValue(rawData, path);
           if (val === undefined) val = rawData[f.fieldname];
 
-          if (f.fieldtype === 'Table') {
+          if (this.isTableField(f.fieldtype)) {
             const defaultRows = val || f.default || [];
             this.formData[f.fieldname] = defaultRows.map((r: any, i: number) => ({
               ...r,
@@ -940,6 +952,14 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     return allSections;
   }
 
+  private resolveClientScript(): string {
+    return this.clientScript ?? this.document.client_script ?? '';
+  }
+
+  isTableField(fieldtype: string | undefined): boolean {
+    return fieldtype === 'Table' || fieldtype === 'JSONTable' || fieldtype === 'ChildTable';
+  }
+
   private collectValidationErrors(sections: DocumentSection[]): string[] {
     const invalidFields: string[] = [];
 
@@ -959,7 +979,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
             invalidFields.push(f.fieldname);
           }
 
-          if (f.fieldtype === 'Table' && this.formData[f.fieldname]) {
+          if (this.isTableField(f.fieldtype) && this.formData[f.fieldname]) {
             const rows = this.formData[f.fieldname] as any[];
             rows.forEach(row => {
               f.table_fields?.forEach((tf: any) => {
@@ -1204,7 +1224,8 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     }
 
     const runtimeRegex = this.ctx.getFieldSignal(field.fieldname, 'regex')();
-    const presetKind = getRegexPresetOption(runtimeRegex ?? field.regex)?.kind;
+    const pattern = typeof runtimeRegex === 'string' && runtimeRegex ? runtimeRegex : field.regex;
+    const presetKind = getRegexPresetOption(pattern)?.kind;
     return presetKind !== 'email' && presetKind !== 'url';
   }
 
@@ -1224,6 +1245,25 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
   }
 
   public readonly Math = Math;
+
+  getGridTableColumns(field: DocumentField) {
+    const currentColumns = this.ctx.getFieldSignal(field.fieldname, 'table_fields')() || [];
+    const visibleColumns = currentColumns.filter((col: any) => !col.hidden);
+    const listViewColumns = visibleColumns.filter((col: any) => col.in_list_view);
+    return (listViewColumns.length > 0 ? listViewColumns : visibleColumns).slice(0, 6);
+  }
+
+  getHiddenGridColumnCount(field: DocumentField) {
+    const currentColumns = this.ctx.getFieldSignal(field.fieldname, 'table_fields')() || [];
+    const visibleColumns = currentColumns.filter((col: any) => !col.hidden);
+    const listViewColumns = visibleColumns.filter((col: any) => col.in_list_view);
+    const sourceColumns = listViewColumns.length > 0 ? listViewColumns : visibleColumns;
+    return Math.max(0, sourceColumns.length - this.getGridTableColumns(field).length);
+  }
+
+  getTableEmptyStateColspan(field: DocumentField) {
+    return this.getGridTableColumns(field).length + (this.getHiddenGridColumnCount(field) > 0 ? 3 : 2);
+  }
 
   editTableRow(field: DocumentField, index: number) {
     const row = this.formData[field.fieldname][index];
@@ -1269,7 +1309,7 @@ export class VfRenderer implements OnInit, OnChanges, OnDestroy {
     const [parentFieldname, childFieldname] = path.split('.');
     const parentField = this.findField(parentFieldname);
 
-    if (childFieldname && parentField?.fieldtype === 'Table') {
+    if (childFieldname && parentField && this.isTableField(parentField.fieldtype)) {
       const childField = parentField.table_fields?.find(field => field.fieldname === childFieldname);
       const parentLabel = parentField.label || parentFieldname;
       const childLabel = childField?.label || childFieldname;

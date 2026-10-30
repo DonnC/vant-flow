@@ -76,4 +76,24 @@ describe('VfField', () => {
     expect(input?.type).toBe('url');
     expect(anchor?.getAttribute('href')).toBe('https://example.com');
   });
+
+  it('renders html fields as trusted markup', () => {
+    component.field = {
+      id: 'html_1',
+      fieldname: 'notice',
+      fieldtype: 'Html',
+      label: 'Notice'
+    };
+    component.value = '<div onclick="alert(1)">Hello<script>alert(2)</script><a href="javascript:alert(3)">Open</a></div>';
+
+    fixture.detectChanges();
+
+    const htmlContainer = fixture.nativeElement.querySelector('.editor-preview__content') as HTMLElement | null;
+    const rendered = htmlContainer?.innerHTML ?? '';
+
+    expect(rendered).toContain('Hello');
+    expect(rendered).toContain('<script>alert(2)</script>');
+    expect(rendered).toContain('onclick="alert(1)"');
+    expect(rendered).toContain('href="javascript:alert(3)"');
+  });
 });

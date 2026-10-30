@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { VfBuilderState } from '../../services/builder-state.service';
@@ -10,7 +10,14 @@ import { VfChoiceGroup, VfChoiceOption } from './shared/choice-group.component';
 import { VfToggleCard } from './shared/toggle-card.component';
 import { VfEyebrow } from '../shared/eyebrow.component';
 
-const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Text', 'Text Editor', 'Table', 'Date', 'Datetime', 'Time', 'Float', 'Password', 'Button', 'Signature', 'Attach'];
+const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Url', 'Link', 'Check', 'Int', 'Text', 'Html', 'Text Editor', 'JSONTable', 'ChildTable', 'Date', 'Datetime', 'Time', 'Float', 'Password', 'Button', 'Signature', 'Attach'];
+
+interface DocumentOption {
+  value: string;
+  label: string;
+  module?: string;
+  isChild?: boolean;
+}
 
 @Component({
   selector: 'vf-property-editor',
@@ -211,17 +218,19 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
         <div>
           <label class="ui-label">Field Type</label>
           <select class="ui-select" [ngModel]="field()!.fieldtype" (ngModelChange)="update('fieldtype', $event)">
-            @for (t of fieldTypes; track t) {
+            @for (t of getFieldTypesForSelection(); track t) {
               <option [value]="t">{{ t }}</option>
             }
           </select>
         </div>
 
-        <!-- Options (for Select / Attach) -->
-        @if (field()!.fieldtype === 'Select' || field()!.fieldtype === 'Attach') {
+        <!-- Options -->
+        @if (field()!.fieldtype === 'Select' || field()!.fieldtype === 'Attach' || field()!.fieldtype === 'ChildTable' || field()!.fieldtype === 'Link') {
           <div>
             <label class="ui-label">
               @if (field()!.fieldtype === 'Select') { Options (one per line) }
+              @else if (field()!.fieldtype === 'ChildTable') { Child Document }
+              @else if (field()!.fieldtype === 'Link') { Target Document }
               @else { Attach Config (extensions | maxSize | maxFiles) }
             </label>
             @if (field()!.fieldtype === 'Select') {
@@ -229,9 +238,21 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
                 [ngModel]="field()!.options" (ngModelChange)="update('options', $event)"
                 placeholder="Option 1&#10;Option 2&#10;Option 3">
               </textarea>
-            } @else {
+            } @else if (field()!.fieldtype === 'Attach') {
               <input class="ui-input" [ngModel]="field()!.options" (ngModelChange)="update('options', $event)" 
                 placeholder=".pdf,.jpg | 5MB | 1">
+            } @else if (hasDocumentOptions(field()!.fieldtype)) {
+              <select class="ui-select" [ngModel]="field()!.options" (ngModelChange)="update('options', $event)">
+                <option value="">Select a Document</option>
+                @for (option of getDocumentOptions(field()!.fieldtype); track option.value) {
+                  <option [value]="option.value">
+                    {{ option.label }}{{ option.module ? ' (' + option.module + ')' : '' }}
+                  </option>
+                }
+              </select>
+            } @else {
+              <input class="ui-input font-mono" [ngModel]="field()!.options" (ngModelChange)="update('options', $event)" 
+                placeholder="Selectable Document not available from runtime">
             }
           </div>
         }
@@ -252,10 +273,10 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
           </div>
         }
 
-        @if (field()!.fieldtype === 'Link') {
+        @if (field()!.fieldtype === 'Url') {
           <div class="space-y-4 p-3 rounded-xl border border-indigo-100 bg-indigo-50/30">
             <div class="space-y-1">
-              <label class="ui-label">Data Source Endpoint</label>
+              <label class="ui-label">Lookup Endpoint</label>
               <input class="ui-input font-mono" [ngModel]="field()!.link_config?.data_source" (ngModelChange)="updateLinkConfig({ data_source: $event })" placeholder="/api/items/search">
             </div>
 
@@ -310,6 +331,20 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
           </div>
         }
 
+        <!-- Html Field Note -->
+        @if (field()!.fieldtype === 'Html') {
+          <div class="space-y-2 rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
+            <label class="ui-label">Runtime HTML Block</label>
+            <p class="text-[10px] leading-relaxed text-zinc-600">
+              This field is rendered as safe sanitized HTML and is intended to be filled from scripts,
+              for example via <span class="font-mono">frm.set_value('{{ field()!.fieldname }}', '&lt;div&gt;...&lt;/div&gt;')</span>.
+            </p>
+            <p class="text-[9px] text-zinc-400">
+              End users do not type into this field on the rendered form.
+            </p>
+          </div>
+        }
+
         <!-- Text Editor Content (only for Text Editor) -->
         @if (field()!.fieldtype === 'Text Editor') {
           <div>
@@ -322,11 +357,11 @@ const FIELD_TYPES: FieldType[] = ['Data', 'Select', 'Link', 'Check', 'Int', 'Tex
         }
 
         <!-- Table Column Configurator (only for Table) -->
-        @if (field()!.fieldtype === 'Table') {
+        @if (['Table', 'JSONTable'].includes(field()!.fieldtype)) {
           <div class="ui-sep"></div>
           <details class="group/table-main border border-zinc-200 rounded-lg overflow-hidden shadow-sm" open>
             <summary class="flex items-center justify-between px-3 py-2 bg-zinc-50 cursor-pointer hover:bg-zinc-100 transition-colors list-none">
-              <span class="text-xs font-black text-zinc-500 uppercase tracking-tighter">Table Columns ({{ field()!.table_fields?.length || 0 }})</span>
+              <span class="text-xs font-black text-zinc-500 uppercase tracking-tighter">{{ field()!.fieldtype === 'JSONTable' ? 'JSON Table Columns' : 'Table Columns' }} ({{ field()!.table_fields?.length || 0 }})</span>
               <div class="flex items-center gap-2">
                 <button (click)="$event.preventDefault(); $event.stopPropagation(); state.addTableColumn(field()!.id)" 
                         class="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded hover:bg-indigo-100 border border-indigo-100/50">+ Add Column</button>
@@ -690,8 +725,13 @@ export class VfPropertyEditor {
   field = this.state.selectedField;
   section = this.state.selectedSection;
   step = this.state.selectedStep;
+  runtimeDocumentOptions = computed<DocumentOption[]>(() => {
+    const runtimeMetadata = this.state.runtimeMetadata();
+    const options = this.readDocumentOptions(runtimeMetadata['documents']);
+    return options.sort((left, right) => left.label.localeCompare(right.label));
+  });
   fieldTypes = FIELD_TYPES;
-  tableChildTypes = ['Data', 'Int', 'Float', 'Text', 'Select', 'Link', 'Check', 'Date', 'Datetime', 'Time', 'Password', 'Text Editor', 'Attach', 'Signature'];
+  tableChildTypes = ['Data', 'Int', 'Float', 'Text', 'Select', 'Url', 'Link', 'Check', 'Date', 'Datetime', 'Time', 'Password', 'Text Editor', 'Attach', 'Signature'];
   actionButtonIds: Array<'submit'> = ['submit'];
   regexPresets = VF_REGEX_PRESET_OPTIONS;
   buttonStyleOptions: VfChoiceOption<string>[] = [
@@ -708,6 +748,9 @@ export class VfPropertyEditor {
   toggles: Array<{ label: string; prop: keyof DocumentField }> = [
     { label: 'Mandatory / Required', prop: 'mandatory' },
     { label: 'Indexed', prop: 'indexed' },
+    { label: 'In List View', prop: 'in_list_view' },
+    { label: 'Unique', prop: 'unique' },
+    { label: 'Virtual', prop: 'virtual' },
     { label: 'Hidden', prop: 'hidden' },
     { label: 'Read Only', prop: 'read_only' },
   ];
@@ -735,6 +778,19 @@ export class VfPropertyEditor {
     if (!f) return;
 
     const patches: Partial<DocumentField> = { [prop]: value };
+
+    if (prop === 'fieldtype') {
+      if (value === 'JSONTable') {
+        patches.virtual = true;
+      }
+      if (value === 'ChildTable') {
+        patches.virtual = false;
+        patches.table_fields = undefined;
+      }
+      if (value === 'Table') {
+        patches.virtual = true;
+      }
+    }
 
     if (prop === 'label') {
       if (this.state.shouldAutoSyncFieldname(f.id)) {
@@ -839,6 +895,28 @@ export class VfPropertyEditor {
     if (f) this.state.updateField(f.id, { [prop]: !f[prop] });
   }
 
+  getFieldTypesForSelection() {
+    const f = this.field();
+    return f?.fieldtype === 'Table'
+      ? ['Table', ...this.fieldTypes]
+      : this.fieldTypes;
+  }
+
+  hasDocumentOptions(fieldtype: FieldType) {
+    return ['Link', 'ChildTable'].includes(fieldtype) && this.getDocumentOptions(fieldtype).length > 0;
+  }
+
+  getDocumentOptions(fieldtype: FieldType) {
+    const options = this.runtimeDocumentOptions();
+    if (fieldtype === 'Link') {
+      const normalOptions = options.filter(option => !option.isChild);
+      return normalOptions.length > 0 ? normalOptions : options;
+    }
+
+    const childOptions = options.filter(option => option.isChild);
+    return childOptions.length > 0 ? childOptions : options;
+  }
+
   deleteField() {
     const f = this.field();
     if (f) this.state.removeField(f.id);
@@ -876,5 +954,41 @@ export class VfPropertyEditor {
       `This section contains ${fieldCount} field${fieldCount === 1 ? '' : 's'}. Deleting it will permanently remove them from the form.`,
       () => this.state.removeSection(section.id)
     );
+  }
+
+  private readDocumentOptions(value: unknown): DocumentOption[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+
+    const options: DocumentOption[] = [];
+
+    value.forEach(item => {
+      if (!item || typeof item !== 'object') {
+        return;
+      }
+
+      const record = item as Record<string, unknown>;
+      const valueToken = record['value'];
+      const labelToken = record['label'];
+
+      if (typeof valueToken !== 'string' || typeof labelToken !== 'string') {
+        return;
+      }
+
+      options.push({
+        value: valueToken,
+        label: labelToken,
+        module: typeof record['module'] === 'string' ? record['module'] : undefined,
+        isChild:
+          typeof record['isChild'] === 'boolean'
+            ? record['isChild']
+            : typeof record['is_child_doctype'] === 'boolean'
+              ? record['is_child_doctype']
+              : false
+      });
+    });
+
+    return options;
   }
 }

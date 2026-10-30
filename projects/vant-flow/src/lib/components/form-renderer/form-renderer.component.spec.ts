@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { HttpClientTestingModule } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { VfRenderer } from './form-renderer.component';
 import { VfFormContext } from '../../services/form-context';
 import { VfUtilityService } from '../../services/app-utility.service';
@@ -16,10 +17,12 @@ describe('VfRenderer', () => {
             'getFieldSignal', 'getSectionSignal', 'set_section_property',
             'initialize', 'execute',
             'trigger', 'triggerChange', 'destroy', 'set_df_property', 'set_button_property',
-            'set_validation_handlers', 'begin_validation_hook', 'end_validation_hook'
+            'set_validation_handlers', 'begin_validation_hook', 'end_validation_hook', 'on',
+            'set_readonly', 'remove_row', 'add_row', 'prompt', 'print', 'prev_step', 'next_step', 'go_to_step'
         ]);
 
         (mockFormContext as any).valueUpdateSignal = signal(0);
+        (mockFormContext as any).currentStepIndex = signal(0);
         (mockFormContext as any).isReadOnly = signal(false);
         (mockFormContext as any).dynamicIntro = signal(null);
         (mockFormContext as any).customButtons = signal([]);
@@ -38,7 +41,8 @@ describe('VfRenderer', () => {
         mockUtils.getDeepValue.and.returnValue(undefined);
 
         await TestBed.configureTestingModule({
-            imports: [VfRenderer, HttpClientTestingModule],
+            imports: [VfRenderer],
+            providers: [provideHttpClient(), provideHttpClientTesting()]
         })
             .overrideComponent(VfRenderer, {
                 set: {
@@ -75,6 +79,19 @@ describe('VfRenderer', () => {
         fixture.detectChanges();
         expect(mockFormContext.execute).toHaveBeenCalledWith(component.document.client_script || '', 'refresh');
         expect(mockFormContext.trigger).toHaveBeenCalledWith('refresh');
+    });
+
+    it('executes an injected client script instead of the schema script when provided', () => {
+        component.document = {
+            name: 'Injected Script Form',
+            client_script: "frm.msgprint('schema');",
+            sections: []
+        };
+        component.clientScript = "frm.msgprint('external');";
+
+        fixture.detectChanges();
+
+        expect(mockFormContext.execute).toHaveBeenCalledWith("frm.msgprint('external');", 'refresh');
     });
 
     it('wires validate handlers into the form context', () => {

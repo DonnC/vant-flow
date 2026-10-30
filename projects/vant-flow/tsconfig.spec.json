@@ -10,6 +10,7 @@
   "include": [
     "src/**/*.spec.ts",
     "src/**/*.d.ts",
+    "baobab/**/*.spec.ts",
     "../../projects/vant-flow/src/**/*.spec.ts",
     "../../projects/vant-flow/src/**/*.d.ts"
   ]

@@ -10,6 +10,9 @@
     "paths": {
       "vant-flow": [
         "projects/vant-flow/src/public-api.ts"
+      ],
+      "vant-flow/baobab": [
+        "projects/vant-flow/baobab/src/public-api.ts"
       ]
     },
     "noImplicitReturns": true,

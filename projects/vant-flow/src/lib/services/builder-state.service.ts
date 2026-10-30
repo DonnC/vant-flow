@@ -1,5 +1,5 @@
 import { Injectable, signal, computed, WritableSignal } from '@angular/core';
-import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, DocumentColumn, FieldType, TableColumnDef } from '../models/document.model';
+import { DEFAULT_FORM_ACTIONS, DocumentDefinition, DocumentField, DocumentSection, DocumentColumn, FieldType, TableColumnDef, VfRuntimeMetadata } from '../models/document.model';
 
 let _uid = 0;
 function uid() { return `id_${++_uid}_${Math.random().toString(36).slice(2, 7)}`; }
@@ -7,11 +7,15 @@ function uid() { return `id_${++_uid}_${Math.random().toString(36).slice(2, 7)}`
 @Injectable({ providedIn: 'root' })
 export class VfBuilderState {
     private autoFieldnameFieldIds = new Set<string>();
+    readonly detachedClientScript = signal<string | null>(null);
+    readonly useDetachedClientScript = signal(false);
+    readonly runtimeMetadata = signal<VfRuntimeMetadata>({});
 
     // Main Document state
     readonly document: WritableSignal<DocumentDefinition> = signal({
         name: 'New Document',
         version: '1.0.0',
+        is_child_doctype: false,
         sections: [],
         client_script: '',
         intro_text: '',
@@ -29,6 +33,12 @@ export class VfBuilderState {
 
     // Builder vs Preview mode toggle
     readonly mode: WritableSignal<'builder' | 'preview'> = signal('builder');
+    readonly activeClientScript = computed(() => {
+        if (this.useDetachedClientScript()) {
+            return this.detachedClientScript() ?? '';
+        }
+        return this.document().client_script ?? '';
+    });
 
     // Computed: find the selected field across all sections
     readonly selectedField = computed(() => {
@@ -87,7 +97,23 @@ export class VfBuilderState {
     }
 
     setClientScript(script: string) {
+        if (this.useDetachedClientScript()) {
+            this.detachedClientScript.set(script);
+            return;
+        }
         this.document.update(doc => ({ ...doc, client_script: script }));
+    }
+
+    setDetachedClientScript(script: string | null | undefined) {
+        this.detachedClientScript.set(script ?? null);
+    }
+
+    setScriptSourceMode(useDetached: boolean) {
+        this.useDetachedClientScript.set(useDetached);
+    }
+
+    setRuntimeMetadata(metadata: VfRuntimeMetadata | null | undefined) {
+        this.runtimeMetadata.set((metadata ?? {}) as VfRuntimeMetadata);
     }
 
     setIntro(text: string, color?: 'blue' | 'orange' | 'red' | 'gray') {
@@ -319,9 +345,14 @@ export class VfBuilderState {
     addField(sectionId: string, colId: string, fieldtype: FieldType, index?: number) {
         const defaultLabels: Partial<Record<FieldType, string>> = {
             Check: 'Checkbox Field',
+            Url: 'Lookup Field',
+            Link: 'Linked Document',
             Button: 'Click Me',
+            Html: 'HTML Block',
             'Text Editor': 'Details',
             Table: 'Items',
+            JSONTable: 'JSON Rows',
+            ChildTable: 'Child Rows',
         };
         const label = defaultLabels[fieldtype] ?? `${fieldtype} Field`;
         const fieldname = this.createUniqueFieldname(label);
@@ -334,7 +365,10 @@ export class VfBuilderState {
             hidden: false,
             read_only: false,
             mandatory: false,
-            indexed: false
+            indexed: false,
+            in_list_view: false,
+            virtual: fieldtype === 'JSONTable' || fieldtype === 'Table' || fieldtype === 'Html',
+            unique: false
         };
 
         this.document.update(doc => {

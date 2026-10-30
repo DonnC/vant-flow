@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { VfRenderer, VfBuilder, VfToastOutlet, VfUtilityService, VfMediaHandler, VfMediaHandlerContext, VfMediaHandlerPayload, VfRendererButtonEvent, VfRendererChangeEvent, VfFormContext } from 'vant-flow';
-import { EXAMPLE_DOCUMENT } from './example-data';
+import { DETACHED_CLIENT_SCRIPT, EXAMPLE_DOCUMENT } from './example-data';
 
 @Component({
   selector: 'app-renderer-demo',
@@ -210,6 +210,7 @@ import { EXAMPLE_DOCUMENT } from './example-data';
                 [disabledActionButtons]="disabledActionButtons"
                 [hiddenActionButtons]="hiddenActionButtons"
                 [metadata]="runtimeMetadata"
+                [clientScript]="activeClientScript"
                 [mediaHandler]="mediaHandler"
                 [showSectionNavigator]="showSectionNavigator"
                 (formAction)="onFormAction($event)"
@@ -225,7 +226,11 @@ import { EXAMPLE_DOCUMENT } from './example-data';
           <div class="flex-1 overflow-hidden relative animate-in fade-in duration-300">
             <vf-builder
               [initialSchema]="schema"
+              [previewMetadata]="runtimeMetadata"
+              [detachedClientScript]="activeClientScript"
+              [useDetachedClientScript]="true"
               [showScriptEditor]="true"
+              (clientScriptChange)="activeClientScript = $event"
               (schemaChange)="onSchemaChange($event)">
             </vf-builder>
           </div>
@@ -278,6 +283,7 @@ export class RendererDemoComponent {
   @ViewChild(VfRenderer) renderer?: VfRenderer;
   private utils = inject(VfUtilityService);
   schema = EXAMPLE_DOCUMENT;
+  activeClientScript = DETACHED_CLIENT_SCRIPT;
   submittedData: any = null;
   runtimeMetadata = this.getDefaultMetadata();
   metadataInput = JSON.stringify(this.runtimeMetadata, null, 2);
@@ -412,7 +418,13 @@ export class RendererDemoComponent {
         name: 'Alice Manager',
         role: 'Manager'
       },
-      inspectionMode: 'strict',
+      tenant: {
+        id: 'acme',
+        name: 'Acme Manufacturing'
+      },
+      host: {
+        mode: 'strict'
+      },
       featureFlags: {
         clearanceOverride: true
       }

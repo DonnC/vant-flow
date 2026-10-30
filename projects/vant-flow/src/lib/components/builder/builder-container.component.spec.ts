@@ -106,6 +106,18 @@ describe('VfBuilder', () => {
     expect(tabs.some((tab) => tab.nativeElement.textContent.includes('Script'))).toBeFalse();
   });
 
+  it('uses a detached client script for preview rendering when enabled', () => {
+    component.useDetachedClientScript = true;
+    component.detachedClientScript = 'frm.msgprint("Detached");';
+    fixture.detectChanges();
+
+    component.setMode('preview');
+    fixture.detectChanges();
+
+    const renderer = fixture.debugElement.query(By.directive(VfRenderer)).componentInstance as VfRenderer;
+    expect(renderer.clientScript).toBe('frm.msgprint("Detached");');
+  });
+
   it('reloads the builder document when initialSchema changes after mount', () => {
     fixture.detectChanges();
 
