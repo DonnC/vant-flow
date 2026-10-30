@@ -444,4 +444,4 @@ Good first areas to contribute:
 
 ## License
 
-[MIT](LICENSE) · Built with Angular · Inspired by the ergonomics of the [Frappe](https://frappe.io) ecosystem
+[MIT](LICENSE) · Built with Angular

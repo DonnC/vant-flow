@@ -110,7 +110,7 @@ type LandingRouteCard = {
         <!-- Footer -->
         <footer class="mt-auto flex flex-col items-center justify-between gap-8 border-t border-zinc-800/50 pt-12 pb-6 md:flex-row">
           <div class="text-[11px] font-medium tracking-wide text-zinc-600">
-            &copy; 2026 Vant Flow Open Source. Inspired by Frappe.
+            &copy; 2026 Vant Flow Open Source.
           </div>
           <div class="flex gap-8">
              <a href="https://github.com/DonnC/vant-flow" target="_blank" class="text-[11px] font-bold uppercase tracking-widest text-zinc-500 transition-colors hover:text-indigo-400">Documentation</a>

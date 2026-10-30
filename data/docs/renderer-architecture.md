@@ -413,7 +413,7 @@ That allows teams to separate preview URLs from download URLs when the backing s
 
 ## Link Field Runtime Model
 
-The `Link` field is designed as a Frappe-style remote autocomplete field.
+The `Link` field is a remote autocomplete field.
 
 ### Configuration Surface
 

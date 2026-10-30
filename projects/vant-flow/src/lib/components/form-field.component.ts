@@ -322,7 +322,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
               } @else {
                 <div class="rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-indigo-50/50 transition-all border border-zinc-200">
                   <quill-editor
-                    class="ql-frappe-style"
+                    class="ql-vf-style"
                     [ngModel]="value"
                     (onContentChanged)="onValueChange($event.html)"
                     [readOnly]="false"
@@ -630,18 +630,18 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
       @apply border-red-500 bg-red-50/30 focus:ring-red-500/10 !important;
     }
 
-    ::ng-deep .ql-frappe-style .ql-toolbar {
+    ::ng-deep .ql-vf-style .ql-toolbar {
       @apply bg-zinc-50 border-0 border-b border-zinc-200 py-2 px-3 !important;
     }
-    ::ng-deep .ql-frappe-style.ql-snow {
+    ::ng-deep .ql-vf-style.ql-snow {
       @apply border-0 !important;
     }
-    ::ng-deep .ql-frappe-style .ql-container {
+    ::ng-deep .ql-vf-style .ql-container {
       @apply border-0 text-zinc-700 font-sans !important;
       font-size: 13.5px;
       min-height: 150px !important;
     }
-    ::ng-deep .ql-frappe-style .ql-editor {
+    ::ng-deep .ql-vf-style .ql-editor {
       @apply px-4 py-3 leading-relaxed;
     }
 

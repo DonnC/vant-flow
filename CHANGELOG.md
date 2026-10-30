@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1
+
+### Changed
+
+- The README and docs describe Vant Flow on its own terms.
+- The rich-text editor's style class is `ql-vf-style`. Override that class if you styled the editor through the previous one.
+
 ## 1.1.0
 
 ### Added

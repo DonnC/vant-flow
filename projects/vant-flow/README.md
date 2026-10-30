@@ -3,12 +3,6 @@ Form builder designed to bridge the gap between static JSON schemas and complex 
 
 ![admin](data/screenshots/admin.png)
 
-## 🖋️ A Note on Inspiration
-
-This is a specialized, lightweight subset heavily inspired by the immensely powerful and mature [Frappe Framework](https://frappeframework.com/).
-
----
-
 ## 💡 Core Philosophy: "Logic in Motion"
 
 In traditional enterprise apps, a simple change (like hiding a field based on a new regulation) requires a full CI/CD cycle. **Vant Flow** changes the game:
@@ -120,7 +114,7 @@ Vant also now uses reusable builder-facing components internally for repeated co
 
 In practice, the current Vant visual language is best described as:
 - A custom Tailwind-based design system
-- Frappe-inspired for enterprise form workflows
+- Built for enterprise form workflows
 - Soft-surface, high-clarity, modern admin UI rather than a generic component kit
 
 ### Core Services
@@ -135,7 +129,7 @@ In practice, the current Vant visual language is best described as:
 
 ## 📜 Client Scripting Example (`frm`)
 
-Vant Flow exposes a powerful scripting API inspired by Frappe, but optimized for the Angular lifecycle.
+Vant Flow exposes a scripting API built around the Angular lifecycle.
 
 ```javascript
 frm.on('refresh', (frm) => {
@@ -181,7 +175,7 @@ frm.set_df_property('items_table', 'hidden', true, 'rate_col');
 
 ### Link Field Data Sources
 
-`Link` fields can now behave like Frappe-style autocomplete lookups backed by a remote endpoint. Unlike `Select`, a `Link` field stores the full selected object in form data.
+`Link` fields can behave as autocomplete lookups backed by a remote endpoint. Unlike `Select`, a `Link` field stores the full selected object in form data.
 
 ```json
 {

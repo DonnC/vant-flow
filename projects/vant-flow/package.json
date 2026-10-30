@@ -1,6 +1,6 @@
 {
   "name": "vant-flow",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Schema-driven Angular form builder and renderer with runtime scripting, validation, stepper flows, and host-controlled integrations.",
   "author": {
     "name": "DonnC",
