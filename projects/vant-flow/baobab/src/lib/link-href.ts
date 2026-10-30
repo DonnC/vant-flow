@@ -6,14 +6,14 @@ import { VfLinkHrefResolver } from 'vant-flow';
  */
 export const BAOBAB_LINK_NAME_KEY = '_baobab_name';
 
-/** Opens a linked document in Baobab Desk, at `<deskBase>/<doctype>/<name>`. */
+/** Opens a linked document in Baobab Desk, at `<deskBase>/<document>/<name>`. */
 export function baobabLinkHref(deskBase = '/desk/app'): VfLinkHrefResolver {
   const base = deskBase.replace(/\/+$/, '');
-  return ({ doctype, value, option }) => {
+  return ({ document, value, option }) => {
     const target = option?.[BAOBAB_LINK_NAME_KEY] ?? option?.['name'] ?? value;
     if (target === undefined || target === null || target === '') {
       return null;
     }
-    return `${base}/${encodeURIComponent(doctype)}/${encodeURIComponent(String(target))}`;
+    return `${base}/${encodeURIComponent(document)}/${encodeURIComponent(String(target))}`;
   };
 }

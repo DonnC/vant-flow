@@ -5,7 +5,7 @@ import { VF_BAOBAB_SCRIPT_NAMESPACE } from './script-namespace';
 describe('Baobab preset', () => {
   it('opens a linked document by its Baobab name, not its id', () => {
     const href = baobabLinkHref()({
-      doctype: 'Project',
+      document: 'Project',
       value: '8f4c-uuid',
       option: { id: '8f4c-uuid', [BAOBAB_LINK_NAME_KEY]: 'Office refit' }
     });
@@ -13,7 +13,7 @@ describe('Baobab preset', () => {
   });
 
   it('falls back to the stored value and honours a custom Desk base', () => {
-    expect(baobabLinkHref('/portal/app/')({ doctype: 'Task', value: 'TSK-1', option: null }))
+    expect(baobabLinkHref('/portal/app/')({ document: 'Task', value: 'TSK-1', option: null }))
       .toBe('/portal/app/Task/TSK-1');
   });
 

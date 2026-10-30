@@ -32,7 +32,7 @@ Prefer changes that preserve that separation. Do not bury host-owned concerns in
 
 - Keep builder and renderer aligned around the same `DocumentDefinition`.
 - Preserve backward compatibility for existing field types and persisted schemas unless the user explicitly asks for a breaking change.
-- Keep `frm` APIs additive and consistent with the existing Frappe-like naming style.
+- Keep `frm` APIs additive and consistent with the existing snake_case naming style.
 - Keep host-owned integrations host-owned: uploads, downloads, remote lookups, auth, storage, workflow APIs, and route context should stay outside the library unless they are exposed as contracts.
 - If a change affects user-facing capabilities, update the relevant README or example JSON so the feature remains discoverable.
 

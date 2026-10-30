@@ -61,7 +61,7 @@ import { VfSectionShell } from '../shared/section-shell.component';
       }
 
       <div class="vf-form-card flex-1 max-w-[1100px] min-w-0 card bg-white shadow-2xl transition-all duration-300">
-        <!-- Combined Sticky Header (Frappe style) -->
+        <!-- Combined sticky header -->
 
         <div
           class="bg-white border-b border-zinc-100 shadow-sm px-8 py-5 flex items-center justify-between rounded-t-[1.5rem]">
@@ -468,17 +468,17 @@ import { VfSectionShell } from '../shared/section-shell.component';
       @apply border-red-500 bg-red-50/30 focus:ring-red-500/10 !important;
     }
 
-    .ql-frappe-style .ql-toolbar {
+    .ql-vf-style .ql-toolbar {
       @apply bg-zinc-50 border-0 border-b border-zinc-200 py-3 px-4 !important;
       border-top-left-radius: 0.5rem;
       border-top-right-radius: 0.5rem;
     }
 
-    .ql-frappe-style.ql-snow {
+    .ql-vf-style.ql-snow {
       @apply border-0 !important;
     }
 
-    .ql-frappe-style .ql-container {
+    .ql-vf-style .ql-container {
       @apply border-0 text-zinc-700 font-sans !important;
       font-size: 14px;
       height: auto !important;
@@ -490,14 +490,14 @@ import { VfSectionShell } from '../shared/section-shell.component';
       border-bottom-right-radius: 0.5rem;
     }
 
-    .ql-frappe-style .ql-editor {
+    .ql-vf-style .ql-editor {
       @apply px-6 py-5 leading-relaxed;
       min-height: 200px;
       height: auto !important;
       overflow-y: visible;
     }
 
-    .ql-frappe-style .ql-container::-webkit-resizer {
+    .ql-vf-style .ql-container::-webkit-resizer {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23d1d5db' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M15 19l4-4M10 19l9-9'/%3E%3C/svg%3E");
       background-size: 10px 10px;
       background-repeat: no-repeat;
@@ -567,23 +567,23 @@ import { VfSectionShell } from '../shared/section-shell.component';
       h2, h3 { page-break-after: avoid; }
     }
     
-    .ql-frappe-style .ql-container::-webkit-resizer {
+    .ql-vf-style .ql-container::-webkit-resizer {
       cursor: ns-resize;
     }
 
-    .ql-frappe-style .ql-editor.ql-blank::before {
+    .ql-vf-style .ql-editor.ql-blank::before {
       @apply left-6 text-zinc-300 italic;
     }
 
-    .ql-frappe-style .ql-picker-label {
+    .ql-vf-style .ql-picker-label {
       @apply text-zinc-600 !important;
     }
 
-    .ql-frappe-style .ql-stroke {
+    .ql-vf-style .ql-stroke {
       @apply stroke-zinc-500 !important;
     }
 
-    .ql-frappe-style .ql-fill {
+    .ql-vf-style .ql-fill {
       @apply fill-zinc-500 !important;
     }
 

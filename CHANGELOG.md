@@ -1,11 +1,18 @@
 # Changelog
 
+## 1.1.1
+
+### Changed
+
+- The README and docs describe Vant Flow on its own terms.
+- The rich-text editor's style class is `ql-vf-style`. Override that class if you styled the editor through the previous one.
+
 ## 1.1.0
 
 ### Added
 
 - Field types: `Url` (remote lookup with autocomplete), `Html` (rendered HTML that scripts inject), `JSONTable` (rows stored with the record) and `ChildTable` (rows of another document type). `Link` now describes a relationship to another document.
-- `in_list_view`, `indexed`, `unique` and `virtual` on fields and table columns, and `is_child_doctype` on documents, so hosts can derive list views and storage from a schema.
+- `in_list_view`, `indexed`, `unique` and `virtual` on fields and table columns, and `is_child_table` on documents, so hosts can derive list views and storage from a schema.
 - Detached client scripts: the renderer and builder accept a script kept outside the schema (`clientScript`, `detachedClientScript`).
 - Runtime metadata typing (`VfRuntimeMetadata`). The builder offers document choices from `metadata.documents` for Link and ChildTable options.
 - `frm.is_new()` and further `frm` script API additions, with editor completions and type checking through `registerVfScriptEditorSupport`.

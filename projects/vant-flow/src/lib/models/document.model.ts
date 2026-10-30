@@ -125,7 +125,7 @@ export interface DocumentField {
   in_list_view?: boolean;
   unique?: boolean;
   virtual?: boolean;
-  options?: string; // Newline-separated for Select, target DocType for Link/ChildTable, button style for Button, content for Markdown
+  options?: string; // Newline-separated for Select, target document for Link/ChildTable, button style for Button, content for Markdown
   hidden?: boolean;
   read_only?: boolean;
   depends_on?: string; // Visible if expression is truthy
@@ -240,7 +240,7 @@ export interface DocumentDefinition {
   module?: string;
   description?: string;
   version?: string;
-  is_child_doctype?: boolean;
+  is_child_table?: boolean;
   is_stepper?: boolean;
   show_section_navigator?: boolean;
   intro_text?: string;

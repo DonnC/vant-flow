@@ -983,8 +983,8 @@ export class VfPropertyEditor {
         isChild:
           typeof record['isChild'] === 'boolean'
             ? record['isChild']
-            : typeof record['is_child_doctype'] === 'boolean'
-              ? record['is_child_doctype']
+            : typeof record['is_child_table'] === 'boolean'
+              ? record['is_child_table']
               : false
       });
     });
