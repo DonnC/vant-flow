@@ -86,6 +86,23 @@ Three layers in this repo:
 npm install vant-flow
 ```
 
+### Install From GitHub
+
+```bash
+npm install git+https://github.com/DonnC/vant-flow.git#main
+```
+
+If you want to work from a cloned local copy of the repo instead:
+
+```bash
+git clone https://github.com/DonnC/vant-flow.git
+cd vant-flow
+npm install
+npm run build
+cd /path/to/your-angular-app
+npm install /path/to/vant-flow/dist/vant-flow
+```
+
 ### Register the provider
 
 ```ts
