@@ -276,7 +276,7 @@ To show an "open" button next to a filled Link field, tell Vant Flow where linke
 
 ```ts
 provideVfFlow({
-  linkHref: ({ doctype, value }) => `/records/${doctype}/${encodeURIComponent(String(value))}`
+  linkHref: ({ document, value }) => `/records/${document}/${encodeURIComponent(String(value))}`
 })
 ```
 

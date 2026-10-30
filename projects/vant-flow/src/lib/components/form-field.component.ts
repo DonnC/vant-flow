@@ -1187,12 +1187,12 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   private getLinkSelectionCacheKey(rawValue: any) {
-    const doctype = typeof this.field.options === 'string' ? this.field.options.trim() : '';
-    if (!doctype || rawValue === undefined || rawValue === null || rawValue === '') {
+    const linkedDocument = typeof this.field.options === 'string' ? this.field.options.trim() : '';
+    if (!linkedDocument || rawValue === undefined || rawValue === null || rawValue === '') {
       return null;
     }
 
-    return `${doctype}::${String(rawValue)}`;
+    return `${linkedDocument}::${String(rawValue)}`;
   }
 
   private cacheSelectedLinkOption(item: any) {
@@ -1214,12 +1214,12 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       return null;
     }
 
-    const doctype = typeof this.field.options === 'string' ? this.field.options.trim() : '';
-    if (!doctype) {
+    const linkedDocument = typeof this.field.options === 'string' ? this.field.options.trim() : '';
+    if (!linkedDocument) {
       return null;
     }
 
-    return this.linkHref({ doctype, value: this.value, option: this.getCachedLinkOption(this.value) });
+    return this.linkHref({ document: linkedDocument, value: this.value, option: this.getCachedLinkOption(this.value) });
   }
 
   openLinkedDocument(event: MouseEvent) {

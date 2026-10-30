@@ -15,7 +15,7 @@ export class VfBuilderState {
     readonly document: WritableSignal<DocumentDefinition> = signal({
         name: 'New Document',
         version: '1.0.0',
-        is_child_doctype: false,
+        is_child_table: false,
         sections: [],
         client_script: '',
         intro_text: '',
