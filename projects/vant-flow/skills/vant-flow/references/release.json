@@ -1,0 +1,18 @@
+{
+  "skillVersion": "1.0.0",
+  "libraryVersion": "1.1.2",
+  "sources": [
+    "projects/vant-flow/src/lib/models/document.model.ts",
+    "projects/vant-flow/src/lib/config.ts",
+    "projects/vant-flow/src/lib/link-href.ts",
+    "projects/vant-flow/src/lib/utils/script-editor-support.ts",
+    "projects/vant-flow/src/lib/services/form-context.ts",
+    "projects/vant-flow/src/lib/components/form-renderer/form-renderer.component.ts",
+    "projects/vant-flow/src/lib/components/builder/builder-container.component.ts",
+    "projects/vant-flow/src/public-api.ts",
+    "projects/vant-flow/baobab/src/public-api.ts",
+    "projects/vant-flow/baobab/src/lib/field-config.ts",
+    "projects/vant-flow/baobab/src/lib/script-namespace.ts",
+    "projects/vant-flow/baobab/src/lib/link-href.ts"
+  ]
+}

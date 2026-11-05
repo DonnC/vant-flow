@@ -2,6 +2,12 @@
   "name": "vant-flow-workspace",
   "version": "1.0.0",
   "scripts": {
+    "skills:generate": "node scripts/vant-skills.mjs generate",
+    "skills:check": "node scripts/vant-skills.mjs check",
+    "skills:test": "node --test scripts/vant-skills.test.mjs",
+    "skills:examples": "tsc --project scripts/tsconfig.skill-examples.json",
+    "skills:install": "node projects/vant-flow/skills/install.mjs",
+    "prebuild": "npm run skills:check",
     "ng": "ng",
     "config:env": "node scripts/set-env.js",
     "prestart": "npm run config:env",

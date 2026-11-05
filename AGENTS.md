@@ -2,6 +2,8 @@
 
 Use the repo-local skills in `.codex/skills` for all substantial work in this repository.
 
+For application integration, start with the portable [vant-flow skill](projects/vant-flow/skills/vant-flow/SKILL.md). It ships in the npm package. Regenerate its source-derived references with `npm run skills:generate` after API, docs, or example changes; `npm run skills:check` detects stale snapshots.
+
 ## Skill Routing
 
 - Use [vant-flow-core](./.codex/skills/vant-flow-core/SKILL.md) before changing platform behavior or when repo context is needed.

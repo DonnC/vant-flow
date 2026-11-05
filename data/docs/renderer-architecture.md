@@ -353,6 +353,10 @@ The renderer is designed to stay host-agnostic.
 
 ## Media Field Pipeline
 
+Stored attachments and signatures show a small amber exclamation indicator when a media reference cannot be resolved or an image fails to load. Hover or focus the indicator for a short explanation. Empty optional fields are not flagged. Background preview failures do not create toasts or repeatedly call the resolver; choosing download explicitly retries a failed resolution. Replacing the field value or resolver clears its preview state. Signature success is shown only after the image loads, and read-only signatures cannot be cleared.
+
+Uploads and storage validation remain host-owned. A host should reject a `mediaHandler` response that lacks the storage reference its resolver requires, and prevent workflow submission while an initiated upload is pending or failed. Preview warnings do not alter persisted values or required-field validation.
+
 `Attach` and `Signature` now use a richer runtime pipeline so the user experience can stay simple while storage logic remains application-owned.
 
 ### Why the Hook Exists

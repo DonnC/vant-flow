@@ -78,6 +78,22 @@ Three layers in this repo:
 
 ## Quick start
 
+### AI agent skill
+
+The npm package includes a provider-neutral [Vant Flow skill](projects/vant-flow/skills/vant-flow/SKILL.md), versioned independently from the runtime. It covers schema authoring, Angular integration, frm scripts, host callbacks, media, tables, builder behavior, editor support, and troubleshooting. Generated references describe the package's supported API version.
+
+From your application's directory, install it using Node:
+
+```sh
+node node_modules/vant-flow/skills/install.mjs --provider codex
+node node_modules/vant-flow/skills/install.mjs --provider claude
+node node_modules/vant-flow/skills/install.mjs --dest .agents/skills
+```
+
+Choose one destination appropriate for your agent; automatic discovery depends on its skill support. Other agents can read `node_modules/vant-flow/skills/vant-flow/SKILL.md` directly. The installer refuses to overwrite existing skills. For updates, review the new package content and replace or merge your existing copy deliberately.
+
+Repository maintainers use `npm run skills:generate`, `npm run skills:check`, and `npm run skills:test` to maintain the bundled references and installer. Build checks reject stale references. Skills require neither an AI provider API key nor a running MCP server.
+
 > **Prerequisites:** Angular 17+, Node 18+
 
 ### Install

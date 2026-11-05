@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.1.2 - 2026-11-05
+
+### Added
+
+- Portable `vant-flow` agent skill bundled with the npm package, with integration/runtime guidance, generated API contracts, schema examples, and an Angular example. Install it for Codex, Claude, or an explicit skills directory.
+- Skill snapshot generation, freshness checks, and installer regression checks through `skills:generate`, `skills:check`, and `skills:test`.
+- Attachment and signature fields show a compact amber warning when a stored reference cannot be resolved or an image preview fails. The explanation is available on hover and keyboard focus, including in compact table cells.
+- Regression coverage for missing media references, failed previews and uploads, download retries, files sharing a name, stale resolver results, and media uploads inside table-row prompts.
+
+### Fixed
+
+- Background media resolution failures no longer repeatedly invoke the resolver or produce error dialogs. Explicitly choosing download retries a failed resolution.
+- Media caches distinguish separate file values with the same filename. Replacing a field value or its resolver resets preview state, and outdated asynchronous results are ignored.
+- Signature previews clear the previous canvas image and show capture success only after the image loads. Read-only signatures cannot be cleared.
+- Upload handlers returning no stored file are treated as failures; failed signature uploads do not emit a new stored value.
+- Media upload and resolution callbacks inside prompts receive the owning form context, including prompts used to edit table rows.
+
+### Documentation
+
+- Documented media warning behavior and the host application's responsibility for storage validation and submission handling while uploads are pending or failed.
+
 ## 1.1.1
 
 ### Changed

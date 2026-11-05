@@ -26,8 +26,8 @@ import { VfIconButton } from './shared/icon-button.component';
               [field]="field" 
               [value]="values[field.fieldname]" 
               [readOnly]="field.read_only || readOnly"
-              [mediaHandler]="mediaHandler"
-              [mediaResolver]="mediaResolver"
+              [mediaHandler]="mediaHandler ? contextualMediaHandler : undefined"
+              [mediaResolver]="mediaResolver ? contextualMediaResolver : undefined"
               [linkDataSource]="linkDataSource"
               [linkRequestObserver]="linkRequestObserver"
               [formMetadata]="formMetadata"
@@ -65,6 +65,8 @@ export class VfPromptModal {
   @Input() linkRequestObserver?: VfLinkRequestObserver;
   @Input() formMetadata?: any;
   @Input() frm!: VfFormContext;
+  readonly contextualMediaHandler: VfMediaHandler = (payload, context) => this.mediaHandler!(payload, { ...context, frm: this.frm });
+  readonly contextualMediaResolver: VfMediaResolver = (media, context) => this.mediaResolver!(media, { ...context, frm: this.frm });
   @Output() result = new EventEmitter<Record<string, any> | null>();
 
   @ViewChildren(VfField) fieldComponents!: QueryList<VfField>;

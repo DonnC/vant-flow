@@ -1,0 +1,327 @@
+{
+  "name": "Field Service Work Order",
+  "module": "Operations",
+  "version": "1.0.0",
+  "description": "Importable showcase schema for Vant Flow features including stepper flows, Link field data sources, Attach, Signature, tables, and runtime metadata-aware scripts.",
+  "is_stepper": true,
+  "intro_text": "Capture dispatch, diagnostics, parts usage, and customer sign-off for a field service job.",
+  "intro_color": "blue",
+  "metadata": {
+    "example_type": "feature_showcase",
+    "domain": "field_service"
+  },
+  "sections": [],
+  "steps": [
+    {
+      "id": "step_dispatch",
+      "title": "Dispatch",
+      "description": "Capture the incoming job, customer, and equipment context.",
+      "sections": [
+        {
+          "id": "sec_dispatch",
+          "label": "Dispatch Details",
+          "columns_count": 2,
+          "columns": [
+            {
+              "id": "col_dispatch_left",
+              "fields": [
+                {
+                  "id": "f_ticket_no",
+                  "fieldname": "ticket_no",
+                  "fieldtype": "Data",
+                  "label": "Ticket Number",
+                  "mandatory": true,
+                  "placeholder": "WO-2026-0001"
+                },
+                {
+                  "id": "f_priority",
+                  "fieldname": "priority",
+                  "fieldtype": "Select",
+                  "label": "Priority",
+                  "options": "Low\nMedium\nHigh\nCritical",
+                  "default": "Medium",
+                  "mandatory": true
+                },
+                {
+                  "id": "f_customer",
+                  "fieldname": "customer",
+                  "fieldtype": "Link",
+                  "label": "Customer",
+                  "mandatory": true,
+                  "placeholder": "Search customer...",
+                  "link_config": {
+                    "data_source": "http://localhost:3002/api/demo/customers/search",
+                    "results_path": "payload.data.items",
+                    "mapping": {
+                      "id": "record.id",
+                      "title": "record.profile.display_name",
+                      "description": "record.profile.meta.search_hint"
+                    },
+                    "filters": {
+                      "status": "Active"
+                    },
+                    "method": "GET",
+                    "cache": true,
+                    "min_query_length": 1,
+                    "page_size": 15
+                  }
+                },
+                {
+                  "id": "f_site_address",
+                  "fieldname": "site_address",
+                  "fieldtype": "Text",
+                  "label": "Service Address",
+                  "mandatory": true
+                }
+              ]
+            },
+            {
+              "id": "col_dispatch_right",
+              "fields": [
+                {
+                  "id": "f_service_type",
+                  "fieldname": "service_type",
+                  "fieldtype": "Select",
+                  "label": "Service Type",
+                  "options": "Fiber Repair\nRouter Replacement\nSignal Investigation\nPreventive Maintenance",
+                  "default": "Fiber Repair",
+                  "mandatory": true
+                },
+                {
+                  "id": "f_equipment",
+                  "fieldname": "equipment",
+                  "fieldtype": "Link",
+                  "label": "Equipment",
+                  "placeholder": "Search installed equipment...",
+                  "link_config": {
+                    "data_source": "http://localhost:3002/api/demo/equipment/search",
+                    "mapping": {
+                      "id": "asset.id",
+                      "title": "asset.serial_number",
+                      "description": "asset.model.display_name"
+                    },
+                    "filters": {
+                      "service_type": "Fiber Repair"
+                    },
+                    "method": "POST",
+                    "cache": true,
+                    "min_query_length": 1
+                  }
+                },
+                {
+                  "id": "f_sla_due_at",
+                  "fieldname": "sla_due_at",
+                  "fieldtype": "Datetime",
+                  "label": "SLA Due At"
+                },
+                {
+                  "id": "f_dispatch_notes",
+                  "fieldname": "dispatch_notes",
+                  "fieldtype": "Text",
+                  "label": "Dispatch Notes"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step_diagnostics",
+      "title": "Diagnostics",
+      "description": "Record findings, media, and replaced parts.",
+      "sections": [
+        {
+          "id": "sec_diagnostics",
+          "label": "Diagnostics and Resolution",
+          "columns_count": 2,
+          "columns": [
+            {
+              "id": "col_diag_left",
+              "fields": [
+                {
+                  "id": "f_root_cause",
+                  "fieldname": "root_cause",
+                  "fieldtype": "Select",
+                  "label": "Root Cause",
+                  "options": "Fiber Break\nPower Failure\nConfiguration Drift\nHardware Fault\nCustomer Premises Damage",
+                  "mandatory": true
+                },
+                {
+                  "id": "f_outage_severity",
+                  "fieldname": "outage_severity",
+                  "fieldtype": "Select",
+                  "label": "Outage Severity",
+                  "options": "Minor\nMajor\nCritical",
+                  "mandatory": true
+                },
+                {
+                  "id": "f_restored_at",
+                  "fieldname": "restored_at",
+                  "fieldtype": "Datetime",
+                  "label": "Service Restored At"
+                },
+                {
+                  "id": "f_engineer_notes",
+                  "fieldname": "engineer_notes",
+                  "fieldtype": "Text Editor",
+                  "label": "Engineer Notes"
+                }
+              ]
+            },
+            {
+              "id": "col_diag_right",
+              "fields": [
+                {
+                  "id": "f_before_media",
+                  "fieldname": "before_media",
+                  "fieldtype": "Attach",
+                  "label": "Before Media",
+                  "options": ".jpg,.jpeg,.png,.pdf | 10MB | 3",
+                  "description": "Demo note: the example app hardcodes mock-storage upload handling for this fieldname only. TODO: replace that with your project-specific upload rules."
+                },
+                {
+                  "id": "f_after_media",
+                  "fieldname": "after_media",
+                  "fieldtype": "Attach",
+                  "label": "After Media",
+                  "options": ".jpg,.jpeg,.png,.pdf | 10MB | 3"
+                },
+                {
+                  "id": "f_parts_total",
+                  "fieldname": "parts_total",
+                  "fieldtype": "Float",
+                  "label": "Parts Total",
+                  "read_only": true,
+                  "default": 0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sec_parts",
+          "label": "Replaced Parts",
+          "columns_count": 1,
+          "columns": [
+            {
+              "id": "col_parts",
+              "fields": [
+                {
+                  "id": "f_parts_used",
+                  "fieldname": "parts_used",
+                  "fieldtype": "Table",
+                  "label": "Parts Used",
+                  "table_fields": [
+                    {
+                      "id": "col_part_name",
+                      "fieldname": "part_name",
+                      "fieldtype": "Data",
+                      "label": "Part Name",
+                      "mandatory": true
+                    },
+                    {
+                      "id": "col_part_qty",
+                      "fieldname": "qty",
+                      "fieldtype": "Int",
+                      "label": "Qty",
+                      "mandatory": true,
+                      "default": 1
+                    },
+                    {
+                      "id": "col_part_rate",
+                      "fieldname": "rate",
+                      "fieldtype": "Float",
+                      "label": "Rate",
+                      "mandatory": true,
+                      "default": 0
+                    },
+                    {
+                      "id": "col_part_attach",
+                      "fieldname": "evidence",
+                      "fieldtype": "Attach",
+                      "label": "Evidence",
+                      "options": ".jpg,.png,.pdf | 5MB | 1"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "step_signoff",
+      "title": "Sign-Off",
+      "description": "Capture final acceptance and signatures.",
+      "sections": [
+        {
+          "id": "sec_signoff",
+          "label": "Customer Confirmation",
+          "columns_count": 2,
+          "columns": [
+            {
+              "id": "col_signoff_left",
+              "fields": [
+                {
+                  "id": "f_resolution_status",
+                  "fieldname": "resolution_status",
+                  "fieldtype": "Select",
+                  "label": "Resolution Status",
+                  "options": "Resolved\nPartially Resolved\nEscalated",
+                  "default": "Resolved",
+                  "mandatory": true
+                },
+                {
+                  "id": "f_customer_feedback",
+                  "fieldname": "customer_feedback",
+                  "fieldtype": "Text",
+                  "label": "Customer Feedback"
+                },
+                {
+                  "id": "f_customer_signature",
+                  "fieldname": "customer_signature",
+                  "fieldtype": "Signature",
+                  "label": "Customer Signature"
+                }
+              ]
+            },
+            {
+              "id": "col_signoff_right",
+              "fields": [
+                {
+                  "id": "f_engineer_signature",
+                  "fieldname": "engineer_signature",
+                  "fieldtype": "Signature",
+                  "label": "Engineer Signature",
+                  "mandatory": true
+                },
+                {
+                  "id": "f_follow_up_required",
+                  "fieldname": "follow_up_required",
+                  "fieldtype": "Check",
+                  "label": "Follow-Up Required"
+                },
+                {
+                  "id": "f_follow_up_reason",
+                  "fieldname": "follow_up_reason",
+                  "fieldtype": "Text",
+                  "label": "Follow-Up Reason",
+                  "depends_on": "doc.follow_up_required"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "client_script": "frm.on('refresh', (_val, frm) => {\n  const role = frm.metadata?.currentUser?.role;\n  if (role === 'Supervisor') {\n    frm.set_intro('Supervisor review mode: verify diagnostics, parts cost, and sign-off details before approval.', 'orange');\n  }\n});\n\nfrm.on('service_type', (val, frm) => {\n  frm.set_filter('equipment', { service_type: val });\n  frm.refresh_link('equipment');\n});\n\nfrm.on('outage_severity', (val, frm) => {\n  const isCritical = val === 'Critical';\n  frm.set_df_property('restored_at', 'reqd', isCritical);\n  frm.set_df_property('before_media', 'reqd', isCritical);\n  frm.set_df_property('after_media', 'reqd', isCritical);\n});\n\nfrm.on('parts_used', (rows, frm) => {\n  const total = (rows || []).reduce((sum, row) => {\n    return sum + ((Number(row.qty) || 0) * (Number(row.rate) || 0));\n  }, 0);\n  frm.set_value('parts_total', total);\n});\n\nfrm.on('resolution_status', (val, frm) => {\n  const escalated = val === 'Escalated';\n  frm.set_df_property('follow_up_required', 'read_only', escalated);\n  if (escalated) {\n    frm.set_value('follow_up_required', 1);\n    frm.set_df_property('follow_up_reason', 'reqd', true);\n  }\n});",
+  "actions": {
+    "submit": {
+      "label": "Complete Work Order",
+      "visible": true
+    }
+  }
+}

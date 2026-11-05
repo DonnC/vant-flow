@@ -37,6 +37,13 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
   },
   imports: [CommonModule, FormsModule, QuillModule, VfUiPrimitivesModule, VfIconButton],
   template: `
+    <ng-template #mediaWarning let-message>
+      @if (message) {
+        <span class="vf-media-warning" tabindex="0" role="img" [attr.aria-label]="message" [attr.title]="message" (click)="$event.stopPropagation()">
+          !<span class="vf-media-warning-tooltip" role="tooltip">{{ message }}</span>
+        </span>
+      }
+    </ng-template>
     <div class="field-group transition-all duration-200" [class.ui-field-error]="!validate() && (value || submitted)" [class.compact]="compact">
       @if (shouldShowLabel) {
         <label class="flex items-center justify-between mb-1.5 px-0.5">
@@ -44,6 +51,11 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
             {{ label }}
             @if (isMandatory) {
               <span class="text-red-500 font-bold">*</span>
+            }
+            @if (field.fieldtype === 'Signature') {
+              <ng-container *ngTemplateOutlet="mediaWarning; context: { $implicit: signatureMediaIssue }"></ng-container>
+            } @else if (field.fieldtype === 'Attach') {
+              <ng-container *ngTemplateOutlet="mediaWarning; context: { $implicit: mediaUploadError }"></ng-container>
             }
           </span>
         </label>
@@ -379,7 +391,9 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
             @if (compact) {
               <div class="flex items-center gap-1.5 py-1 px-2 rounded bg-zinc-50 border border-zinc-200 w-fit cursor-pointer"
                    (click)="onInputClick($event)">
-                @if (value) {
+                @if (signatureMediaIssue) {
+                  <ng-container *ngTemplateOutlet="mediaWarning; context: { $implicit: signatureMediaIssue }"></ng-container>
+                } @else if (value) {
                   <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                   <span class="text-[10px] font-bold text-zinc-600 uppercase tracking-tighter">Signed</span>
                 } @else {
@@ -406,7 +420,10 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                     </div>
                   }
   
-                  @if (value && !isDrawing) {
+                  @if (!shouldShowLabel && signatureMediaIssue) {
+                    <div class="absolute top-2 left-2"><ng-container *ngTemplateOutlet="mediaWarning; context: { $implicit: signatureMediaIssue }"></ng-container></div>
+                  }
+                  @if (value && !isDrawing && !disabled) {
                     <div class="absolute top-2 right-2 flex gap-1.5 opacity-0 group-sig:opacity-100 group-hover/sig:opacity-100 transition-opacity">
                       <vf-icon-button (pressed)="clearSignature()" 
                         class="bg-white shadow-sm border border-zinc-200"
@@ -416,7 +433,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                     </div>
                   }
                 </div>
-                @if (value) {
+                @if (value && signatureMediaReady && !signatureMediaIssue) {
                   <div class="flex items-center gap-2 px-1">
                     <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
                     <span class="text-[10px] text-emerald-600 font-bold tracking-tight uppercase">Signature Captured</span>
@@ -429,6 +446,7 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
             @if (compact) {
               <div class="flex items-center gap-1.5 py-1 px-2 rounded bg-zinc-50 border border-zinc-200 w-fit cursor-pointer"
                    (click)="onInputClick($event)">
+                <ng-container *ngTemplateOutlet="mediaWarning; context: { $implicit: attachmentMediaIssue }"></ng-container>
                 @if (attachments.length > 0) {
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="text-indigo-600"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
                   <span class="text-[10px] font-bold text-zinc-600">{{ attachments.length }} {{ attachments.length === 1 ? 'file' : 'files' }}</span>
@@ -509,19 +527,24 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
                 <!-- File List -->
                 @if (attachments.length > 0) {
                   <div class="space-y-2">
-                    @for (file of attachments; track file.name; let i = $index) {
+                    @for (file of attachments; track file; let i = $index) {
                       <div class="flex items-center justify-between p-2.5 bg-white border border-zinc-100 rounded-lg group/file hover:border-zinc-200 transition-all shadow-sm">
                         <div class="flex items-center gap-3 min-w-0">
                           <!-- Preview Icon -->
                           <div class="w-9 h-9 rounded-md bg-zinc-50 flex items-center justify-center shrink-0 overflow-hidden">
-                            @if (isImage(file.type)) {
-                              <img [src]="getMediaUrl(file)" class="w-full h-full object-cover">
+                            @if (isImage(file.type) && !mediaIssue(file)) {
+                              @if (getMediaUrl(file); as mediaUrl) {
+                                <img [src]="mediaUrl" [alt]="file.name || 'Attachment'" class="w-full h-full object-cover" (error)="markMediaUnavailable(file, 'Image preview unavailable')">
+                              }
                             } @else {
                               <svg class="text-zinc-400" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                             }
                           </div>
                           <div class="min-w-0">
-                            <p class="text-[12px] font-bold text-zinc-700 truncate leading-none mb-1">{{ file.name }}</p>
+                            <div class="flex items-center gap-1.5 mb-1">
+                              <p class="text-[12px] font-bold text-zinc-700 truncate leading-none">{{ file.name }}</p>
+                              <ng-container *ngTemplateOutlet="mediaWarning; context: { $implicit: mediaIssue(file) }"></ng-container>
+                            </div>
                             <p class="text-[10px] text-zinc-400 font-medium tracking-tight uppercase">{{ getFileSize(file.size) }}</p>
                           </div>
                         </div>
@@ -595,6 +618,10 @@ Quill.register({ 'modules/table-better': QuillTableBetter }, true);
     </div>
   `,
   styles: [`
+    .vf-media-warning { position:relative; display:inline-flex; flex-shrink:0; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; background:#fff7ed; color:#c2410c; border:1px solid #fdba74; font:bold 10px/1 sans-serif; cursor:help; }
+    .vf-media-warning:focus-visible { outline:2px solid #fb923c; outline-offset:2px; }
+    .vf-media-warning-tooltip { display:none; position:absolute; z-index:30; top:calc(100% + 5px); left:0; width:max-content; max-width:220px; padding:5px 8px; border-radius:5px; background:#292524; color:#fff; font:normal 11px/1.4 sans-serif; white-space:normal; }
+    .vf-media-warning:hover .vf-media-warning-tooltip, .vf-media-warning:focus .vf-media-warning-tooltip { display:block; }
     .ui-input, .ui-textarea, .ui-select {
       @apply w-full transition-all duration-300;
       border-radius: 0.75rem;
@@ -990,6 +1017,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   ngDoCheck() {
+    this.syncMediaState();
     if (['Url', 'Link'].includes(this.field.fieldtype) && !this.showLinkDropdown) {
       this.syncLinkInputWithValue();
     }
@@ -1318,8 +1346,59 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     return key.replace(/[_\.]+/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
   }
 
-  private mediaUrlCache = new Map<string, string>();
-  private mediaUrlInflight = new Map<string, Promise<string>>();
+  private mediaUrlCache = new Map<any, string>();
+  private mediaUrlInflight = new Map<any, Promise<string>>();
+  private mediaIssues = new Map<any, string>();
+  private lastMediaValue: any;
+  private lastMediaResolver?: VfMediaResolver;
+  private mediaGeneration = 0;
+  private mediaViewReady = false;
+  mediaUploadError = '';
+  signatureMediaReady = false;
+
+  mediaIssue(value: any): string {
+    return this.mediaIssues.get(value) || '';
+  }
+
+  get signatureMediaIssue(): string {
+    return this.mediaUploadError || this.mediaIssue(this.value);
+  }
+
+  get attachmentMediaIssue(): string {
+    return this.mediaUploadError || this.attachments.map(file => this.mediaIssue(file)).find(Boolean) || '';
+  }
+
+  markMediaUnavailable(value: any, message: string) {
+    if (this.mediaIssues.get(value) === message) return;
+    this.mediaIssues.set(value, message);
+    this.mediaUrlCache.delete(value);
+    if (this.field.fieldtype === 'Signature') this.signatureMediaReady = false;
+    this.cdr.markForCheck();
+  }
+
+  private syncMediaState() {
+    if (!['Attach', 'Signature'].includes(this.field.fieldtype)) return;
+    if (this.lastMediaValue !== this.value || this.lastMediaResolver !== this.mediaResolver) {
+      this.lastMediaValue = this.value;
+      this.lastMediaResolver = this.mediaResolver;
+      this.mediaGeneration++;
+      this.mediaIssues.clear();
+      this.mediaUrlCache.clear();
+      this.mediaUrlInflight.clear();
+      this.signatureMediaReady = false;
+      if (this.mediaViewReady && this.field.fieldtype === 'Signature') void this.renderSignatureValue(this.value);
+    }
+    if (this.field.fieldtype === 'Attach') {
+      for (const file of this.attachments) {
+        // Let the host resolve opaque metadata instead of interpreting its storage contract here.
+        if (!this.getDirectMediaUrl(file) && (this.isImage(file?.type) || !file?.fileId)) {
+          void this.resolveMediaUrl(file, 'preview');
+        } else if (!this.getDirectMediaUrl(file) && !this.mediaResolver) {
+          this.markMediaUnavailable(file, 'File resolver unavailable');
+        }
+      }
+    }
+  }
 
   // ── Signature Logic ──────────────────────────────────────────
   isDrawing = false;
@@ -1327,8 +1406,11 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   private ctx2d?: CanvasRenderingContext2D;
 
   ngAfterViewInit() {
+    this.mediaViewReady = true;
     if (this.canvasRef) {
       this.initCanvas();
+    } else if (this.field.fieldtype === 'Signature' && this.value) {
+      void this.renderSignatureValue(this.value);
     }
   }
 
@@ -1378,6 +1460,10 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   }
 
   clearSignature() {
+    if (this.disabled) return;
+    this.mediaGeneration++;
+    this.mediaUploadError = '';
+    this.signatureMediaReady = false;
     const canvas = this.canvasRef?.nativeElement;
     if (canvas && this.ctx2d) {
       this.ctx2d.clearRect(0, 0, canvas.width, canvas.height);
@@ -1395,6 +1481,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
       }
 
       this.isProcessingMedia = true;
+      this.mediaUploadError = '';
       try {
         const blob = await this.canvasToBlob(canvas);
       const result = await this.mediaHandler({
@@ -1410,11 +1497,15 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
         frm: this.ctx!
       });
 
-        this.onValueChange(result ?? '');
+        if (!result) throw new Error('Signature upload did not return a stored file');
+        this.signatureMediaReady = true;
+        this.onValueChange(result);
       } catch (error) {
+        this.mediaUploadError = 'Signature upload failed';
         this.handleMediaError(error, 'Failed to process signature');
       } finally {
         this.isProcessingMedia = false;
+        this.cdr.markForCheck();
       }
     }
   }
@@ -1629,7 +1720,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
   async downloadFile(file: any) {
     const targetUrl = await this.resolveMediaUrl(file, 'download');
     if (!targetUrl) {
-      this.ctx?.msgprint('No downloadable URL is available for this file.', 'warning');
+      this.markMediaUnavailable(file, 'File unavailable');
       return;
     }
     const opened = window.open(targetUrl, '_blank', 'noopener,noreferrer');
@@ -1662,6 +1753,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
 
   getMediaUrl(value: any): string {
     if (!value) return '';
+    if (this.mediaIssue(value)) return '';
     const directUrl = this.getDirectMediaUrl(value);
     if (directUrl) return directUrl;
 
@@ -1680,16 +1772,25 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     return value.url || value.downloadUrl || '';
   }
 
-  private getMediaCacheKey(value: any): string | null {
-    if (!value) return null;
-    if (typeof value === 'string') return value;
-    return value.fileId || value.downloadUrl || value.url || value.name || null;
+  private getMediaCacheKey(value: any): any {
+    return value || null;
   }
 
   private async resolveMediaUrl(value: any, action: 'preview' | 'download'): Promise<string> {
+    if (!value) return '';
+    const generation = this.mediaGeneration;
+    const failed = !!this.mediaIssue(value);
+    if (failed && action === 'preview') return '';
+    if (failed) {
+      this.mediaIssues.delete(value);
+      this.mediaUrlCache.delete(value);
+    }
     const directUrl = this.getDirectMediaUrl(value);
-    if (directUrl) return directUrl;
-    if (!value || !this.mediaResolver) return '';
+    if (directUrl && !(failed && this.mediaResolver)) return directUrl;
+    if (!this.mediaResolver) {
+      if (!directUrl) this.markMediaUnavailable(value, 'File reference unavailable');
+      return directUrl;
+    }
 
     const cacheKey = this.getMediaCacheKey(value);
     if (cacheKey && this.mediaUrlCache.has(cacheKey)) {
@@ -1701,6 +1802,8 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
 
     const pending = (async () => {
       try {
+        await Promise.resolve();
+        if (generation !== this.mediaGeneration) return '';
         const result = await this.mediaResolver!(value, {
           field: this.field,
           fieldname: this.field.fieldname,
@@ -1712,15 +1815,19 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
         });
 
         const resolvedUrl = typeof result === 'string' ? result : this.getDirectMediaUrl(result);
+        if (generation !== this.mediaGeneration) return '';
         if (cacheKey && resolvedUrl) {
           this.mediaUrlCache.set(cacheKey, resolvedUrl);
+        } else {
+          this.markMediaUnavailable(value, 'File reference unavailable');
         }
         return resolvedUrl || '';
       } catch (error) {
-        this.handleMediaError(error, 'Failed to resolve media URL');
+        if (generation === this.mediaGeneration) this.markMediaUnavailable(value, 'File could not be loaded');
         return '';
       } finally {
-        if (cacheKey) this.mediaUrlInflight.delete(cacheKey);
+        if (cacheKey && generation === this.mediaGeneration) this.mediaUrlInflight.delete(cacheKey);
+        this.cdr.markForCheck();
       }
     })();
 
@@ -1730,15 +1837,29 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
 
   private async renderSignatureValue(value: any) {
     const canvas = this.canvasRef?.nativeElement;
-    if (!canvas || !this.ctx2d || !value) return;
+    const generation = this.mediaGeneration;
+    this.signatureMediaReady = false;
+    if (canvas && this.ctx2d) this.ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+    if (!value) return;
+    await Promise.resolve();
+    if (generation !== this.mediaGeneration) return;
 
     const src = await this.resolveMediaUrl(value, 'preview');
-    if (!src) return;
+    if (!src || generation !== this.mediaGeneration) return;
 
     const img = new Image();
     img.onload = () => {
-      this.ctx2d?.clearRect(0, 0, canvas.width, canvas.height);
-      this.ctx2d?.drawImage(img, 0, 0);
+      if (generation !== this.mediaGeneration) return;
+      if (canvas && this.ctx2d) {
+        this.ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+        this.ctx2d.drawImage(img, 0, 0, canvas.width, canvas.height);
+      }
+      this.signatureMediaReady = true;
+      this.mediaIssues.delete(value);
+      this.cdr.markForCheck();
+    };
+    img.onerror = () => {
+      if (generation === this.mediaGeneration) this.markMediaUnavailable(value, 'Signature image unavailable');
     };
     img.src = src;
   }
@@ -1765,6 +1886,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
     }
 
     this.isProcessingMedia = true;
+    this.mediaUploadError = '';
     try {
       const result = await this.mediaHandler({
         fieldtype: 'Attach',
@@ -1778,7 +1900,7 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
         frm: this.ctx!
       });
 
-      if (!result) return null;
+      if (!result) throw new Error('File upload did not return a stored file');
       if (typeof result === 'string') {
         return {
           name: file.name,
@@ -1798,10 +1920,12 @@ export class VfField implements AfterViewInit, OnInit, DoCheck {
         downloadUrl: result.downloadUrl
       };
     } catch (error) {
+      this.mediaUploadError = 'File upload failed';
       this.handleMediaError(error, `Failed to process file ${file.name}`);
       return null;
     } finally {
       this.isProcessingMedia = false;
+      this.cdr.markForCheck();
     }
   }
 
